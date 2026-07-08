@@ -96,7 +96,7 @@ const renderMarkdown = (source) => {
                     const title = stripHtml(text || token.text)
                     toc.push({ id, title, level: token.depth, sourceLine: token.sourceLine })
 
-                    return `<h${token.depth} id="${escapeHtml(id)}"${getSourceLineAttr(token)}><a class="heading-anchor" href="#${escapeHtml(id)}" aria-hidden="true">#</a>${text}</h${token.depth}>`
+                    return `<h${token.depth} id="${escapeHtml(id)}"${getSourceLineAttr(token)}>${text}</h${token.depth}>`
                 },
 
                 paragraph(token) {

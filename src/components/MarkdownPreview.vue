@@ -14,7 +14,6 @@
                 ref="contentRef"
                 class="preview-content"
                 v-html="html"
-                @click="handlePreviewClick"
                 @scroll="$emit('scroll')"
             />
 
@@ -98,18 +97,6 @@ const scrollToHeading = (id, options = {}) => {
 }
 
 const handleTocSelect = (id) => {
-    scrollToHeading(id)
-    emit('select-heading', id)
-}
-
-const handlePreviewClick = (event) => {
-    const anchor = event.target.closest?.('.heading-anchor')
-    if (!anchor) return
-
-    const id = anchor.getAttribute('href')?.replace(/^#/, '')
-    if (!id) return
-
-    event.preventDefault()
     scrollToHeading(id)
     emit('select-heading', id)
 }
@@ -222,23 +209,6 @@ defineExpose({
     margin: 14px 0 6px;
     color: #1f2937;
     font-weight: 680;
-}
-
-.preview-content :deep(.heading-anchor) {
-    margin-right: 8px;
-    color: var(--color-accent);
-    text-decoration: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.preview-content :deep(h1:hover .heading-anchor),
-.preview-content :deep(h2:hover .heading-anchor),
-.preview-content :deep(h3:hover .heading-anchor),
-.preview-content :deep(h4:hover .heading-anchor),
-.preview-content :deep(h5:hover .heading-anchor),
-.preview-content :deep(h6:hover .heading-anchor) {
-    opacity: 1;
 }
 
 .preview-content :deep(p) {
