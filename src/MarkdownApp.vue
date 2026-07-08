@@ -61,6 +61,7 @@ let hashScrollRunId = 0
 let hashRetryTimer = null
 let selectedHeadingLockTimer = null
 const selectedHeadingLockId = ref('')
+const ACTIVE_HEADING_OFFSET = 4
 
 const {
     files,
@@ -106,7 +107,20 @@ const getHeadingTopInPreview = (preview, element) => (
     element.getBoundingClientRect().top - preview.getBoundingClientRect().top
 )
 
-const updateActiveHeading = () => {
+const isPreviewScrolledToEnd = (preview) => {
+    const maxScrollTop = Math.max(0, preview.scrollHeight - preview.clientHeight)
+
+    return maxScrollTop > ACTIVE_HEADING_OFFSET
+        && maxScrollTop - preview.scrollTop <= ACTIVE_HEADING_OFFSET
+}
+
+const isHeadingVisibleInPreview = (preview, element) => {
+    const top = getHeadingTopInPreview(preview, element)
+
+    return top >= 0 && top <= preview.clientHeight
+}
+
+const updateActiveHeading = (preferredId = '') => {
     if (selectedHeadingLockId.value) {
         activeHeadingId.value = selectedHeadingLockId.value
         return
@@ -130,11 +144,21 @@ const updateActiveHeading = () => {
         return
     }
 
-    const activationOffset = 4
+    if (isPreviewScrolledToEnd(preview)) {
+        const preferredHeading = preferredId
+            ? headings.find((heading) => heading.id === preferredId)
+            : null
+
+        activeHeadingId.value = preferredHeading && isHeadingVisibleInPreview(preview, preferredHeading.element)
+            ? preferredHeading.id
+            : headings[headings.length - 1].id
+        return
+    }
+
     let current = headings[0]
 
     for (const heading of headings) {
-        if (getHeadingTopInPreview(preview, heading.element) <= activationOffset) {
+        if (getHeadingTopInPreview(preview, heading.element) <= ACTIVE_HEADING_OFFSET) {
             current = heading
         } else {
             break
@@ -194,7 +218,7 @@ const selectHeading = (id) => {
 
     selectedHeadingLockTimer = setTimeout(() => {
         selectedHeadingLockId.value = ''
-        updateActiveHeading()
+        updateActiveHeading(id)
     }, 700)
 }
 
