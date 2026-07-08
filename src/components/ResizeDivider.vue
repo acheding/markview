@@ -49,7 +49,7 @@ defineEmits(['resize-start'])
 
 .divider:hover::before,
 .divider.is-active::before {
-    background: var(--color-accent);
+    /* background: var(--color-accent); */
     box-shadow: 0 0 0 2px rgb(15 118 110 / 10%);
 }
 

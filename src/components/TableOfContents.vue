@@ -46,7 +46,6 @@ defineEmits(['select'])
     max-width: 360px;
     padding: 14px 10px;
     overflow-y: auto;
-    border-left: 1px solid var(--color-border-soft);
     background: #fbfdff;
     color: var(--color-muted);
 }
