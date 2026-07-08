@@ -14,8 +14,23 @@
                 <button class="editor-action-button" type="button" title="清空内容" aria-label="清空内容" @click="$emit('clear')">
                     <span class="editor-action-icon" :style="{ '--icon-url': `url(${clearContentIcon})` }" aria-hidden="true" />
                 </button>
+                <button class="editor-action-button" type="button" title="导入 Markdown" aria-label="导入 Markdown" @click="triggerImport">
+                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${importFileIcon})` }" aria-hidden="true" />
+                </button>
+                <button class="editor-action-button" type="button" title="导出当前 Markdown" aria-label="导出当前 Markdown" @click="$emit('export-file')">
+                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${exportFileIcon})` }" aria-hidden="true" />
+                </button>
             </div>
         </div>
+
+        <input
+            ref="fileInputRef"
+            class="editor-file-input"
+            type="file"
+            accept=".md,.markdown,text/markdown,text/plain"
+            multiple
+            @change="importFiles"
+        >
 
         <textarea
             ref="textareaRef"
@@ -32,6 +47,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import clearContentIcon from '../assets/clear-content.svg'
+import exportFileIcon from '../assets/export-file.svg'
+import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
 import FileSwitcher from './FileSwitcher.vue'
 
@@ -54,12 +71,46 @@ const props = defineProps({
     },
 })
 
-defineEmits(['update:modelValue', 'clear', 'scroll', 'select-file', 'create-file', 'delete-file'])
+const emit = defineEmits([
+    'update:modelValue',
+    'clear',
+    'scroll',
+    'select-file',
+    'create-file',
+    'delete-file',
+    'import-file',
+    'export-file',
+])
 
 const textareaRef = ref(null)
+const fileInputRef = ref(null)
 const normalizedWidth = computed(() => (
     typeof props.width === 'number' ? `${props.width}%` : props.width
 ))
+
+const triggerImport = () => {
+    fileInputRef.value?.click()
+}
+
+const importFiles = async (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    if (!selectedFiles.length) return
+
+    try {
+        for (const file of selectedFiles) {
+            const content = await file.text()
+            emit('import-file', {
+                name: file.name,
+                content,
+            })
+        }
+    } catch (error) {
+        console.warn('Markdown import failed:', error)
+        alert('导入失败，请确认文件可读取。')
+    } finally {
+        event.target.value = ''
+    }
+}
 
 const getLineStartIndex = (value, lineNumber) => {
     if (lineNumber <= 1) return 0
@@ -182,6 +233,10 @@ defineExpose({
 
 .editor-textarea::placeholder {
     color: var(--color-subtle);
+}
+
+.editor-file-input {
+    display: none;
 }
 
 .editor-actions {

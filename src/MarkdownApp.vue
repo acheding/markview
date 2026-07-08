@@ -17,6 +17,8 @@
                 @scroll="handleEditorScroll"
                 @select-file="selectFile"
                 @create-file="createFile"
+                @import-file="importFile"
+                @export-file="exportActiveFile"
                 @delete-file="deleteFile"
             />
 
@@ -65,11 +67,13 @@ const ACTIVE_HEADING_OFFSET = 4
 
 const {
     files,
+    activeFile,
     activeFileId,
     markdownContent,
     saveStatus,
     selectFile,
     createFile,
+    importFile,
     deleteFile,
 } = useMarkdownDocuments()
 const { renderedHtml, toc } = useMarkdownRenderer(markdownContent)
@@ -177,6 +181,35 @@ const { handleEditorScroll, handlePreviewScroll } = useScrollSync({
 const waitForAnimationFrame = () => new Promise((resolve) => {
     requestAnimationFrame(resolve)
 })
+
+const getExportFileName = (name) => {
+    const safeName = String(name || '')
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+    if (!safeName) return 'document.md'
+
+    return /\.(md|markdown)$/i.test(safeName) ? safeName : `${safeName}.md`
+}
+
+const exportActiveFile = () => {
+    const file = activeFile.value
+    if (!file) return
+
+    const blob = new Blob([file.content || ''], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = url
+    link.download = getExportFileName(file.name)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => {
+        URL.revokeObjectURL(url)
+    }, 0)
+}
 
 const scrollToHashHeading = async () => {
     const id = getHashHeadingId()

@@ -33,6 +33,19 @@ const normalizeFileName = (value) => {
     return safeName ? `${safeName}.md` : DEFAULT_DOCUMENT_NAME
 }
 
+const normalizeImportedFileName = (value, content) => {
+    const rawName = String(value || '').split(/[\\/]/).pop()
+    const safeName = rawName
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80)
+
+    if (!safeName) return deriveDocumentName(content)
+
+    return /\.(md|markdown)$/i.test(safeName) ? safeName : `${safeName}.md`
+}
+
 const deriveDocumentName = (content) => {
     const headings = Array.from(content.matchAll(/^(#{1,6})\s+(.+?)\s*#*\s*$/gm))
         .map((match) => ({
@@ -112,7 +125,7 @@ const normalizeState = (state) => {
             const content = String(file.content || '')
             files.push({
                 id: file.id,
-                name: createUniqueName(files, deriveDocumentName(content)),
+                name: createUniqueName(files, normalizeImportedFileName(file.name, content)),
                 content,
                 updatedAt: Number(file.updatedAt || Date.now()),
             })
@@ -182,6 +195,16 @@ export const useMarkdownDocuments = () => {
         state.value.activeId = file.id
     }
 
+    const importFile = ({ name = '', content = '' } = {}) => {
+        const file = createDocument(String(content || ''))
+        file.name = createUniqueName(
+            files.value,
+            normalizeImportedFileName(name, file.content),
+        )
+        state.value.files.push(file)
+        state.value.activeId = file.id
+    }
+
     const deleteFile = (id) => {
         const index = state.value.files.findIndex((file) => file.id === id)
         if (index === -1) return
@@ -228,6 +251,7 @@ export const useMarkdownDocuments = () => {
         saveStatus,
         selectFile,
         createFile,
+        importFile,
         deleteFile,
     }
 }
