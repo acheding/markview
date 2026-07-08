@@ -5,6 +5,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [vue()],
     base: loadEnv(mode, process.cwd()).VITE_APP_PATH,
+    build: {
+        assetsInlineLimit: 0,
+      },
     server: {
       port: 3001,
       open: false,
