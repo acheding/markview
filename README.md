@@ -1,11 +1,12 @@
 # MarkView
 
-一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。MarkView 提供左右分栏编辑、实时渲染、目录导航、多文档管理、滚动同步和代码高亮，适合用来快速编写说明文档、笔记、博客草稿或 README。
+一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。MarkView 提供左右分栏编辑、实时渲染、目录导航、多文档管理、全文搜索、滚动同步和代码高亮，适合用来快速编写说明文档、笔记、博客草稿或 README。
 
 ## 功能特性
 
 - 实时预览：左侧输入 Markdown，右侧即时渲染结果。
 - 多文档工作区：支持新建、切换、删除多个本地文档。
+- 全文搜索：支持按文件名和正文内容跨文档搜索，并可通过 `Ctrl + K` 快速唤起。
 - 自动保存：文档内容会自动保存到浏览器 `localStorage`。
 - 智能命名：根据文档标题或正文内容自动生成 `.md` 文件名。
 - 目录导航：根据标题自动生成目录，并支持点击跳转。
@@ -62,6 +63,13 @@ pnpm check
 ├── src/
 │   ├── assets/              # 图标和图片资源
 │   ├── components/          # 页面组件
+│   │   ├── AppToolbar.vue
+│   │   ├── DocumentSearch.vue
+│   │   ├── FileSwitcher.vue
+│   │   ├── MarkdownEditor.vue
+│   │   ├── MarkdownPreview.vue
+│   │   ├── ResizeDivider.vue
+│   │   └── TableOfContents.vue
 │   ├── composables/         # 组合式逻辑
 │   ├── constants/           # 编辑器常量
 │   ├── utils/               # 通用工具函数
