@@ -8,7 +8,7 @@
                 @delete-file="$emit('delete-file', $event)"
             />
             <div class="editor-actions">
-                <button class="editor-action-button" type="button" title="新建文件" aria-label="新建文件" @click="$emit('create-file')">
+                <button class="editor-action-button" type="button" title="新建文档" aria-label="新建文档" @click="$emit('create-file')">
                     <span class="editor-action-icon" :style="{ '--icon-url': `url(${newFileIcon})` }" aria-hidden="true" />
                 </button>
                 <button class="editor-action-button" type="button" title="清空内容" aria-label="清空内容" @click="$emit('clear')">

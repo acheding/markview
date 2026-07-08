@@ -1,6 +1,6 @@
 export const LEGACY_STORAGE_KEY = 'markdown-preview-content'
 export const DOCUMENTS_STORAGE_KEY = 'markdown-preview-documents'
-export const DEFAULT_DOCUMENT_NAME = '示例文档.md'
+export const DEFAULT_DOCUMENT_NAME = '新文档.md'
 
 export const DEFAULT_CONTENT = `# 欢迎使用 Markdown 实时预览工具
 
