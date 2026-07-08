@@ -1,6 +1,10 @@
 <template>
     <div class="app-shell">
-        <AppToolbar />
+        <AppToolbar
+            :files="files"
+            :active-file-id="activeFileId"
+            @select-search-result="selectSearchResult"
+        />
 
         <main ref="mainPanelRef" class="main-panel" :style="{ '--toc-width': tocWidthStyle }">
             <MarkdownEditor
@@ -200,6 +204,18 @@ const clearContent = async () => {
     markdownContent.value = ''
     await nextTick()
     editorRef.value?.focus()
+}
+
+const selectSearchResult = async ({ fileId, lineNumber }) => {
+    selectFile(fileId)
+    await nextTick()
+
+    if (lineNumber) {
+        editorRef.value?.focusLine(lineNumber)
+        previewRef.value?.scrollToSourceLine(lineNumber)
+    } else {
+        editorRef.value?.focus()
+    }
 }
 
 const handleKeydown = (event) => {

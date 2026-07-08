@@ -61,8 +61,92 @@ const normalizedWidth = computed(() => (
     typeof props.width === 'number' ? `${props.width}%` : props.width
 ))
 
+const getLineStartIndex = (value, lineNumber) => {
+    if (lineNumber <= 1) return 0
+
+    let line = 1
+    let index = 0
+
+    while (line < lineNumber) {
+        const nextIndex = value.indexOf('\n', index)
+        if (nextIndex < 0) return value.length
+
+        index = nextIndex + 1
+        line += 1
+    }
+
+    return index
+}
+
+const getRenderedLineTop = (textarea, value, start) => {
+    const computedStyle = getComputedStyle(textarea)
+    const mirror = document.createElement('div')
+    const marker = document.createElement('span')
+    const copiedProperties = [
+        'border',
+        'boxSizing',
+        'fontFamily',
+        'fontSize',
+        'fontWeight',
+        'letterSpacing',
+        'lineHeight',
+        'padding',
+        'tabSize',
+        'textTransform',
+        'width',
+        'wordBreak',
+        'wordSpacing',
+    ]
+
+    copiedProperties.forEach((property) => {
+        mirror.style[property] = computedStyle[property]
+    })
+
+    mirror.style.position = 'absolute'
+    mirror.style.left = '-9999px'
+    mirror.style.top = '0'
+    mirror.style.height = 'auto'
+    mirror.style.overflow = 'hidden'
+    mirror.style.overflowWrap = 'break-word'
+    mirror.style.visibility = 'hidden'
+    mirror.style.whiteSpace = 'pre-wrap'
+    mirror.style.width = `${textarea.clientWidth}px`
+    mirror.textContent = value.slice(0, start) || '\u200b'
+    marker.textContent = '\u200b'
+    mirror.appendChild(marker)
+    document.body.appendChild(mirror)
+
+    const top = marker.offsetTop
+    document.body.removeChild(mirror)
+
+    return top
+}
+
+const focusLine = (lineNumber) => {
+    const textarea = textareaRef.value
+    if (!textarea) return
+
+    const line = Math.max(1, Number(lineNumber) || 1)
+    const value = textarea.value
+    const start = getLineStartIndex(value, line)
+    const nextLineIndex = value.indexOf('\n', start)
+    const end = nextLineIndex < 0 ? value.length : nextLineIndex
+    const renderedTop = getRenderedLineTop(textarea, value, start)
+
+    textarea.focus()
+    textarea.setSelectionRange(start, end)
+
+    requestAnimationFrame(() => {
+        textarea.scrollTo({
+            top: Math.max(0, renderedTop - textarea.clientHeight * 0.36),
+            behavior: 'smooth',
+        })
+    })
+}
+
 defineExpose({
     focus: () => textareaRef.value?.focus(),
+    focusLine,
     getScrollElement: () => textareaRef.value,
 })
 </script>

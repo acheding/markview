@@ -7,17 +7,41 @@
         <span class="toolbar__subtitle">本地 Markdown 多文档工作台</span>
       </span>
     </div>
+
+    <DocumentSearch
+      :files="files"
+      :active-file-id="activeFileId"
+      @select="$emit('select-search-result', $event)"
+    />
   </header>
 </template>
 
-<script setup></script>
+<script setup>
+import DocumentSearch from './DocumentSearch.vue'
+
+defineProps({
+  files: {
+    type: Array,
+    default: () => [],
+  },
+  activeFileId: {
+    type: String,
+    default: '',
+  },
+})
+
+defineEmits(['select-search-result'])
+</script>
 
 <style scoped>
 .toolbar {
+  position: relative;
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 58px;
+  gap: 18px;
   padding: 0 22px;
   background: rgb(255 255 255 / 86%);
   border-bottom: 1px solid var(--color-border-soft);

@@ -79,9 +79,8 @@ const normalizedWidth = computed(() => (
     typeof props.width === 'number' ? `${props.width}%` : props.width
 ))
 
-const scrollToHeading = (id, options = {}) => {
+const scrollToElement = (target, options = {}) => {
     const content = contentRef.value
-    const target = content?.querySelector(`#${CSS.escape(id)}`)
     if (!content || !target) return false
 
     const contentRect = content.getBoundingClientRect()
@@ -96,6 +95,40 @@ const scrollToHeading = (id, options = {}) => {
     return true
 }
 
+const scrollToHeading = (id, options = {}) => {
+    const content = contentRef.value
+    const target = content?.querySelector(`#${CSS.escape(id)}`)
+
+    return scrollToElement(target, options)
+}
+
+const scrollToSourceLine = (lineNumber, options = {}) => {
+    const content = contentRef.value
+    const line = Number(lineNumber)
+    if (!content || !Number.isFinite(line)) return false
+
+    const sourceElements = Array.from(content.querySelectorAll('[data-source-line]'))
+        .map((element) => ({
+            element,
+            line: Number(element.dataset.sourceLine),
+        }))
+        .filter((item) => Number.isFinite(item.line))
+
+    if (!sourceElements.length) return false
+
+    let target = sourceElements[0].element
+
+    for (const item of sourceElements) {
+        if (item.line <= line) {
+            target = item.element
+        } else {
+            break
+        }
+    }
+
+    return scrollToElement(target, options)
+}
+
 const handleTocSelect = (id) => {
     scrollToHeading(id)
     emit('select-heading', id)
@@ -104,6 +137,7 @@ const handleTocSelect = (id) => {
 defineExpose({
     getScrollElement: () => contentRef.value,
     scrollToHeading,
+    scrollToSourceLine,
 })
 </script>
 
