@@ -1,0 +1,210 @@
+# 用 Vue 3 + Vite 打造一个本地 Markdown 实时预览工具
+
+> 项目名称：MarkView  
+> 源码地址：https://gitee.com/acheding/markview  
+> 在线体验：https://zhang.beer/markview
+
+## 前言
+
+Markdown 是开发者最常使用的写作格式之一。无论是 README、技术博客草稿、接口说明，还是日常笔记，Markdown 都足够轻量，也方便纳入版本管理。
+
+不过在实际写作时，我经常会遇到几个小问题：编辑区和预览区来回切换影响节奏；长文档缺少目录导航；滚动到某个段落后，编辑区和预览区不容易对齐；写多篇草稿时又希望能在浏览器里直接保存和切换。
+
+基于这些需求，我做了一个本地 Markdown 实时预览工具 MarkView。它使用 Vue 3 和 Vite 构建，不依赖后端服务，打开网页就可以完成编辑、预览、多文档管理、目录跳转、滚动同步和自动保存。
+
+## 功能概览
+
+MarkView 的核心功能包括：
+
+- 左右分栏编辑：左侧输入 Markdown，右侧实时渲染预览。
+- 多文档工作区：支持新建、切换、删除多个本地文档。
+- 自动保存：文档内容保存到浏览器 localStorage。
+- 智能命名：根据 Markdown 标题或正文内容生成 `.md` 文件名。
+- 目录导航：根据标题自动生成目录，并支持点击跳转。
+- 标题锚点：预览区标题生成稳定 hash，便于定位和分享。
+- 滚动同步：编辑区与预览区按源码行号联动滚动。
+- 代码高亮：基于 highlight.js 支持常用语言语法高亮。
+- 文档统计：实时显示行数、字数和字符数。
+- 可调布局：编辑区、预览区、目录区宽度都支持拖拽调整。
+- 响应式界面：桌面端左右布局，移动端上下布局。
+
+## 技术栈
+
+这个项目的技术选型很克制，主要由四部分组成：
+
+- Vue 3：负责界面组件、状态响应和组合式逻辑封装。
+- Vite：负责开发服务器、构建和静态资源处理。
+- marked：负责 Markdown 解析。
+- highlight.js：负责代码块语法高亮。
+
+项目没有引入复杂的状态管理库，也没有后端服务。对于一个偏本地化的小工具来说，Vue 的响应式系统、组合式函数和浏览器原生能力已经足够。
+
+## 项目结构
+
+项目结构按照“组件负责界面，composable 负责行为”的思路组织：
+
+```text
+src/
+├─ assets/              # 图标和图片资源
+├─ components/          # 页面组件
+│  ├─ AppToolbar.vue
+│  ├─ FileSwitcher.vue
+│  ├─ MarkdownEditor.vue
+│  ├─ MarkdownPreview.vue
+│  ├─ ResizeDivider.vue
+│  └─ TableOfContents.vue
+├─ composables/         # 组合式逻辑
+│  ├─ useMarkdownDocuments.js
+│  ├─ useMarkdownRenderer.js
+│  ├─ usePaneResize.js
+│  ├─ useScrollSync.js
+│  └─ useTocResize.js
+├─ constants/           # 编辑器常量
+├─ utils/               # 通用工具函数
+├─ MarkdownApp.vue      # 主工作台
+└─ main.js              # 应用入口
+```
+
+主界面 `MarkdownApp.vue` 负责把这些能力组装起来：文档状态来自 `useMarkdownDocuments`，渲染结果来自 `useMarkdownRenderer`，布局拖拽来自 `usePaneResize` 和 `useTocResize`，滚动同步来自 `useScrollSync`。
+
+这种拆法的好处是，每个复杂行为都有清晰边界。比如后续想替换 Markdown 解析器，只需要集中调整 `useMarkdownRenderer`；想优化滚动同步，也不用改编辑器和预览组件的模板。
+
+## Markdown 渲染：从文本到可导航 HTML
+
+Markdown 渲染是整个工具的核心。项目中使用 `marked` 先把 Markdown 文本解析成 token，再通过自定义 renderer 输出 HTML。
+
+这里没有直接使用默认渲染结果，而是在渲染过程中做了几件额外的事：
+
+1. 为标题生成唯一 id。
+2. 收集标题信息，生成右侧目录。
+3. 为标题添加锚点链接。
+4. 为段落、标题、列表、代码块等块级元素标记源码行号。
+5. 对代码块调用 highlight.js 做语法高亮。
+
+标题 id 的生成逻辑也考虑了重复标题。如果文章里出现多个同名标题，会自动追加序号，避免 hash 冲突。例如：
+
+```text
+安装
+安装-1
+安装-2
+```
+
+目录数据则在标题渲染时同步收集：
+
+```js
+toc.push({
+    id,
+    title,
+    level: token.depth,
+    sourceLine: token.sourceLine,
+})
+```
+
+这样预览 HTML 和目录数据都来自同一轮解析，天然保持一致。
+
+## 滚动同步：用源码行号连接编辑区和预览区
+
+Markdown 编辑器的滚动同步并不像普通页面那样简单。原因是 Markdown 源码和渲染后的 HTML 高度并不一一对应：一个代码块、一张图片、一个表格都可能改变视觉高度。
+
+MarkView 的处理方式是：在解析 Markdown token 时，给块级元素记录它在源码中的起始行号，并输出到 HTML 的 `data-source-line` 属性中。
+
+预览区渲染后，就可以拿到这些带行号的块级元素：
+
+```text
+编辑区第 N 行
+    ↓
+找到预览区中最接近 N 行的块级元素
+    ↓
+按相邻块之间的比例计算预览滚动位置
+```
+
+反过来，当用户滚动预览区时，也可以根据当前视口顶部附近的块级元素推算源码行号，再滚动编辑区。
+
+为了避免两个区域互相触发滚动造成循环，`useScrollSync` 里区分了用户滚动和程序滚动，并用短暂的锁定时间释放状态。这让同步过程看起来更自然，不会出现来回抖动。
+
+## 多文档与自动保存
+
+MarkView 不依赖服务端，所有文档数据都保存在浏览器 localStorage 中。
+
+文档状态大致包含：
+
+```js
+{
+    activeId: '当前文档 id',
+    files: [
+        {
+            id: '文档 id',
+            name: '文档名.md',
+            content: 'Markdown 内容',
+            updatedAt: 1720000000000,
+        },
+    ],
+}
+```
+
+每次用户编辑内容时，当前文档会立即更新响应式状态；随后通过 `watch` 做延迟保存，避免每输入一个字符都立刻写入 localStorage。
+
+项目还做了一个小细节：文档名会根据内容自动生成。优先取 Markdown 标题，如果没有标题，就取正文第一段有效内容；如果仍然为空，则使用默认名称。
+
+这让用户在新建多个草稿时，不需要手动管理文件名，也能快速区分每篇内容。
+
+## 可调布局与响应式适配
+
+桌面端的 MarkView 是典型的写作工作台：左侧编辑，中间预览，右侧目录。编辑区和预览区之间有拖拽分隔条，目录区也可以拖拽调整宽度。
+
+布局拖拽主要依赖 pointer 事件：
+
+- pointerdown：进入拖拽状态。
+- pointermove：根据鼠标位置计算新的宽度。
+- pointerup：退出拖拽状态并清理事件。
+
+宽度计算时会限制最小值和最大值，避免用户把某个面板拖到不可用。
+
+在较窄屏幕下，目录会自动隐藏；移动端则切换为上下布局，编辑区和预览区分别占据屏幕上下部分，保证基础编辑体验仍然可用。
+
+## 构建与部署
+
+项目使用 Vite 构建，常用命令如下：
+
+```bash
+pnpm install
+pnpm dev
+pnpm build
+pnpm preview
+```
+
+开发环境默认运行在：
+
+```text
+http://localhost:3001/
+```
+
+生产环境通过 `.env.production` 配置 Vite 的 base 路径：
+
+```env
+VITE_APP_PATH = /markview/
+```
+
+这意味着项目适合部署到类似 Gitee Pages、GitHub Pages 这样的静态站点服务。如果仓库名或部署路径变化，只需要同步修改 `VITE_APP_PATH` 即可。
+
+## 可以继续优化的方向
+
+MarkView 目前已经覆盖了 Markdown 写作的基础闭环，但仍然有不少可以继续演进的方向：
+
+- 支持导入和导出 `.md` 文件。
+- 支持一键复制 HTML 或导出 PDF。
+- 增加主题切换，例如浅色、深色、护眼模式。
+- 增加更多 Markdown 扩展能力，例如 Mermaid、数学公式、脚注。
+- 使用 IndexedDB 替代 localStorage，以支持更大的文档集合。
+- 增加 PWA 支持，让工具更接近本地应用体验。
+
+## 总结
+
+MarkView 是一个小而完整的前端工具项目。它的重点不在于技术栈有多复杂，而在于把 Markdown 写作过程中的几个真实痛点串起来：实时预览、目录导航、滚动同步、多文档管理和本地保存。
+
+从工程实现上看，这个项目也很适合作为 Vue 3 组合式 API 的练习案例。组件只负责表达界面，复杂行为沉淀到 composables 中，既方便阅读，也方便后续扩展。
+
+如果你也经常写 Markdown，不妨试试这个项目，或者基于它继续改造成自己的写作工具。
+
+源码地址：https://gitee.com/acheding/markview  
+在线体验：https://acheding.gitee.io/markview/
