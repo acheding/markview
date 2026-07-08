@@ -22,7 +22,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { nextTick, watch } from 'vue'
+
+const props = defineProps({
     items: {
         type: Array,
         default: () => [],
@@ -38,6 +40,30 @@ defineProps({
 })
 
 defineEmits(['select'])
+
+const scrollActiveItemIntoView = async () => {
+    if (!props.activeId) return
+
+    await nextTick()
+
+    const toc = document.querySelector('.toc')
+    const activeItem = toc?.querySelector('.toc__item.is-active')
+    if (!toc || !activeItem) return
+
+    const tocRect = toc.getBoundingClientRect()
+    const itemRect = activeItem.getBoundingClientRect()
+    const tocStyles = getComputedStyle(toc)
+    const visibleTop = tocRect.top + (Number.parseFloat(tocStyles.paddingTop) || 0)
+    const visibleBottom = tocRect.bottom - (Number.parseFloat(tocStyles.paddingBottom) || 0)
+
+    if (itemRect.top < visibleTop) {
+        toc.scrollTop -= visibleTop - itemRect.top
+    } else if (itemRect.bottom > visibleBottom) {
+        toc.scrollTop += itemRect.bottom - visibleBottom
+    }
+}
+
+watch(() => props.activeId, scrollActiveItemIntoView)
 </script>
 
 <style scoped>

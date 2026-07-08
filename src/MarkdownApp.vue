@@ -61,8 +61,6 @@ const previewRef = ref(null)
 const activeHeadingId = ref('')
 let hashScrollRunId = 0
 let hashRetryTimer = null
-let selectedHeadingLockTimer = null
-const selectedHeadingLockId = ref('')
 const ACTIVE_HEADING_OFFSET = 4
 
 const {
@@ -125,11 +123,6 @@ const isHeadingVisibleInPreview = (preview, element) => {
 }
 
 const updateActiveHeading = (preferredId = '') => {
-    if (selectedHeadingLockId.value) {
-        activeHeadingId.value = selectedHeadingLockId.value
-        return
-    }
-
     const preview = getPreviewElement()
     if (!preview || !toc.value.length) {
         activeHeadingId.value = ''
@@ -244,15 +237,8 @@ const scrollToHashHeading = async () => {
 }
 
 const selectHeading = (id) => {
-    clearTimeout(selectedHeadingLockTimer)
-    selectedHeadingLockId.value = id
     activeHeadingId.value = id
     setHashHeadingId(id)
-
-    selectedHeadingLockTimer = setTimeout(() => {
-        selectedHeadingLockId.value = ''
-        updateActiveHeading(id)
-    }, 700)
 }
 
 const clearContent = async () => {
@@ -284,7 +270,6 @@ const handleKeydown = (event) => {
 
 watch(activeFileId, () => {
     activeHeadingId.value = ''
-    selectedHeadingLockId.value = ''
     scrollToHashHeading()
 })
 
@@ -299,7 +284,6 @@ onBeforeUnmount(() => {
     document.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('hashchange', scrollToHashHeading)
     clearTimeout(hashRetryTimer)
-    clearTimeout(selectedHeadingLockTimer)
 })
 </script>
 
