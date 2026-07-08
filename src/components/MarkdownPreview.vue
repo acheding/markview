@@ -9,13 +9,24 @@
             <span class="preview-save-status" :class="{ 'is-saving': saveStatus === '保存中' }">{{ saveStatus }}</span>
         </div>
 
-        <div class="preview-layout">
+        <div class="preview-layout" :style="{ '--preview-toc-width': tocWidth }">
             <div
                 ref="contentRef"
                 class="preview-content"
                 v-html="html"
-                @scroll="$emit('scroll')"
+                @scroll="handleContentScroll"
             />
+
+            <button
+                v-show="isBackTopVisible"
+                class="preview-back-top"
+                type="button"
+                title="回到顶部"
+                aria-label="回到顶部"
+                @click="scrollToTop"
+            >
+                <span class="preview-back-top__icon" :style="{ '--icon-url': `url(${backToTopIcon})` }" aria-hidden="true" />
+            </button>
 
             <ResizeDivider
                 class="toc-divider"
@@ -35,6 +46,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import backToTopIcon from '../assets/back-to-top.svg'
 import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
 
@@ -75,6 +87,7 @@ const props = defineProps({
 
 const emit = defineEmits(['scroll', 'select-heading', 'toc-resize-start'])
 const contentRef = ref(null)
+const isBackTopVisible = ref(false)
 const normalizedWidth = computed(() => (
     typeof props.width === 'number' ? `${props.width}%` : props.width
 ))
@@ -134,6 +147,18 @@ const handleTocSelect = (id) => {
     emit('select-heading', id)
 }
 
+const handleContentScroll = () => {
+    isBackTopVisible.value = (contentRef.value?.scrollTop || 0) > 240
+    emit('scroll')
+}
+
+const scrollToTop = () => {
+    contentRef.value?.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+    })
+}
+
 defineExpose({
     getScrollElement: () => contentRef.value,
     scrollToHeading,
@@ -151,6 +176,7 @@ defineExpose({
 }
 
 .preview-layout {
+    position: relative;
     display: flex;
     flex: 1;
     min-height: 0;
@@ -208,6 +234,46 @@ defineExpose({
     border-color: color-mix(in srgb, var(--color-blue) 24%, #ffffff);
     background: #eff6ff;
     color: var(--color-blue);
+}
+
+.preview-back-top {
+    position: absolute;
+    right: calc(var(--preview-toc-width) + 18px);
+    bottom: 18px;
+    z-index: 12;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 26%, #ffffff);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 92%);
+    color: var(--color-accent-strong);
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgb(15 23 42 / 14%);
+    backdrop-filter: blur(8px);
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.preview-back-top:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 44%, #ffffff);
+    background: var(--color-surface-active);
+    color: var(--color-accent);
+    box-shadow: 0 14px 28px rgb(15 118 110 / 16%);
+    transform: translateY(-1px);
+}
+
+.preview-back-top:active {
+    transform: translateY(0);
+}
+
+.preview-back-top__icon {
+    width: 17px;
+    height: 17px;
+    background: currentColor;
+    mask: var(--icon-url) center / contain no-repeat;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
 .preview-content :deep(h1) {
@@ -418,11 +484,20 @@ defineExpose({
         padding: 12px 14px;
         font-size: 14px;
     }
+
+    .preview-back-top {
+        right: 14px;
+        bottom: 14px;
+    }
 }
 
 @media (max-width: 900px) {
     .toc-divider {
         display: none;
+    }
+
+    .preview-back-top {
+        right: 16px;
     }
 }
 </style>
