@@ -305,12 +305,12 @@ export const useMarkdownDocuments = () => {
         scheduleSave({ delay: 0 })
     }
 
-    const importFile = ({ name = '', content = '' } = {}) => {
+    const importFile = ({ content = '' } = {}) => {
         flushDocumentName()
         flushSave({ includeName: false })
 
         const file = createDocument(String(content || ''))
-        file.name = createUniqueName(files.value, normalizeImportedFileName(name, file.content))
+        file.name = createUniqueName(files.value, file.name)
         // 导入文档按时间倒序排在最前。
         state.value.files.unshift(file)
         state.value.activeId = file.id
