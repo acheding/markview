@@ -1,34 +1,36 @@
 # MarkView
 
-一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。MarkView 提供左右分栏编辑、实时渲染、多文档管理、文件导入导出、目录导航、跨文档搜索、滚动同步、代码高亮和回到顶部等能力，适合用来快速编写或预览文档。
+一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。提供左右分栏编辑、实时渲染、多文档管理、文件导入导出、PDF 导出、目录导航、跨文档搜索、滚动同步、编辑区折叠/展开、代码高亮等能力，适合用来快速编写或预览文档。
 
 ## 功能特性
 
-- 实时预览：左侧输入 Markdown，右侧即时渲染结果。
-- 多文档工作区：支持新建、切换、删除、导入多个本地文档。
-- 文件导入导出：支持导入 `.md` / `.markdown` / 文本文件，并可导出当前 Markdown 文档。
-- 全文搜索：支持按文件名和正文内容跨文档搜索，并可通过 `Ctrl + K` 快速唤起。
-- 自动保存：文档内容会自动保存到浏览器 `IndexedDB`。
-- 智能命名：根据文档标题或正文内容自动生成 `.md` 文件名。
-- 目录导航：根据标题自动生成目录，支持点击跳转和高亮项自动跟随。
-- 标题锚点：预览区标题带有可跳转的 hash 锚点。
-- 滚动同步：编辑区和预览区会根据源行位置进行联动滚动。
-- 代码高亮：内置 `highlight.js`，支持常见语言高亮。
-- 文档统计：实时显示行数、字数和字符数。
-- 回到顶部：预览区滚动较深时显示快捷返回按钮。
-- 可调布局：支持拖拽调整编辑区、预览区和目录宽度。
-- 响应式界面：桌面端左右分栏，移动端上下布局。
+- **实时预览**：左侧输入 Markdown，右侧即时渲染结果。
+- **多文档工作区**：支持新建、切换、删除、导入多个本地文档。
+- **文件导入导出**：支持导入 `.md` / `.markdown` / 文本文件，可导出 Markdown 文档或 PDF。
+- **全文搜索**：按文件名和正文内容跨文档搜索，`Ctrl + K` 快速唤起，支持精确定位到行。
+- **自动保存**：文档内容自动保存到浏览器 `IndexedDB`。
+- **智能命名**：根据文档标题或正文内容自动生成文件名，导入文件同样使用内容识别命名。
+- **目录导航**：根据标题自动生成目录，点击跳转，当前标题高亮自动跟随。
+- **标题锚点**：预览区标题带 `#` 锚点，hover 显示，点击复制链接。
+- **滚动同步**：编辑区与预览区按源码行号联动滚动，双向同步。
+- **编辑区折叠**：支持折叠编辑区专注预览，折叠后文件名和操作按钮移至预览区头部。
+- **骨架屏加载**：IndexedDB 数据初始化期间显示骨架屏，避免空白闪烁。
+- **代码高亮**：内置 `highlight.js`，支持 JavaScript、TypeScript、Python、CSS、Bash 等。
+- **文档统计**：实时显示行数、字数和字符数。
+- **回到顶部**：预览区滚动较深时显示快捷返回按钮。
+- **可调布局**：编辑区、预览区、目录宽度均支持拖拽调整。
+- **响应式界面**：桌面端左右分栏，移动端上下布局，折叠状态自动适配。
 
 ## 技术栈
 
-- [Vue 3](https://vuejs.org/)：前端界面与组合式逻辑
-- [Vite](https://vitejs.dev/)：开发服务器和构建工具
+- [Vue 3](https://vuejs.org/)：组合式 API + `<script setup>`
+- [Vite](https://vitejs.dev/)：开发服务器与构建工具
 - [marked](https://marked.js.org/)：Markdown 解析
 - [highlight.js](https://highlightjs.org/)：代码块语法高亮
 
 ## 快速开始
 
-请确保本地已经安装 Node.js 和 pnpm。
+请确保本地已安装 Node.js 和 pnpm。
 
 ```bash
 pnpm install
@@ -43,48 +45,64 @@ http://localhost:3001/
 
 ## 使用提示
 
-- 编辑器标题栏左侧可以切换当前文档，右侧图标依次提供新建、清空、导入和导出操作。
-- 导入支持一次选择多个 Markdown 或文本文件，文件会加入当前工作区并自动切换到最后导入的文档。
-- 导出会下载当前文档内容，文件名优先使用文档标题自动生成。
-- 预览区滚动超过一定距离后会显示回到顶部按钮；右侧目录会随着当前标题高亮自动滚动到可见位置。
+- **文档切换**：点击编辑器标题栏左侧文件名下拉切换，折叠状态下预览区头部同样可切换。
+- **操作按钮**：标题栏右侧依次为新建、清空、导入、导出 Markdown（md）、导出 PDF、折叠/展开编辑区。
+- **导入**：支持一次选择多个 Markdown 或文本文件，文件名由内容自动生成。
+- **导出**：Markdown 导出下载 `.md` 文件；PDF 导出使用浏览器打印生成。
+- **搜索**：`Ctrl + K` 唤起搜索框，输入关键词跨文档检索，选中结果后精确定位到目标行。
+- **折叠编辑区**：点击 `<` 按钮折叠编辑区，专注预览；点击预览区头部 `>` 按钮恢复。
+- **调整布局**：拖拽分割条调整编辑区/预览区宽度；拖拽目录区左侧边缘调整目录宽度。
+- **回到顶部**：预览区滚动超过一定距离后右下角出现返回按钮；目录会随当前标题高亮自动滚动。
 
 ## 常用命令
 
 ```bash
-# 启动开发环境
-pnpm dev
-
-# 构建生产版本
-pnpm build
-
-# 本地预览生产构建
-pnpm preview
-
-# 构建检查
-pnpm check
+pnpm dev      # 启动开发环境
+pnpm build    # 构建生产版本
+pnpm preview  # 本地预览生产构建
+pnpm check    # 构建检查
 ```
 
 ## 项目结构
 
 ```text
 .
-├── public/                  # 静态资源
+├── public/                         # 静态资源
 ├── src/
-│   ├── assets/              # 图标和图片资源
-│   ├── components/          # 页面组件
-│   │   ├── AppToolbar.vue
-│   │   ├── DocumentSearch.vue
-│   │   ├── FileSwitcher.vue
-│   │   ├── MarkdownEditor.vue
-│   │   ├── MarkdownPreview.vue
-│   │   ├── ResizeDivider.vue
-│   │   └── TableOfContents.vue
-│   ├── composables/         # 组合式逻辑
-│   ├── constants/           # 编辑器常量
-│   ├── utils/               # 通用工具函数
-│   ├── MarkdownApp.vue      # Markdown 工作台主界面
-│   ├── main.js              # 应用入口
-│   └── style.css            # 全局样式
+│   ├── assets/                     # SVG 图标资源
+│   │   ├── back-to-top.svg
+│   │   ├── clear-content.svg
+│   │   ├── collapse-editor.svg
+│   │   ├── delete-file.svg
+│   │   ├── expand-editor.svg
+│   │   ├── export-file.svg
+│   │   ├── export-pdf.svg
+│   │   ├── import-file.svg
+│   │   └── new-file.svg
+│   ├── components/                 # 页面组件
+│   │   ├── AppToolbar.vue          # 顶部工具栏 + 搜索入口
+│   │   ├── ContentViewSkeleton.vue # 加载骨架屏
+│   │   ├── DocumentSearch.vue      # 跨文档搜索弹窗
+│   │   ├── FileSwitcher.vue        # 文档切换下拉
+│   │   ├── MarkdownEditor.vue      # Markdown 编辑区
+│   │   ├── MarkdownPreview.vue     # Markdown 预览区
+│   │   ├── PanelToolbar.vue        # 共享工具栏（文件名 + 操作按钮）
+│   │   ├── ResizeDivider.vue       # 面板拖拽分割条
+│   │   └── TableOfContents.vue     # 目录导航
+│   ├── composables/                # 组合式逻辑
+│   │   ├── useDocumentExport.js    # 文档导出（Markdown / PDF）
+│   │   ├── useHeadingNavigation.js # 标题 hash 导航
+│   │   ├── useLocalStoragePreference.js # 用户偏好持久化
+│   │   ├── useMarkdownDocuments.js # 多文档状态管理 + IndexedDB
+│   │   ├── useMarkdownRenderer.js  # Markdown 解析与渲染
+│   │   ├── usePaneResize.js        # 面板宽度拖拽
+│   │   ├── useScrollSync.js        # 编辑/预览滚动同步
+│   │   └── useTocResize.js         # 目录宽度拖拽
+│   ├── constants/                  # 编辑器常量
+│   ├── utils/                      # 通用工具函数
+│   ├── App.vue                     # 应用主界面
+│   ├── main.js                     # 应用入口
+│   └── style.css                   # 全局样式
 ├── index.html
 ├── package.json
 └── vite.config.js
@@ -92,18 +110,18 @@ pnpm check
 
 ## 部署说明
 
-项目通过 `VITE_APP_PATH` 控制 Vite 的 `base` 路径：
+通过 `VITE_APP_PATH` 控制 Vite 的 `base` 路径：
 
-- `.env.development`：本地开发默认使用 `/`
-- `.env.production`：生产构建默认使用 `/markview/`
+- `.env.development`：本地开发默认 `/`
+- `.env.production`：生产构建默认 `/markview/`
 
-如果你要部署到 GitHub Pages，并且仓库名不是 `markview`，请将 `.env.production` 中的路径改成你的仓库名，例如：
+部署到 GitHub/Gitee Pages 时，如果仓库名不是 `markview`，修改 `.env.production`：
 
 ```env
 VITE_APP_PATH=/your-repo-name/
 ```
 
-如果部署到根域名或自定义域名根路径，可以改成：
+部署到根域名或自定义域名：
 
 ```env
 VITE_APP_PATH=/
@@ -115,11 +133,11 @@ VITE_APP_PATH=/
 pnpm build
 ```
 
-构建产物会生成在 `dist/` 目录。
+构建产物生成在 `dist/` 目录。
 
 ## 数据存储
 
-MarkView 不依赖后端服务，所有文档数据都会保存在当前浏览器的 `IndexedDB` 中。清理浏览器站点数据、更换浏览器或更换域名路径后，本地保存的内容可能无法继续读取。
+MarkView 不依赖后端服务，所有文档数据保存在浏览器 `IndexedDB` 中。清理浏览器站点数据、更换浏览器或更换域名路径后，本地保存的内容可能无法继续读取。建议定期导出重要文档备份。
 
 ## Markdown 语法演示
 
@@ -128,15 +146,17 @@ MarkView 不依赖后端服务，所有文档数据都会保存在当前浏览�
 ### 1. 标题
 
 # H1 标题
+
 ## H2 标题
+
 ### H3 标题
 
 ### 2. 列表
 
 - 无序列表项 1
 - 无序列表项 2
-  - 嵌套列表项 2.1
-  - 嵌套列表项 2.2
+    - 嵌套列表项 2.1
+    - 嵌套列表项 2.2
 - 无序列表项 3
 
 1. 有序列表项 1
@@ -166,11 +186,11 @@ print(list(fibonacci(10)))
 
 ### 4. 表格
 
-| 名称 | 类型 | 描述 |
-|------|------|------|
-| Vue | 框架 | 渐进式 JavaScript 框架 |
-| Vite | 构建工具 | 下一代前端构建工具 |
-| Markdown | 标记语言 | 轻量级标记语言 |
+| 名称     | 类型     | 描述                   |
+| -------- | -------- | ---------------------- |
+| Vue      | 框架     | 渐进式 JavaScript 框架 |
+| Vite     | 构建工具 | 下一代前端构建工具     |
+| Markdown | 标记语言 | 轻量级标记语言         |
 
 ### 5. 引用
 
@@ -186,7 +206,7 @@ print(list(fibonacci(10)))
 ### 7. 其他样式
 
 - **粗体文字**
-- *斜体文字*
+- _斜体文字_
 - ~~删除线~~
 - `行内代码`
 
