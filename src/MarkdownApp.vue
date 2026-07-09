@@ -181,7 +181,7 @@ const updateActiveHeading = (preferredId = '') => {
     activeHeadingId.value = current.id
 }
 
-const { handleEditorScroll, handlePreviewScroll } = useScrollSync({
+const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScrollSync({
     getEditorElement,
     getPreviewElement,
     onPreviewScroll: updateActiveHeading,
@@ -320,8 +320,9 @@ const selectSearchResult = async ({ fileId, lineNumber }) => {
     await nextTick()
 
     if (lineNumber) {
-        editorRef.value?.focusLine(lineNumber)
-        previewRef.value?.scrollToSourceLine(lineNumber)
+        // 编辑区只做选中高亮，两侧滚动统一交给 alignToSourceLine，避免多个滚动源竞争。
+        editorRef.value?.focusLine(lineNumber, { scroll: false })
+        alignToSourceLine(lineNumber)
     } else {
         editorRef.value?.focus()
     }

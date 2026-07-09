@@ -192,7 +192,7 @@ const getRenderedLineTop = (textarea, value, start) => {
     return top
 }
 
-const focusLine = (lineNumber) => {
+const focusLine = (lineNumber, { scroll = true } = {}) => {
     const textarea = textareaRef.value
     if (!textarea) return
 
@@ -201,11 +201,13 @@ const focusLine = (lineNumber) => {
     const start = getLineStartIndex(value, line)
     const nextLineIndex = value.indexOf('\n', start)
     const end = nextLineIndex < 0 ? value.length : nextLineIndex
-    const renderedTop = getRenderedLineTop(textarea, value, start)
 
     textarea.focus()
     textarea.setSelectionRange(start, end)
 
+    if (!scroll) return
+
+    const renderedTop = getRenderedLineTop(textarea, value, start)
     requestAnimationFrame(() => {
         textarea.scrollTo({
             top: Math.max(0, renderedTop - textarea.clientHeight * 0.36),

@@ -284,6 +284,36 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
         releaseSourceSoon()
     }
 
+    // 把编辑区与预览区一次性对齐到指定源行（用于搜索定位）。
+    // 编辑区按固定视口比例定位，预览区用锚点映射跟随，两侧都以程序滚动瞬时完成，
+    // 避免与联动同步竞争，保证同一行每次定位到相同位置。
+    const alignToSourceLine = (line, { viewportRatio = 0.3 } = {}) => {
+        const editor = getEditorElement()
+        const preview = getPreviewElement()
+        if (!editor || !preview) return
+
+        const targetLine = Math.max(1, Number(line) || 1)
+        const editorLineTop = measureEditorLineTops(editor, [targetLine]).get(targetLine)
+        if (!Number.isFinite(editorLineTop)) return
+
+        // 锁定：清除激活来源、两侧标记程序滚动，屏蔽本次滚动触发的联动回环。
+        clearSourceRelease()
+        activeSource = ''
+        programmaticScroll.editor = true
+        programmaticScroll.preview = true
+
+        const editorTarget = Math.max(0, editorLineTop - editor.clientHeight * viewportRatio)
+        editor.scrollTo({ top: editorTarget, behavior: 'auto' })
+
+        const anchors = getAnchors(editor, preview)
+        const previewTarget = interpolate(anchors, 'editor', 'preview', editorTarget)
+        preview.scrollTo({ top: previewTarget, behavior: 'auto' })
+
+        releaseProgrammaticSoon('editor')
+        releaseProgrammaticSoon('preview')
+        onPreviewScroll?.()
+    }
+
     const addUserSourceListeners = (element, source) => {
         if (!element) return
 
@@ -310,5 +340,6 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     return {
         handleEditorScroll,
         handlePreviewScroll,
+        alignToSourceLine,
     }
 }
