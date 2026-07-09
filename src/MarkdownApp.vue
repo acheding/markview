@@ -87,6 +87,19 @@ const stats = computed(() => ({
 const getEditorElement = () => editorRef.value?.getScrollElement()
 const getPreviewElement = () => previewRef.value?.getScrollElement()
 
+// 将编辑区与预览区滚动条同时置顶。
+const scrollPanesToTop = () => {
+    getEditorElement()?.scrollTo({ top: 0, behavior: 'auto' })
+    getPreviewElement()?.scrollTo({ top: 0, behavior: 'auto' })
+}
+
+// 清除 URL 中的标题锚点，避免刷新或后续逻辑再次跳转到旧标题。
+const clearHash = () => {
+    if (!window.location.hash) return
+
+    history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+}
+
 const getHashHeadingId = () => {
     const hash = window.location.hash.replace(/^#/, '')
     if (!hash) return ''
@@ -268,9 +281,15 @@ const handleKeydown = (event) => {
     }
 }
 
-watch(activeFileId, () => {
+watch(activeFileId, async () => {
     activeHeadingId.value = ''
-    scrollToHashHeading()
+
+    // 渲染前同步置顶：若随后有行内定位（搜索跳转），它在 nextTick 后执行会自然覆盖这里。
+    scrollPanesToTop()
+    clearHash()
+
+    await nextTick()
+    updateActiveHeading()
 })
 
 onMounted(() => {
