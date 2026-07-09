@@ -35,7 +35,13 @@
         </div>
 
         <div class="preview-layout" :style="{ '--preview-toc-width': tocWidth }">
-            <div ref="contentRef" class="preview-content" v-html="html" @scroll="handleContentScroll" />
+            <div
+                ref="contentRef"
+                class="preview-content"
+                v-html="html"
+                @click="handlePreviewClick"
+                @scroll="handleContentScroll"
+            />
 
             <button
                 v-show="isBackTopVisible"
@@ -191,6 +197,18 @@ const handleTocSelect = (id) => {
     emit('select-heading', id)
 }
 
+const handlePreviewClick = (event) => {
+    const anchor = event.target.closest?.('.heading-anchor')
+    if (!anchor) return
+
+    const id = anchor.getAttribute('href')?.replace(/^#/, '')
+    if (!id) return
+
+    event.preventDefault()
+    scrollToHeading(id)
+    emit('select-heading', id)
+}
+
 const handleContentScroll = () => {
     isBackTopVisible.value = (contentRef.value?.scrollTop || 0) > 240
     emit('scroll')
@@ -230,7 +248,7 @@ defineExpose({
     flex: 1;
     min-width: 0;
     min-height: 0;
-    padding: 20px 28px;
+    padding: 20px 36px;
     overflow-y: auto;
     background: var(--color-surface);
     color: var(--color-text);
@@ -356,6 +374,24 @@ defineExpose({
     margin: 14px 0 6px;
     color: #1f2937;
     font-weight: 680;
+}
+
+.preview-content :deep(.heading-anchor) {
+    float: left;
+    margin-left: -0.8em;
+    color: var(--color-accent);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.preview-content :deep(h1:hover .heading-anchor),
+.preview-content :deep(h2:hover .heading-anchor),
+.preview-content :deep(h3:hover .heading-anchor),
+.preview-content :deep(h4:hover .heading-anchor),
+.preview-content :deep(h5:hover .heading-anchor),
+.preview-content :deep(h6:hover .heading-anchor) {
+    opacity: 1;
 }
 
 .preview-content :deep(p) {
@@ -528,7 +564,7 @@ defineExpose({
     }
 
     .preview-content {
-        padding: 12px 14px;
+        padding: 12px 20px;
         font-size: 14px;
     }
 
