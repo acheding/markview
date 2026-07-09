@@ -1,4 +1,5 @@
 import { nextTick, onBeforeUnmount, onMounted } from 'vue'
+import { clamp, escapeHtml } from '../utils/text'
 
 const SOURCE_RELEASE_DELAY = 180
 const PROGRAMMATIC_RELEASE_DELAY = 120
@@ -6,31 +7,28 @@ const SCROLL_EPSILON = 1
 const USER_SCROLL_EVENTS = ['wheel', 'pointerdown', 'touchstart', 'keydown']
 const SOURCE_LINE_SELECTOR = '[data-source-line]'
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
+// 复制到隐藏镜像元素上的样式属性，使其折行方式与 textarea 完全一致，
+// 从而能精确测量任意源行的 Y 偏移。
+const MIRROR_COPY_PROPS = [
+    'border',
+    'boxSizing',
+    'fontFamily',
+    'fontSize',
+    'fontWeight',
+    'letterSpacing',
+    'lineHeight',
+    'padding',
+    'tabSize',
+    'textTransform',
+    'wordBreak',
+    'wordSpacing',
+]
 
-const getLineHeight = (element) => {
-    const styles = getComputedStyle(element)
-    const lineHeight = Number.parseFloat(styles.lineHeight)
+const getElementTop = (container, element) => {
+    const containerRect = container.getBoundingClientRect()
+    const elementRect = element.getBoundingClientRect()
 
-    if (Number.isFinite(lineHeight)) return lineHeight
-
-    const fontSize = Number.parseFloat(styles.fontSize)
-    return Number.isFinite(fontSize) ? fontSize * 1.7 : 24
-}
-
-const getEditorTopLine = (editor) => Math.max(1, Math.floor(editor.scrollTop / getLineHeight(editor)) + 1)
-
-const setEditorTopLine = (editor, line) => {
-    const nextScrollTop = Math.max(0, (line - 1) * getLineHeight(editor))
-
-    if (Math.abs(editor.scrollTop - nextScrollTop) <= SCROLL_EPSILON) return false
-
-    editor.scrollTo({
-        top: nextScrollTop,
-        behavior: 'auto',
-    })
-
-    return true
+    return container.scrollTop + elementRect.top - containerRect.top
 }
 
 const getPreviewBlocks = (preview) => Array.from(preview.querySelectorAll(SOURCE_LINE_SELECTOR))
@@ -40,95 +38,148 @@ const getPreviewBlocks = (preview) => Array.from(preview.querySelectorAll(SOURCE
     }))
     .filter((item) => Number.isFinite(item.line))
 
-const getElementTop = (container, element) => {
-    const containerRect = container.getBoundingClientRect()
-    const elementRect = element.getBoundingClientRect()
+// 计算每个请求的源行（从 1 开始）在文本中的起始字符下标。
+const getLineStartIndices = (value, lines) => {
+    const wanted = new Set(lines)
+    const result = new Map()
 
-    return container.scrollTop + elementRect.top - containerRect.top
-}
+    if (wanted.has(1)) result.set(1, 0)
 
-const findBlockRangeByLine = (blocks, line) => {
-    if (!blocks.length) return null
-
-    let currentIndex = 0
-
-    for (let index = 0; index < blocks.length; index += 1) {
-        if (blocks[index].line <= line) {
-            currentIndex = index
-        } else {
-            break
+    let line = 1
+    for (let index = 0; index < value.length && result.size < wanted.size; index += 1) {
+        if (value[index] === '\n') {
+            line += 1
+            if (wanted.has(line)) result.set(line, index + 1)
         }
     }
 
-    return {
-        current: blocks[currentIndex],
-        next: blocks[currentIndex + 1] || null,
-    }
+    // 超出内容末尾的行统一落到文本末尾。
+    lines.forEach((item) => {
+        if (!result.has(item)) result.set(item, value.length)
+    })
+
+    return result
 }
 
-const getPreviewTopByLine = (preview, line) => {
-    const range = findBlockRangeByLine(getPreviewBlocks(preview), line)
-    if (!range) return 0
+// 通过一次隐藏镜像布局，测量每个源行在 textarea 自身滚动坐标系中的顶部偏移。
+const measureEditorLineTops = (editor, lines) => {
+    const uniqueLines = Array.from(new Set(lines.filter((line) => Number.isFinite(line) && line >= 1)))
+        .sort((a, b) => a - b)
+    const tops = new Map()
+    if (!uniqueLines.length) return tops
 
-    const currentTop = getElementTop(preview, range.current.element)
+    const value = editor.value
+    const styles = getComputedStyle(editor)
+    const mirror = document.createElement('div')
 
-    if (!range.next || range.next.line <= range.current.line) {
-        return currentTop
-    }
+    MIRROR_COPY_PROPS.forEach((property) => {
+        mirror.style[property] = styles[property]
+    })
 
-    const nextTop = getElementTop(preview, range.next.element)
-    const progress = clamp((line - range.current.line) / (range.next.line - range.current.line), 0, 1)
+    mirror.style.position = 'absolute'
+    mirror.style.left = '-9999px'
+    mirror.style.top = '0'
+    mirror.style.height = 'auto'
+    mirror.style.overflow = 'hidden'
+    mirror.style.visibility = 'hidden'
+    mirror.style.whiteSpace = 'pre-wrap'
+    mirror.style.overflowWrap = 'break-word'
+    mirror.style.width = `${editor.clientWidth}px`
 
-    return currentTop + ((nextTop - currentTop) * progress)
+    const lineStarts = getLineStartIndices(value, uniqueLines)
+    let html = ''
+    let cursor = 0
+
+    uniqueLines.forEach((line, index) => {
+        const start = lineStarts.get(line)
+        html += escapeHtml(value.slice(cursor, start))
+        html += `<span data-line-index="${index}">​</span>`
+        cursor = start
+    })
+    html += escapeHtml(value.slice(cursor))
+
+    mirror.innerHTML = html
+    document.body.appendChild(mirror)
+
+    mirror.querySelectorAll('span[data-line-index]').forEach((marker) => {
+        const index = Number(marker.dataset.lineIndex)
+        tops.set(uniqueLines[index], marker.offsetTop)
+    })
+
+    document.body.removeChild(mirror)
+
+    return tops
 }
 
-const setPreviewTopByLine = (preview, line) => {
-    const top = getPreviewTopByLine(preview, line)
+// 构建锚点表：对每个共享的源行，记录一对对齐的滚动偏移（编辑区、预览区）。
+// 两端各加一个哨兵锚点，把文档顶部与底部钉在一起，使两侧能同时到达 0 和最大值。
+const buildAnchors = (editor, preview) => {
+    const editorMax = Math.max(0, editor.scrollHeight - editor.clientHeight)
+    const previewMax = Math.max(0, preview.scrollHeight - preview.clientHeight)
 
-    if (Math.abs(preview.scrollTop - top) <= SCROLL_EPSILON) return false
+    const blocks = getPreviewBlocks(preview)
+    const lineTops = measureEditorLineTops(editor, blocks.map((block) => block.line))
 
-    preview.scrollTo({
+    const raw = blocks
+        .map((block) => ({
+            editor: lineTops.get(block.line),
+            preview: getElementTop(preview, block.element),
+        }))
+        .filter((anchor) => Number.isFinite(anchor.editor) && Number.isFinite(anchor.preview))
+        .sort((a, b) => a.editor - b.editor)
+
+    // 只保留严格落在两侧滚动范围内、且在两个轴上都严格递增的锚点，
+    // 以保证每一段插值都是单调的。
+    const anchors = [{ editor: 0, preview: 0 }]
+    let lastEditor = 0
+    let lastPreview = 0
+
+    raw.forEach((anchor) => {
+        if (anchor.editor <= lastEditor || anchor.preview <= lastPreview) return
+        if (anchor.editor >= editorMax || anchor.preview >= previewMax) return
+
+        anchors.push(anchor)
+        lastEditor = anchor.editor
+        lastPreview = anchor.preview
+    })
+
+    anchors.push({ editor: editorMax, preview: previewMax })
+
+    return anchors
+}
+
+const interpolate = (anchors, fromKey, toKey, value) => {
+    if (!anchors.length) return 0
+
+    const first = anchors[0]
+    const last = anchors[anchors.length - 1]
+    if (value <= first[fromKey]) return first[toKey]
+    if (value >= last[fromKey]) return last[toKey]
+
+    for (let index = 1; index < anchors.length; index += 1) {
+        const upper = anchors[index]
+        if (value <= upper[fromKey]) {
+            const lower = anchors[index - 1]
+            const span = upper[fromKey] - lower[fromKey]
+            if (span <= 0) return lower[toKey]
+
+            const progress = clamp((value - lower[fromKey]) / span, 0, 1)
+            return lower[toKey] + ((upper[toKey] - lower[toKey]) * progress)
+        }
+    }
+
+    return last[toKey]
+}
+
+const applyScroll = (element, top) => {
+    if (Math.abs(element.scrollTop - top) <= SCROLL_EPSILON) return false
+
+    element.scrollTo({
         top,
         behavior: 'auto',
     })
 
     return true
-}
-
-const getPreviewTopLine = (preview) => {
-    const blocks = getPreviewBlocks(preview)
-    if (!blocks.length) return 1
-
-    let current = {
-        ...blocks[0],
-        top: getElementTop(preview, blocks[0].element),
-    }
-    let next = null
-    const viewportTop = preview.scrollTop + 4
-
-    for (let index = 0; index < blocks.length; index += 1) {
-        const blockTop = getElementTop(preview, blocks[index].element)
-
-        if (blockTop <= viewportTop) {
-            current = {
-                ...blocks[index],
-                top: blockTop,
-            }
-            next = blocks[index + 1] || null
-        } else {
-            next = blocks[index]
-            break
-        }
-    }
-
-    if (!next || next.line <= current.line) return current.line
-
-    const nextTop = getElementTop(preview, next.element)
-    if (nextTop <= current.top) return current.line
-
-    const progress = clamp((viewportTop - current.top) / (nextTop - current.top), 0, 1)
-
-    return Math.round(current.line + ((next.line - current.line) * progress))
 }
 
 export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewScroll }) => {
@@ -143,6 +194,29 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
         preview: null,
     }
     const cleanupListeners = []
+    const anchorCache = {
+        signature: '',
+        anchors: null,
+    }
+
+    const getAnchors = (editor, preview) => {
+        const signature = [
+            editor.value.length,
+            editor.scrollHeight,
+            editor.clientWidth,
+            editor.clientHeight,
+            preview.scrollHeight,
+            preview.clientWidth,
+            preview.clientHeight,
+        ].join('|')
+
+        if (anchorCache.signature !== signature || !anchorCache.anchors) {
+            anchorCache.signature = signature
+            anchorCache.anchors = buildAnchors(editor, preview)
+        }
+
+        return anchorCache.anchors
+    }
 
     const clearSourceRelease = () => {
         clearTimeout(sourceReleaseTimer)
@@ -189,7 +263,10 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
         if (programmaticScroll.editor || (activeSource && activeSource !== 'editor')) return
 
         activeSource = 'editor'
-        sync('preview', (editor, preview) => setPreviewTopByLine(preview, getEditorTopLine(editor)))
+        sync('preview', (editor, preview) => {
+            const anchors = getAnchors(editor, preview)
+            return applyScroll(preview, interpolate(anchors, 'editor', 'preview', editor.scrollTop))
+        })
         onPreviewScroll?.()
         releaseSourceSoon()
     }
@@ -200,7 +277,10 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
         if (programmaticScroll.preview || (activeSource && activeSource !== 'preview')) return
 
         activeSource = 'preview'
-        sync('editor', (editor, preview) => setEditorTopLine(editor, getPreviewTopLine(preview)))
+        sync('editor', (editor, preview) => {
+            const anchors = getAnchors(editor, preview)
+            return applyScroll(editor, interpolate(anchors, 'preview', 'editor', preview.scrollTop))
+        })
         releaseSourceSoon()
     }
 
