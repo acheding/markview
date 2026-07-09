@@ -197,7 +197,7 @@ const handleTocSelect = (id) => {
     emit('select-heading', id)
 }
 
-const handlePreviewClick = (event) => {
+const handlePreviewClick = async (event) => {
     const anchor = event.target.closest?.('.heading-anchor')
     if (!anchor) return
 
@@ -205,6 +205,25 @@ const handlePreviewClick = (event) => {
     if (!id) return
 
     event.preventDefault()
+
+    // 复制带 hash 的完整链接到剪贴板
+    try {
+        const url = new URL(window.location)
+        url.hash = id
+        await navigator.clipboard.writeText(url.toString())
+
+        // 视觉反馈：锚点短暂显示 ✓
+        const textNode = anchor.childNodes[0]
+        const originalText = textNode?.textContent
+        if (textNode) textNode.textContent = '✓'
+        setTimeout(() => {
+            if (textNode) textNode.textContent = originalText
+        }, 1000)
+    } catch {
+        // 降级：仅更新地址栏 hash
+        window.location.hash = id
+    }
+
     scrollToHeading(id)
     emit('select-heading', id)
 }
