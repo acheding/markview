@@ -20,6 +20,17 @@
                 <button class="editor-action-button" type="button" title="导出当前 Markdown" aria-label="导出当前 Markdown" @click="$emit('export-file')">
                     <span class="editor-action-icon" :style="{ '--icon-url': `url(${exportFileIcon})` }" aria-hidden="true" />
                 </button>
+                <button
+                    class="editor-action-button"
+                    type="button"
+                    :title="exportingPdf ? '正在导出 PDF…' : '导出 PDF'"
+                    :aria-label="exportingPdf ? '正在导出 PDF' : '导出 PDF'"
+                    :disabled="exportingPdf"
+                    @click="$emit('export-pdf')"
+                >
+                    <span v-if="exportingPdf" class="editor-action-spinner" aria-hidden="true" />
+                    <span v-else class="editor-action-icon" :style="{ '--icon-url': `url(${exportPdfIcon})` }" aria-hidden="true" />
+                </button>
             </div>
         </div>
 
@@ -48,6 +59,7 @@
 import { computed, ref } from 'vue'
 import clearContentIcon from '../assets/clear-content.svg'
 import exportFileIcon from '../assets/export-file.svg'
+import exportPdfIcon from '../assets/export-pdf.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
 import FileSwitcher from './FileSwitcher.vue'
@@ -69,6 +81,10 @@ const props = defineProps({
         type: [Number, String],
         required: true,
     },
+    exportingPdf: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits([
@@ -80,6 +96,7 @@ const emit = defineEmits([
     'delete-file',
     'import-file',
     'export-file',
+    'export-pdf',
 ])
 
 const textareaRef = ref(null)
@@ -272,12 +289,40 @@ defineExpose({
     transform: translateY(0);
 }
 
+.editor-action-button:disabled {
+    cursor: default;
+    color: var(--color-subtle);
+}
+
+.editor-action-button:disabled:hover {
+    border-color: var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-subtle);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+    transform: none;
+}
+
 .editor-action-icon {
     width: 16px;
     height: 16px;
     background: currentColor;
     mask: var(--icon-url) center / contain no-repeat;
     -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
+.editor-action-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: editor-action-spin 0.6s linear infinite;
+}
+
+@keyframes editor-action-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 768px) {

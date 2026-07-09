@@ -13,12 +13,14 @@
                 :files="files"
                 :active-file-id="activeFileId"
                 :width="editorWidth"
+                :exporting-pdf="isExportingPdf"
                 @clear="clearContent"
                 @scroll="handleEditorScroll"
                 @select-file="selectFile"
                 @create-file="createFile"
                 @import-file="importFile"
                 @export-file="exportActiveFile"
+                @export-pdf="exportPdf"
                 @delete-file="deleteFile"
             />
 
@@ -59,6 +61,7 @@ const mainPanelRef = ref(null)
 const editorRef = ref(null)
 const previewRef = ref(null)
 const activeHeadingId = ref('')
+const isExportingPdf = ref(false)
 let hashScrollRunId = 0
 let hashRetryTimer = null
 const ACTIVE_HEADING_OFFSET = 4
@@ -215,6 +218,56 @@ const exportActiveFile = () => {
     setTimeout(() => {
         URL.revokeObjectURL(url)
     }, 0)
+}
+
+// 一键导出 PDF：把预览内容克隆到离屏容器（保留渲染样式、解除高度与滚动限制），
+// 再用 html2pdf 截图分页并直接下载，不弹浏览器打印框。html2pdf 体积较大，按需动态加载。
+const exportPdf = async () => {
+    if (isExportingPdf.value) return
+
+    const source = getPreviewElement()
+    const file = activeFile.value
+    if (!source) return
+
+    isExportingPdf.value = true
+
+    const baseName = getExportFileName(file?.name || 'document.md').replace(/\.(md|markdown)$/i, '')
+
+    // cloneNode(true) 会保留 scoped 样式所需的 data-v 属性，克隆节点仍能命中预览样式。
+    const clone = source.cloneNode(true)
+    clone.style.height = 'auto'
+    clone.style.maxHeight = 'none'
+    clone.style.overflow = 'visible'
+    clone.style.width = `${source.clientWidth}px`
+
+    const holder = document.createElement('div')
+    holder.style.position = 'fixed'
+    holder.style.left = '-99999px'
+    holder.style.top = '0'
+    holder.style.background = '#ffffff'
+    holder.appendChild(clone)
+    document.body.appendChild(holder)
+
+    try {
+        const { default: html2pdf } = await import('html2pdf.js')
+        await html2pdf()
+            .set({
+                margin: [10, 10, 10, 10],
+                filename: `${baseName}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: ['pre', 'table', 'img', 'blockquote'] },
+            })
+            .from(clone)
+            .save()
+    } catch (error) {
+        console.warn('导出 PDF 失败:', error)
+        alert('导出 PDF 失败，请重试。')
+    } finally {
+        document.body.removeChild(holder)
+        isExportingPdf.value = false
+    }
 }
 
 const scrollToHashHeading = async () => {

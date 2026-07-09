@@ -102,3 +102,70 @@ textarea:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* 导出 PDF：打印时只保留预览区内容，并让其完整展开、自然分页 */
+/* @media print {
+    html,
+    body,
+    #app {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    .toolbar,
+    .editor-panel,
+    .divider,
+    .panel-header,
+    .preview-back-top,
+    .toc {
+        display: none !important;
+    }
+
+    .app-shell,
+    .main-panel,
+    .preview-panel,
+    .preview-layout {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+    }
+
+    .preview-content {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* 尽量避免代码块、表格、图片、引用被跨页截断 */
+    .preview-content pre,
+    .preview-content table,
+    .preview-content blockquote,
+    .preview-content img {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .preview-content h1,
+    .preview-content h2,
+    .preview-content h3 {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    @page {
+        margin: 16mm;
+    }
+} */
