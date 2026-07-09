@@ -56,6 +56,6 @@ export const useTocResize = () => {
         tocWidth,
         tocWidthStyle,
         isTocResizing,
-        startTocResize,
+        startTocResize
     }
 }

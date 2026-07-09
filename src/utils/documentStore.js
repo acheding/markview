@@ -42,32 +42,53 @@ const openDb = () => {
     return dbPromise
 }
 
-const requestToPromise = (request) => new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-})
+const requestToPromise = (request) =>
+    new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+    })
 
-const txDone = (transaction) => new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve()
-    transaction.onerror = () => reject(transaction.error)
-    transaction.onabort = () => reject(transaction.error || new Error('IndexedDB 事务被中止'))
-})
+const txDone = (transaction) =>
+    new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => reject(transaction.error)
+        transaction.onabort = () => reject(transaction.error || new Error('IndexedDB 事务被中止'))
+    })
 
 const toPlainDocument = (doc) => ({
     id: doc.id,
     name: doc.name,
     content: doc.content,
-    updatedAt: doc.updatedAt,
+    updatedAt: doc.updatedAt
 })
 
-const signatureOf = (doc) => `${doc.updatedAt}#${doc.content.length}`
+const hashString = (value = '') => {
+    let hash = 2166136261
+    const text = String(value)
+
+    for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index)
+        hash = Math.imul(hash, 16777619)
+    }
+
+    return (hash >>> 0).toString(36)
+}
+
+const fieldSignature = (value = '') => {
+    const text = String(value)
+
+    return `${text.length}:${hashString(text)}`
+}
+
+const signatureOf = (doc) => [doc.updatedAt, fieldSignature(doc.name), fieldSignature(doc.content)].join('#')
 
 const sortByOrder = (docs, order) => {
     const rank = new Map(order.map((id, index) => [id, index]))
-    return [...docs].sort((a, b) => (
-        (rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER)
-        - (rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER)
-    ))
+    return [...docs].sort(
+        (a, b) =>
+            (rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER) -
+            (rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER)
+    )
 }
 
 const loadAllDocuments = async () => {
@@ -94,10 +115,7 @@ export const loadDocumentState = async () => {
         return null
     }
 
-    const [activeId, order] = await Promise.all([
-        loadMetaValue(ACTIVE_ID_KEY, ''),
-        loadMetaValue(ORDER_KEY, []),
-    ])
+    const [activeId, order] = await Promise.all([loadMetaValue(ACTIVE_ID_KEY, ''), loadMetaValue(ORDER_KEY, [])])
     const files = sortByOrder(docs, Array.isArray(order) ? order : [])
 
     markPersisted(files)

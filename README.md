@@ -100,13 +100,13 @@ pnpm check
 如果你要部署到 GitHub Pages，并且仓库名不是 `markview`，请将 `.env.production` 中的路径改成你的仓库名，例如：
 
 ```env
-VITE_APP_PATH = /your-repo-name/
+VITE_APP_PATH=/your-repo-name/
 ```
 
 如果部署到根域名或自定义域名根路径，可以改成：
 
 ```env
-VITE_APP_PATH = /
+VITE_APP_PATH=/
 ```
 
 然后执行：

@@ -11,11 +11,9 @@ const createBalancedPreviewWidth = () => `calc((100% + var(--toc-width, 220px) -
 export const usePaneResize = (containerRef) => {
     const isResizing = ref(false)
     const editorWidth = ref(createBalancedEditorWidth())
-    const previewWidth = computed(() => (
-        typeof editorWidth.value === 'number'
-            ? `${100 - editorWidth.value}%`
-            : createBalancedPreviewWidth()
-    ))
+    const previewWidth = computed(() =>
+        typeof editorWidth.value === 'number' ? `${100 - editorWidth.value}%` : createBalancedPreviewWidth()
+    )
 
     const onResize = (event) => {
         if (!isResizing.value || !containerRef.value) return
@@ -48,6 +46,6 @@ export const usePaneResize = (containerRef) => {
         editorWidth,
         previewWidth,
         isResizing,
-        startResize,
+        startResize
     }
 }

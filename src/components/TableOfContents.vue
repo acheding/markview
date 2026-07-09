@@ -1,5 +1,5 @@
 <template>
-    <aside class="toc" :style="{ width }" aria-label="文档目录">
+    <aside ref="tocRef" class="toc" :style="{ width }" aria-label="文档目录">
         <div class="toc__title">目录</div>
 
         <div v-if="items.length" class="toc__list">
@@ -22,31 +22,33 @@
 </template>
 
 <script setup>
-import { nextTick, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
     items: {
         type: Array,
-        default: () => [],
+        default: () => []
     },
     activeId: {
         type: String,
-        default: '',
+        default: ''
     },
     width: {
         type: String,
-        default: '220px',
-    },
+        default: '220px'
+    }
 })
 
 defineEmits(['select'])
+
+const tocRef = ref(null)
 
 const scrollActiveItemIntoView = async () => {
     if (!props.activeId) return
 
     await nextTick()
 
-    const toc = document.querySelector('.toc')
+    const toc = tocRef.value
     const activeItem = toc?.querySelector('.toc__item.is-active')
     if (!toc || !activeItem) return
 
@@ -108,7 +110,10 @@ watch(() => props.activeId, scrollActiveItemIntoView)
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    transition:
+        color 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .toc__item:hover {

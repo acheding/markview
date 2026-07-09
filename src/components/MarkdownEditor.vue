@@ -8,17 +8,57 @@
                 @delete-file="$emit('delete-file', $event)"
             />
             <div class="editor-actions">
-                <button class="editor-action-button" type="button" title="新建文档" aria-label="新建文档" @click="$emit('create-file')">
-                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${newFileIcon})` }" aria-hidden="true" />
+                <button
+                    class="editor-action-button"
+                    type="button"
+                    title="新建文档"
+                    aria-label="新建文档"
+                    @click="$emit('create-file')"
+                >
+                    <span
+                        class="editor-action-icon"
+                        :style="{ '--icon-url': `url(${newFileIcon})` }"
+                        aria-hidden="true"
+                    />
                 </button>
-                <button class="editor-action-button" type="button" title="清空内容" aria-label="清空内容" @click="$emit('clear')">
-                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${clearContentIcon})` }" aria-hidden="true" />
+                <button
+                    class="editor-action-button"
+                    type="button"
+                    title="清空内容"
+                    aria-label="清空内容"
+                    @click="$emit('clear')"
+                >
+                    <span
+                        class="editor-action-icon"
+                        :style="{ '--icon-url': `url(${clearContentIcon})` }"
+                        aria-hidden="true"
+                    />
                 </button>
-                <button class="editor-action-button" type="button" title="导入 Markdown" aria-label="导入 Markdown" @click="triggerImport">
-                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${importFileIcon})` }" aria-hidden="true" />
+                <button
+                    class="editor-action-button"
+                    type="button"
+                    title="导入 Markdown"
+                    aria-label="导入 Markdown"
+                    @click="triggerImport"
+                >
+                    <span
+                        class="editor-action-icon"
+                        :style="{ '--icon-url': `url(${importFileIcon})` }"
+                        aria-hidden="true"
+                    />
                 </button>
-                <button class="editor-action-button editor-action-button--format" type="button" title="导出 Markdown" aria-label="导出 Markdown" @click="$emit('export-file')">
-                    <span class="editor-action-icon" :style="{ '--icon-url': `url(${exportFileIcon})` }" aria-hidden="true" />
+                <button
+                    class="editor-action-button editor-action-button--format"
+                    type="button"
+                    title="导出 Markdown"
+                    aria-label="导出 Markdown"
+                    @click="$emit('export-file')"
+                >
+                    <span
+                        class="editor-action-icon"
+                        :style="{ '--icon-url': `url(${exportFileIcon})` }"
+                        aria-hidden="true"
+                    />
                     <span class="editor-action-label">md</span>
                 </button>
                 <button
@@ -30,7 +70,12 @@
                     @click="$emit('export-pdf')"
                 >
                     <span v-if="exportingPdf" class="editor-action-spinner" aria-hidden="true" />
-                    <span v-else class="editor-action-icon" :style="{ '--icon-url': `url(${exportPdfIcon})` }" aria-hidden="true" />
+                    <span
+                        v-else
+                        class="editor-action-icon"
+                        :style="{ '--icon-url': `url(${exportPdfIcon})` }"
+                        aria-hidden="true"
+                    />
                     <span class="editor-action-label">PDF</span>
                 </button>
             </div>
@@ -43,7 +88,7 @@
             accept=".md,.markdown,text/markdown,text/plain"
             multiple
             @change="importFiles"
-        >
+        />
 
         <textarea
             ref="textareaRef"
@@ -69,24 +114,24 @@ import FileSwitcher from './FileSwitcher.vue'
 const props = defineProps({
     modelValue: {
         type: String,
-        required: true,
+        required: true
     },
     files: {
         type: Array,
-        default: () => [],
+        default: () => []
     },
     activeFileId: {
         type: String,
-        default: '',
+        default: ''
     },
     width: {
         type: [Number, String],
-        required: true,
+        required: true
     },
     exportingPdf: {
         type: Boolean,
-        default: false,
-    },
+        default: false
+    }
 })
 
 const emit = defineEmits([
@@ -98,14 +143,12 @@ const emit = defineEmits([
     'delete-file',
     'import-file',
     'export-file',
-    'export-pdf',
+    'export-pdf'
 ])
 
 const textareaRef = ref(null)
 const fileInputRef = ref(null)
-const normalizedWidth = computed(() => (
-    typeof props.width === 'number' ? `${props.width}%` : props.width
-))
+const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
 
 const triggerImport = () => {
     fileInputRef.value?.click()
@@ -120,7 +163,7 @@ const importFiles = async (event) => {
             const content = await file.text()
             emit('import-file', {
                 name: file.name,
-                content,
+                content
             })
         }
     } catch (error) {
@@ -165,7 +208,7 @@ const getRenderedLineTop = (textarea, value, start) => {
         'textTransform',
         'width',
         'wordBreak',
-        'wordSpacing',
+        'wordSpacing'
     ]
 
     copiedProperties.forEach((property) => {
@@ -211,7 +254,7 @@ const focusLine = (lineNumber, { scroll = true } = {}) => {
     requestAnimationFrame(() => {
         textarea.scrollTo({
             top: Math.max(0, renderedTop - textarea.clientHeight * 0.36),
-            behavior: 'smooth',
+            behavior: 'smooth'
         })
     })
 }
@@ -219,7 +262,7 @@ const focusLine = (lineNumber, { scroll = true } = {}) => {
 defineExpose({
     focus: () => textareaRef.value?.focus(),
     focusLine,
-    getScrollElement: () => textareaRef.value,
+    getScrollElement: () => textareaRef.value
 })
 </script>
 
@@ -243,7 +286,7 @@ defineExpose({
     outline: none;
     background: #fbfdff;
     color: var(--color-text);
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
     font-size: 14px;
     line-height: 1.74;
     tab-size: 2;
@@ -278,7 +321,12 @@ defineExpose({
     color: var(--color-muted);
     cursor: pointer;
     box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .editor-action-button--format {

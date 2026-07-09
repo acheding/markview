@@ -21,7 +21,7 @@ const MIRROR_COPY_PROPS = [
     'tabSize',
     'textTransform',
     'wordBreak',
-    'wordSpacing',
+    'wordSpacing'
 ]
 
 const getElementTop = (container, element) => {
@@ -31,12 +31,13 @@ const getElementTop = (container, element) => {
     return container.scrollTop + elementRect.top - containerRect.top
 }
 
-const getPreviewBlocks = (preview) => Array.from(preview.querySelectorAll(SOURCE_LINE_SELECTOR))
-    .map((element) => ({
-        element,
-        line: Number(element.dataset.sourceLine),
-    }))
-    .filter((item) => Number.isFinite(item.line))
+const getPreviewBlocks = (preview) =>
+    Array.from(preview.querySelectorAll(SOURCE_LINE_SELECTOR))
+        .map((element) => ({
+            element,
+            line: Number(element.dataset.sourceLine)
+        }))
+        .filter((item) => Number.isFinite(item.line))
 
 // 计算每个请求的源行（从 1 开始）在文本中的起始字符下标。
 const getLineStartIndices = (value, lines) => {
@@ -63,8 +64,9 @@ const getLineStartIndices = (value, lines) => {
 
 // 通过一次隐藏镜像布局，测量每个源行在 textarea 自身滚动坐标系中的顶部偏移。
 const measureEditorLineTops = (editor, lines) => {
-    const uniqueLines = Array.from(new Set(lines.filter((line) => Number.isFinite(line) && line >= 1)))
-        .sort((a, b) => a - b)
+    const uniqueLines = Array.from(new Set(lines.filter((line) => Number.isFinite(line) && line >= 1))).sort(
+        (a, b) => a - b
+    )
     const tops = new Map()
     if (!uniqueLines.length) return tops
 
@@ -93,7 +95,7 @@ const measureEditorLineTops = (editor, lines) => {
     uniqueLines.forEach((line, index) => {
         const start = lineStarts.get(line)
         html += escapeHtml(value.slice(cursor, start))
-        html += `<span data-line-index="${index}">​</span>`
+        html += `<span data-line-index="${index}">\u200b</span>`
         cursor = start
     })
     html += escapeHtml(value.slice(cursor))
@@ -118,12 +120,15 @@ const buildAnchors = (editor, preview) => {
     const previewMax = Math.max(0, preview.scrollHeight - preview.clientHeight)
 
     const blocks = getPreviewBlocks(preview)
-    const lineTops = measureEditorLineTops(editor, blocks.map((block) => block.line))
+    const lineTops = measureEditorLineTops(
+        editor,
+        blocks.map((block) => block.line)
+    )
 
     const raw = blocks
         .map((block) => ({
             editor: lineTops.get(block.line),
-            preview: getElementTop(preview, block.element),
+            preview: getElementTop(preview, block.element)
         }))
         .filter((anchor) => Number.isFinite(anchor.editor) && Number.isFinite(anchor.preview))
         .sort((a, b) => a.editor - b.editor)
@@ -164,7 +169,7 @@ const interpolate = (anchors, fromKey, toKey, value) => {
             if (span <= 0) return lower[toKey]
 
             const progress = clamp((value - lower[fromKey]) / span, 0, 1)
-            return lower[toKey] + ((upper[toKey] - lower[toKey]) * progress)
+            return lower[toKey] + (upper[toKey] - lower[toKey]) * progress
         }
     }
 
@@ -176,7 +181,7 @@ const applyScroll = (element, top) => {
 
     element.scrollTo({
         top,
-        behavior: 'auto',
+        behavior: 'auto'
     })
 
     return true
@@ -187,16 +192,16 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     let sourceReleaseTimer = null
     const programmaticScroll = {
         editor: false,
-        preview: false,
+        preview: false
     }
     const programmaticReleaseTimers = {
         editor: null,
-        preview: null,
+        preview: null
     }
     const cleanupListeners = []
     const anchorCache = {
         signature: '',
-        anchors: null,
+        anchors: null
     }
 
     const getAnchors = (editor, preview) => {
@@ -207,7 +212,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
             editor.clientHeight,
             preview.scrollHeight,
             preview.clientWidth,
-            preview.clientHeight,
+            preview.clientHeight
         ].join('|')
 
         if (anchorCache.signature !== signature || !anchorCache.anchors) {
@@ -340,6 +345,6 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     return {
         handleEditorScroll,
         handlePreviewScroll,
-        alignToSourceLine,
+        alignToSourceLine
     }
 }

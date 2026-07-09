@@ -1,30 +1,35 @@
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import {
-    DEFAULT_DOCUMENT_NAME,
-    PRESET_DOCUMENTS,
-} from '../constants/editor'
-import {
-    isIndexedDbSupported,
-    loadDocumentState,
-    saveDocumentState,
-} from '../utils/documentStore'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { DEFAULT_DOCUMENT_NAME, PRESET_DOCUMENTS } from '../constants/editor'
+import { isIndexedDbSupported, loadDocumentState, saveDocumentState } from '../utils/documentStore'
+
+const SAVE_DEBOUNCE_MS = 800
+const NAME_DEBOUNCE_MS = 300
+const SAVE_STATUS = {
+    SAVED: '已自动保存',
+    UNSAVED: '未保存',
+    SAVING: '保存中',
+    FAILED: '保存失败',
+    MEMORY_ONLY: '仅内存保存'
+}
 
 const createId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
-const stripMarkdownTitle = (value) => value
-    .replace(/[`*_~[\]()#]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+const stripMarkdownTitle = (value) =>
+    value
+        .replace(/[`*_~[\]()#]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
 
-const stripMarkdownText = (value) => value
-    .replace(/^>\s*/g, '')
-    .replace(/^[-*+]\s+/g, '')
-    .replace(/^\d+[.)]\s+/g, '')
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[`*_~[\]()#|]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+const stripMarkdownText = (value) =>
+    value
+        .replace(/^>\s*/g, '')
+        .replace(/^[-*+]\s+/g, '')
+        .replace(/^\d+[.)]\s+/g, '')
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[`*_~[\]()#|]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
 
 const normalizeFileName = (value) => {
     const safeName = value
@@ -37,7 +42,9 @@ const normalizeFileName = (value) => {
 }
 
 const normalizeImportedFileName = (value, content) => {
-    const rawName = String(value || '').split(/[\\/]/).pop()
+    const rawName = String(value || '')
+        .split(/[\\/]/)
+        .pop()
     const safeName = rawName
         .replace(/[\\/:*?"<>|]/g, '-')
         .replace(/\s+/g, ' ')
@@ -53,7 +60,7 @@ const deriveDocumentName = (content) => {
     const headings = Array.from(content.matchAll(/^(#{1,6})\s+(.+?)\s*#*\s*$/gm))
         .map((match) => ({
             level: match[1].length,
-            title: stripMarkdownTitle(match[2]),
+            title: stripMarkdownTitle(match[2])
         }))
         .filter((heading) => heading.title)
 
@@ -76,7 +83,7 @@ const createDocument = (content = '', name = '') => ({
     id: createId(),
     name: name || deriveDocumentName(content),
     content,
-    updatedAt: Date.now(),
+    updatedAt: Date.now()
 })
 
 const createUniqueName = (files, baseName) => {
@@ -111,7 +118,7 @@ const createInitialState = () => {
 
     return {
         activeId: files[0].id,
-        files,
+        files
     }
 }
 
@@ -130,19 +137,17 @@ const normalizeState = (state) => {
                 id: file.id,
                 name: createUniqueName(files, normalizeImportedFileName(file.name, content)),
                 content,
-                updatedAt: Number(file.updatedAt || Date.now()),
+                updatedAt: Number(file.updatedAt || Date.now())
             })
         })
 
     if (!files.length) return createInitialState()
 
-    const activeId = files.some((file) => file.id === state.activeId)
-        ? state.activeId
-        : files[0].id
+    const activeId = files.some((file) => file.id === state.activeId) ? state.activeId : files[0].id
 
     return {
         activeId,
-        files,
+        files
     }
 }
 
@@ -152,73 +157,179 @@ const snapshotState = (state) => ({
         id: file.id,
         name: file.name,
         content: file.content,
-        updatedAt: file.updatedAt,
-    })),
+        updatedAt: file.updatedAt
+    }))
 })
 
 export const useMarkdownDocuments = () => {
-    const saveStatus = ref('已自动保存')
+    let canPersist = isIndexedDbSupported()
+    const saveStatus = ref(canPersist ? SAVE_STATUS.SAVED : SAVE_STATUS.MEMORY_ONLY)
     const isReady = ref(false)
     const state = ref({ activeId: '', files: [] })
     let saveTimer = null
-    let canPersist = isIndexedDbSupported()
+    let nameTimer = null
+    let saveChain = Promise.resolve()
+    let saveRevision = 0
+    let hasPendingSave = false
 
     const files = computed(() => state.value.files)
     const activeFileId = computed(() => state.value.activeId)
-    const activeFile = computed(() => (
-        files.value.find((file) => file.id === activeFileId.value) || files.value[0]
-    ))
+    const activeFile = computed(() => files.value.find((file) => file.id === activeFileId.value) || files.value[0])
+
+    const applyDerivedName = (fileId) => {
+        const file = files.value.find((item) => item.id === fileId)
+        if (!file) return false
+
+        const nextName = createUniqueName(
+            files.value.filter((item) => item.id !== file.id),
+            deriveDocumentName(file.content)
+        )
+
+        if (file.name === nextName) return false
+
+        file.name = nextName
+        file.updatedAt = Date.now()
+        return true
+    }
+
+    const flushDocumentName = (fileId = activeFileId.value) => {
+        clearTimeout(nameTimer)
+        nameTimer = null
+
+        return applyDerivedName(fileId)
+    }
+
+    const setPendingStatus = () => {
+        saveStatus.value = canPersist ? SAVE_STATUS.UNSAVED : SAVE_STATUS.MEMORY_ONLY
+    }
+
+    const enqueueSave = (snapshot, revision) => {
+        saveChain = saveChain
+            .catch(() => {})
+            .then(async () => {
+                if (!canPersist) {
+                    saveStatus.value = SAVE_STATUS.MEMORY_ONLY
+                    return
+                }
+
+                saveStatus.value = SAVE_STATUS.SAVING
+
+                try {
+                    await saveDocumentState(snapshot)
+                    if (saveRevision === revision) {
+                        hasPendingSave = false
+                        saveStatus.value = SAVE_STATUS.SAVED
+                    }
+                } catch (error) {
+                    saveStatus.value = SAVE_STATUS.FAILED
+                    console.warn('IndexedDB 写入失败:', error)
+                }
+            })
+
+        return saveChain
+    }
+
+    const scheduleSave = ({ delay = SAVE_DEBOUNCE_MS } = {}) => {
+        if (!isReady.value) return
+
+        hasPendingSave = true
+        saveRevision += 1
+        setPendingStatus()
+        clearTimeout(saveTimer)
+
+        saveTimer = setTimeout(() => {
+            saveTimer = null
+            enqueueSave(snapshotState(state.value), saveRevision)
+        }, delay)
+    }
+
+    const flushSave = ({ includeName = true } = {}) => {
+        const nameChanged = includeName ? flushDocumentName() : false
+
+        if (nameChanged && isReady.value) {
+            hasPendingSave = true
+            saveRevision += 1
+            setPendingStatus()
+        }
+
+        clearTimeout(saveTimer)
+        saveTimer = null
+
+        if (!isReady.value || !hasPendingSave) return saveChain
+
+        return enqueueSave(snapshotState(state.value), saveRevision)
+    }
+
+    const scheduleDocumentNameUpdate = (fileId) => {
+        clearTimeout(nameTimer)
+        nameTimer = setTimeout(() => {
+            nameTimer = null
+            if (applyDerivedName(fileId)) {
+                scheduleSave()
+            }
+        }, NAME_DEBOUNCE_MS)
+    }
 
     const markdownContent = computed({
         get: () => activeFile.value?.content || '',
         set: (content) => {
             const file = activeFile.value
             if (!file) return
+            if (file.content === content) return
 
             file.content = content
-            file.name = createUniqueName(
-                files.value.filter((item) => item.id !== file.id),
-                deriveDocumentName(content),
-            )
             file.updatedAt = Date.now()
-        },
+            scheduleDocumentNameUpdate(file.id)
+            scheduleSave()
+        }
     })
 
     const selectFile = (id) => {
-        if (files.value.some((file) => file.id === id)) {
-            state.value.activeId = id
-        }
+        if (!files.value.some((file) => file.id === id) || state.value.activeId === id) return
+
+        flushDocumentName()
+        flushSave({ includeName: false })
+        state.value.activeId = id
+        scheduleSave({ delay: 0 })
     }
 
     const createFile = () => {
+        flushDocumentName()
+        flushSave({ includeName: false })
+
         const file = createDocument('')
         file.name = createUniqueName(files.value, file.name)
         // 新建文档按时间倒序排在最前。
         state.value.files.unshift(file)
         state.value.activeId = file.id
+        scheduleSave({ delay: 0 })
     }
 
     const importFile = ({ name = '', content = '' } = {}) => {
+        flushDocumentName()
+        flushSave({ includeName: false })
+
         const file = createDocument(String(content || ''))
-        file.name = createUniqueName(
-            files.value,
-            normalizeImportedFileName(name, file.content),
-        )
+        file.name = createUniqueName(files.value, normalizeImportedFileName(name, file.content))
         // 导入文档按时间倒序排在最前。
         state.value.files.unshift(file)
         state.value.activeId = file.id
+        scheduleSave({ delay: 0 })
     }
 
     const deleteFile = (id) => {
         const index = state.value.files.findIndex((file) => file.id === id)
         if (index === -1) return
 
+        flushDocumentName()
+        flushSave({ includeName: false })
         state.value.files.splice(index, 1)
 
         if (!state.value.files.length) {
             const file = createDocument('')
             state.value.files.push(file)
             state.value.activeId = file.id
+            scheduleSave({ delay: 0 })
             return
         }
 
@@ -226,15 +337,8 @@ export const useMarkdownDocuments = () => {
             const nextFile = state.value.files[Math.min(index, state.value.files.length - 1)]
             state.value.activeId = nextFile.id
         }
-    }
 
-    const persist = async (snapshot) => {
-        if (!canPersist) {
-            saveStatus.value = '保存失败'
-            return
-        }
-
-        await saveDocumentState(snapshot)
+        scheduleSave({ delay: 0 })
     }
 
     // 首次加载：优先读取 IndexedDB；为空时生成预置文档并写入。
@@ -255,11 +359,11 @@ export const useMarkdownDocuments = () => {
                 console.warn('IndexedDB 加载失败，改用内存数据:', error)
                 nextState = createInitialState()
                 canPersist = false
-                saveStatus.value = '保存失败'
+                saveStatus.value = SAVE_STATUS.MEMORY_ONLY
             }
         } else {
             nextState = createInitialState()
-            saveStatus.value = '保存失败'
+            saveStatus.value = SAVE_STATUS.MEMORY_ONLY
         }
 
         state.value = nextState
@@ -267,9 +371,10 @@ export const useMarkdownDocuments = () => {
         if (needsInitialWrite) {
             try {
                 await saveDocumentState(snapshotState(nextState))
+                saveStatus.value = SAVE_STATUS.SAVED
             } catch (error) {
                 console.warn('IndexedDB 初始化写入失败:', error)
-                saveStatus.value = '保存失败'
+                saveStatus.value = SAVE_STATUS.FAILED
             }
         }
 
@@ -277,25 +382,29 @@ export const useMarkdownDocuments = () => {
         isReady.value = true
     }
 
-    watch(state, () => {
-        if (!isReady.value) return
+    const flushBeforePageLeaves = () => {
+        flushSave()
+    }
 
-        saveStatus.value = '保存中'
-        clearTimeout(saveTimer)
+    const flushWhenHidden = () => {
+        if (document.visibilityState === 'hidden') {
+            flushSave()
+        }
+    }
 
-        saveTimer = setTimeout(async () => {
-            try {
-                await persist(snapshotState(state.value))
-                saveStatus.value = '已自动保存'
-            } catch (error) {
-                saveStatus.value = '保存失败'
-                console.warn('IndexedDB 写入失败:', error)
-            }
-        }, 800)
-    }, { deep: true })
+    onMounted(() => {
+        window.addEventListener('pagehide', flushBeforePageLeaves)
+        window.addEventListener('beforeunload', flushBeforePageLeaves)
+        document.addEventListener('visibilitychange', flushWhenHidden)
+    })
 
     onBeforeUnmount(() => {
+        flushSave()
         clearTimeout(saveTimer)
+        clearTimeout(nameTimer)
+        window.removeEventListener('pagehide', flushBeforePageLeaves)
+        window.removeEventListener('beforeunload', flushBeforePageLeaves)
+        document.removeEventListener('visibilitychange', flushWhenHidden)
     })
 
     hydrate()
@@ -310,6 +419,6 @@ export const useMarkdownDocuments = () => {
         selectFile,
         createFile,
         importFile,
-        deleteFile,
+        deleteFile
     }
 }

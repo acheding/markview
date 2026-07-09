@@ -9,7 +9,7 @@ import markdown from 'highlight.js/lib/languages/markdown'
 import python from 'highlight.js/lib/languages/python'
 import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
-import { createSlugger, escapeHtml, stripHtml } from '../utils/text'
+import { createSlugger, escapeHtml, stripHtml } from '../utils/text.js'
 
 hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('css', css)
@@ -22,23 +22,40 @@ hljs.registerLanguage('typescript', typescript)
 hljs.registerLanguage('xml', xml)
 
 const getLanguage = (infoString = '') => infoString.trim().split(/\s+/)[0]
-const SOURCE_LINE_TYPES = new Set([
-    'blockquote',
-    'code',
-    'heading',
-    'hr',
-    'list',
-    'paragraph',
-    'table',
-])
+const SOURCE_LINE_TYPES = new Set(['blockquote', 'code', 'heading', 'html', 'hr', 'list', 'paragraph', 'table'])
 
 const countLines = (text) => (text.match(/\n/g) || []).length
 
-const getSourceLineAttr = (token) => (
+const getSourceLineAttr = (token) =>
     Number.isFinite(token?.sourceLine) ? ` data-source-line="${token.sourceLine}"` : ''
-)
 
 const getCellAlignAttr = (align) => (align ? ` style="text-align:${align}"` : '')
+
+const createTitleAttr = (title) => (title ? ` title="${escapeHtml(title)}"` : '')
+
+const isSafeUrl = (
+    value = '',
+    { allowDataImage = false, allowedProtocols = ['http', 'https', 'mailto', 'tel'] } = {}
+) => {
+    const url = String(value || '').trim()
+    if (!url) return false
+
+    // eslint-disable-next-line no-control-regex
+    const compactUrl = url.replace(/[\u0000-\u001F\u007F\s]+/g, '')
+    const protocolMatch = compactUrl.match(/^([a-zA-Z][a-zA-Z\d+.-]*):/)
+    if (!protocolMatch) return true
+
+    const protocol = protocolMatch[1].toLowerCase()
+    if (allowedProtocols.includes(protocol)) return true
+
+    return (
+        allowDataImage &&
+        protocol === 'data' &&
+        /^data:image\/(?:png|gif|jpe?g|webp);base64,[a-z0-9+/]+=*$/i.test(compactUrl)
+    )
+}
+
+const getSafeUrlAttr = (href, options) => (isSafeUrl(href, options) ? escapeHtml(String(href || '').trim()) : '')
 
 const annotateSourceLines = (tokens, source) => {
     let cursorIndex = 0
@@ -75,7 +92,7 @@ const renderMarkdown = (source) => {
     if (!source.trim()) {
         return {
             html: '<div class="empty-hint">在左侧编辑区输入 Markdown，右侧将实时预览</div>',
-            toc,
+            toc
         }
     }
 
@@ -83,7 +100,7 @@ const renderMarkdown = (source) => {
         const slug = createSlugger()
         const options = {
             breaks: true,
-            gfm: true,
+            gfm: true
         }
         const tokens = marked.lexer(source, options)
         annotateSourceLines(tokens, source)
@@ -105,6 +122,12 @@ const renderMarkdown = (source) => {
 
                 blockquote(token) {
                     return `<blockquote${getSourceLineAttr(token)}>${this.parser.parse(token.tokens)}</blockquote>`
+                },
+
+                html(token) {
+                    const text = escapeHtml(token.text || token.raw || '')
+
+                    return token.block ? `<p${getSourceLineAttr(token)}>${text}</p>` : text
                 },
 
                 code(token) {
@@ -135,14 +158,39 @@ const renderMarkdown = (source) => {
                     return `<${tag}${getSourceLineAttr(token)}${startAttr}>${body}</${tag}>`
                 },
 
+                link(token) {
+                    const href = getSafeUrlAttr(token.href)
+                    const text = this.parser.parseInline(token.tokens)
+                    if (!href) return text
+
+                    return `<a href="${href}"${createTitleAttr(token.title)}>${text}</a>`
+                },
+
+                image(token) {
+                    const src = getSafeUrlAttr(token.href, {
+                        allowDataImage: true,
+                        allowedProtocols: ['http', 'https']
+                    })
+                    const alt = escapeHtml(token.text || '')
+                    if (!src) return alt
+
+                    return `<img src="${src}" alt="${alt}"${createTitleAttr(token.title)}>`
+                },
+
                 table(token) {
                     const header = token.header
-                        .map((cell, index) => `<th${getCellAlignAttr(token.align[index])}>${this.parser.parseInline(cell.tokens)}</th>`)
+                        .map(
+                            (cell, index) =>
+                                `<th${getCellAlignAttr(token.align[index])}>${this.parser.parseInline(cell.tokens)}</th>`
+                        )
                         .join('')
                     const rows = token.rows
                         .map((row) => {
                             const cells = row
-                                .map((cell, index) => `<td${getCellAlignAttr(token.align[index])}>${this.parser.parseInline(cell.tokens)}</td>`)
+                                .map(
+                                    (cell, index) =>
+                                        `<td${getCellAlignAttr(token.align[index])}>${this.parser.parseInline(cell.tokens)}</td>`
+                                )
                                 .join('')
 
                             return `<tr>${cells}</tr>`
@@ -150,21 +198,21 @@ const renderMarkdown = (source) => {
                         .join('')
 
                     return `<table${getSourceLineAttr(token)}><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`
-                },
-            },
+                }
+            }
         }
 
         return {
             html: marked.parser(tokens, {
                 ...options,
-                extensions,
+                extensions
             }),
-            toc,
+            toc
         }
     } catch (error) {
         return {
             html: `<div class="error-hint">解析出错：${escapeHtml(error.message)}</div>`,
-            toc,
+            toc
         }
     }
 }
@@ -174,6 +222,6 @@ export const useMarkdownRenderer = (source) => {
 
     return {
         renderedHtml: computed(() => result.value.html),
-        toc: computed(() => result.value.toc),
+        toc: computed(() => result.value.toc)
     }
 }

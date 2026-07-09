@@ -1,10 +1,6 @@
 <template>
     <div class="app-shell">
-        <AppToolbar
-            :files="files"
-            :active-file-id="activeFileId"
-            @select-search-result="selectSearchResult"
-        />
+        <AppToolbar :files="files" :active-file-id="activeFileId" @select-search-result="selectSearchResult" />
 
         <main ref="mainPanelRef" class="main-panel" :style="{ '--toc-width': tocWidthStyle }">
             <MarkdownEditor
@@ -50,6 +46,8 @@ import AppToolbar from './components/AppToolbar.vue'
 import MarkdownEditor from './components/MarkdownEditor.vue'
 import MarkdownPreview from './components/MarkdownPreview.vue'
 import ResizeDivider from './components/ResizeDivider.vue'
+import { useDocumentExport } from './composables/useDocumentExport.js'
+import { useHeadingNavigation } from './composables/useHeadingNavigation.js'
 import { useMarkdownDocuments } from './composables/useMarkdownDocuments.js'
 import { useMarkdownRenderer } from './composables/useMarkdownRenderer.js'
 import { usePaneResize } from './composables/usePaneResize.js'
@@ -60,11 +58,6 @@ import { countWords } from './utils/text.js'
 const mainPanelRef = ref(null)
 const editorRef = ref(null)
 const previewRef = ref(null)
-const activeHeadingId = ref('')
-const isExportingPdf = ref(false)
-let hashScrollRunId = 0
-let hashRetryTimer = null
-const ACTIVE_HEADING_OFFSET = 4
 
 const {
     files,
@@ -76,7 +69,7 @@ const {
     selectFile,
     createFile,
     importFile,
-    deleteFile,
+    deleteFile
 } = useMarkdownDocuments()
 const { renderedHtml, toc } = useMarkdownRenderer(markdownContent)
 const { editorWidth, previewWidth, isResizing, startResize } = usePaneResize(mainPanelRef)
@@ -85,11 +78,20 @@ const { tocWidthStyle, isTocResizing, startTocResize } = useTocResize()
 const stats = computed(() => ({
     lines: markdownContent.value ? markdownContent.value.split('\n').length : 0,
     words: countWords(markdownContent.value),
-    chars: markdownContent.value.length,
+    chars: markdownContent.value.length
 }))
 
 const getEditorElement = () => editorRef.value?.getScrollElement()
 const getPreviewElement = () => previewRef.value?.getScrollElement()
+const { isExportingPdf, exportActiveFile, exportPdf } = useDocumentExport({
+    activeFile,
+    getPreviewElement
+})
+const { activeHeadingId, clearHash, scrollToHashHeading, selectHeading, updateActiveHeading } = useHeadingNavigation({
+    toc,
+    getPreviewElement,
+    getPreviewComponent: () => previewRef.value
+})
 
 // 将编辑区与预览区滚动条同时置顶。
 const scrollPanesToTop = () => {
@@ -97,216 +99,11 @@ const scrollPanesToTop = () => {
     getPreviewElement()?.scrollTo({ top: 0, behavior: 'auto' })
 }
 
-// 清除 URL 中的标题锚点，避免刷新或后续逻辑再次跳转到旧标题。
-const clearHash = () => {
-    if (!window.location.hash) return
-
-    history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
-}
-
-const getHashHeadingId = () => {
-    const hash = window.location.hash.replace(/^#/, '')
-    if (!hash) return ''
-
-    try {
-        return decodeURIComponent(hash)
-    } catch {
-        return hash
-    }
-}
-
-const setHashHeadingId = (id) => {
-    const nextHash = `#${encodeURIComponent(id)}`
-    if (window.location.hash === nextHash) return
-
-    history.pushState(null, '', `${window.location.pathname}${window.location.search}${nextHash}`)
-}
-
-const getHeadingTopInPreview = (preview, element) => (
-    element.getBoundingClientRect().top - preview.getBoundingClientRect().top
-)
-
-const isPreviewScrolledToEnd = (preview) => {
-    const maxScrollTop = Math.max(0, preview.scrollHeight - preview.clientHeight)
-
-    return maxScrollTop > ACTIVE_HEADING_OFFSET
-        && maxScrollTop - preview.scrollTop <= ACTIVE_HEADING_OFFSET
-}
-
-const isHeadingVisibleInPreview = (preview, element) => {
-    const top = getHeadingTopInPreview(preview, element)
-
-    return top >= 0 && top <= preview.clientHeight
-}
-
-const updateActiveHeading = (preferredId = '') => {
-    const preview = getPreviewElement()
-    if (!preview || !toc.value.length) {
-        activeHeadingId.value = ''
-        return
-    }
-
-    const headings = toc.value
-        .map((item) => ({
-            id: item.id,
-            element: preview.querySelector(`#${CSS.escape(item.id)}`),
-        }))
-        .filter((item) => item.element)
-
-    if (!headings.length) {
-        activeHeadingId.value = ''
-        return
-    }
-
-    if (isPreviewScrolledToEnd(preview)) {
-        const preferredHeading = preferredId
-            ? headings.find((heading) => heading.id === preferredId)
-            : null
-
-        activeHeadingId.value = preferredHeading && isHeadingVisibleInPreview(preview, preferredHeading.element)
-            ? preferredHeading.id
-            : headings[headings.length - 1].id
-        return
-    }
-
-    let current = headings[0]
-
-    for (const heading of headings) {
-        if (getHeadingTopInPreview(preview, heading.element) <= ACTIVE_HEADING_OFFSET) {
-            current = heading
-        } else {
-            break
-        }
-    }
-
-    activeHeadingId.value = current.id
-}
-
 const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScrollSync({
     getEditorElement,
     getPreviewElement,
-    onPreviewScroll: updateActiveHeading,
+    onPreviewScroll: updateActiveHeading
 })
-
-const waitForAnimationFrame = () => new Promise((resolve) => {
-    requestAnimationFrame(resolve)
-})
-
-const getExportFileName = (name) => {
-    const safeName = String(name || '')
-        .replace(/[\\/:*?"<>|]/g, '-')
-        .replace(/\s+/g, ' ')
-        .trim()
-
-    if (!safeName) return 'document.md'
-
-    return /\.(md|markdown)$/i.test(safeName) ? safeName : `${safeName}.md`
-}
-
-const exportActiveFile = () => {
-    const file = activeFile.value
-    if (!file) return
-
-    const blob = new Blob([file.content || ''], { type: 'text/markdown;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-
-    link.href = url
-    link.download = getExportFileName(file.name)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    setTimeout(() => {
-        URL.revokeObjectURL(url)
-    }, 0)
-}
-
-// 一键导出 PDF：把预览内容克隆到离屏容器（保留渲染样式、解除高度与滚动限制），
-// 再用 html2pdf 截图分页并直接下载，不弹浏览器打印框。html2pdf 体积较大，按需动态加载。
-const exportPdf = async () => {
-    if (isExportingPdf.value) return
-
-    const source = getPreviewElement()
-    const file = activeFile.value
-    if (!source) return
-
-    isExportingPdf.value = true
-
-    const baseName = getExportFileName(file?.name || 'document.md').replace(/\.(md|markdown)$/i, '')
-
-    // cloneNode(true) 会保留 scoped 样式所需的 data-v 属性，克隆节点仍能命中预览样式。
-    const clone = source.cloneNode(true)
-    clone.style.height = 'auto'
-    clone.style.maxHeight = 'none'
-    clone.style.overflow = 'visible'
-    clone.style.width = `${source.clientWidth}px`
-
-    const holder = document.createElement('div')
-    holder.style.position = 'fixed'
-    holder.style.left = '-99999px'
-    holder.style.top = '0'
-    holder.style.background = '#ffffff'
-    holder.appendChild(clone)
-    document.body.appendChild(holder)
-
-    try {
-        const { default: html2pdf } = await import('html2pdf.js')
-        await html2pdf()
-            .set({
-                margin: [10, 10, 10, 10],
-                filename: `${baseName}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'], avoid: ['pre', 'table', 'img', 'blockquote'] },
-            })
-            .from(clone)
-            .save()
-    } catch (error) {
-        console.warn('导出 PDF 失败:', error)
-        alert('导出 PDF 失败，请重试。')
-    } finally {
-        document.body.removeChild(holder)
-        isExportingPdf.value = false
-    }
-}
-
-const scrollToHashHeading = async () => {
-    const id = getHashHeadingId()
-    if (!id) {
-        updateActiveHeading()
-        return
-    }
-
-    const runId = ++hashScrollRunId
-    clearTimeout(hashRetryTimer)
-
-    await nextTick()
-
-    for (let index = 0; index < 6; index += 1) {
-        await waitForAnimationFrame()
-        if (runId !== hashScrollRunId) return
-
-        const scrolled = previewRef.value?.scrollToHeading(id, { behavior: 'auto' })
-        if (scrolled) {
-            activeHeadingId.value = id
-        }
-    }
-
-    hashRetryTimer = setTimeout(() => {
-        if (runId !== hashScrollRunId) return
-
-        const scrolled = previewRef.value?.scrollToHeading(id, { behavior: 'auto' })
-        if (scrolled) {
-            activeHeadingId.value = id
-        }
-    }, 250)
-}
-
-const selectHeading = (id) => {
-    activeHeadingId.value = id
-    setHashHeadingId(id)
-}
 
 const clearContent = async () => {
     if (!confirm('确定要清空所有内容吗？')) return
@@ -361,13 +158,10 @@ watch(isReady, async (ready) => {
 onMounted(() => {
     editorRef.value?.focus()
     document.addEventListener('keydown', handleKeydown)
-    window.addEventListener('hashchange', scrollToHashHeading)
 })
 
 onBeforeUnmount(() => {
     document.removeEventListener('keydown', handleKeydown)
-    window.removeEventListener('hashchange', scrollToHashHeading)
-    clearTimeout(hashRetryTimer)
 })
 </script>
 

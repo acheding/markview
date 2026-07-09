@@ -1,22 +1,32 @@
 {
-  "name": "markview",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "check": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "highlight.js": "^11.9.0",
-    "html2pdf.js": "^0.14.0",
-    "marked": "^12.0.0",
-    "vue": "^3.4.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
-    "vite": "^5.0.0"
-  }
+    "name": "markview",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "lint": "eslint . --max-warnings=0",
+        "format": "prettier --write \"src/**/*.{js,vue,css}\" \"*.{js,json,html}\"",
+        "format:check": "prettier --check \"src/**/*.{js,vue,css}\" \"*.{js,json,html}\"",
+        "test": "vitest run",
+        "check": "pnpm lint && pnpm format:check && pnpm test && pnpm run build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "highlight.js": "^11.9.0",
+        "html2pdf.js": "^0.14.0",
+        "marked": "^12.0.0",
+        "vue": "^3.4.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@vitejs/plugin-vue": "^5.0.0",
+        "eslint": "^10.6.0",
+        "eslint-plugin-vue": "^10.9.2",
+        "globals": "^17.7.0",
+        "prettier": "^3.9.4",
+        "vite": "^5.0.0",
+        "vitest": "^1.6.1"
+    }
 }

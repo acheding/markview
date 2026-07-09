@@ -5,16 +5,15 @@
         aria-orientation="vertical"
         :class="{ 'is-active': active }"
         @pointerdown="$emit('resize-start', $event)"
-    >
-    </div>
+    ></div>
 </template>
 
 <script setup>
 defineProps({
     active: {
         type: Boolean,
-        default: false,
-    },
+        default: false
+    }
 })
 
 defineEmits(['resize-start'])
@@ -38,8 +37,10 @@ defineEmits(['resize-start'])
     width: 1px;
     height: 100%;
     background: var(--color-border);
-    content: "";
-    transition: background 0.15s ease, box-shadow 0.15s ease;
+    content: '';
+    transition:
+        background 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .divider:hover,

@@ -15,7 +15,7 @@
                 aria-controls="document-search-results"
                 @focus="openResults"
                 @keydown="handleKeydown"
-            >
+            />
             <span v-if="query" class="document-search__count">{{ results.length }}</span>
         </label>
 
@@ -32,7 +32,7 @@
                 class="document-search__result"
                 :class="{
                     'is-active': index === activeIndex,
-                    'is-current-file': result.fileId === activeFileId,
+                    'is-current-file': result.fileId === activeFileId
                 }"
                 type="button"
                 role="option"
@@ -47,16 +47,17 @@
                     </span>
                 </span>
                 <span class="document-search__excerpt">
-                    <template v-for="(part, partIndex) in splitMatch(result.excerpt)" :key="`${result.id}-${partIndex}`">
+                    <template
+                        v-for="(part, partIndex) in splitMatch(result.excerpt)"
+                        :key="`${result.id}-${partIndex}`"
+                    >
                         <mark v-if="part.match">{{ part.text }}</mark>
                         <span v-else>{{ part.text }}</span>
                     </template>
                 </span>
             </button>
 
-            <div v-if="!results.length" class="document-search__empty">
-                没有找到匹配的文档
-            </div>
+            <div v-if="!results.length" class="document-search__empty">没有找到匹配的文档</div>
         </div>
     </div>
 </template>
@@ -64,15 +65,18 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+const SEARCH_DEBOUNCE_MS = 120
+const MAX_SEARCH_RESULTS = 80
+
 const props = defineProps({
     files: {
         type: Array,
-        default: () => [],
+        default: () => []
     },
     activeFileId: {
         type: String,
-        default: '',
-    },
+        default: ''
+    }
 })
 
 const emit = defineEmits(['select'])
@@ -82,8 +86,10 @@ const isOpen = ref(false)
 const activeIndex = ref(0)
 const searchRef = ref(null)
 const inputRef = ref(null)
+const debouncedQuery = ref('')
+let queryTimer = null
 
-const normalizedQuery = computed(() => query.value.trim().toLowerCase())
+const normalizedQuery = computed(() => debouncedQuery.value.trim().toLowerCase())
 
 const buildSnippet = (line, term) => {
     const text = line.trim().replace(/\s+/g, ' ')
@@ -101,53 +107,60 @@ const buildSnippet = (line, term) => {
     return `${prefix}${text.slice(start, end)}${suffix}`
 }
 
-const createLineResults = (file, term) => file.content
-    .split('\n')
-    .map((line, index) => ({
-        id: `${file.id}:line:${index}`,
-        fileId: file.id,
-        fileName: file.name,
-        lineNumber: index + 1,
-        excerpt: buildSnippet(line, term),
-        sortType: 1,
-        updatedAt: file.updatedAt,
-        sourceIndex: index,
-    }))
-    .filter((result) => result.excerpt.toLowerCase().includes(term))
+const appendLineResults = (results, file, term, fileIndex) => {
+    const lines = file.content.split('\n')
+
+    for (let index = 0; index < lines.length && results.length < MAX_SEARCH_RESULTS; index += 1) {
+        if (!lines[index].toLowerCase().includes(term)) continue
+
+        results.push({
+            id: `${file.id}:line:${index}`,
+            fileId: file.id,
+            fileName: file.name,
+            lineNumber: index + 1,
+            excerpt: buildSnippet(lines[index], term),
+            sortType: 1,
+            updatedAt: file.updatedAt,
+            sourceIndex: index,
+            fileIndex
+        })
+    }
+}
 
 const results = computed(() => {
     const term = normalizedQuery.value
     if (!term) return []
 
-    return props.files
-        .flatMap((file, fileIndex) => {
-            const nameMatch = file.name.toLowerCase().includes(term)
-                ? [{
-                    id: `${file.id}:name`,
-                    fileId: file.id,
-                    fileName: file.name,
-                    lineNumber: null,
-                    excerpt: buildSnippet(file.name, term),
-                    sortType: 0,
-                    updatedAt: file.updatedAt,
-                    sourceIndex: -1,
-                    fileIndex,
-                }]
-                : []
-
-            return [
-                ...nameMatch,
-                ...createLineResults(file, term).map((result) => ({ ...result, fileIndex })),
-            ]
-        })
+    const matches = []
+    const files = props.files
+        .map((file, fileIndex) => ({ file, fileIndex }))
         .sort((left, right) => {
-            const activeDiff = Number(right.fileId === props.activeFileId) - Number(left.fileId === props.activeFileId)
-            if (activeDiff) return activeDiff
-
-            if (left.sortType !== right.sortType) return left.sortType - right.sortType
-            if (left.fileIndex !== right.fileIndex) return left.fileIndex - right.fileIndex
-            return left.sourceIndex - right.sourceIndex
+            const activeDiff =
+                Number(right.file.id === props.activeFileId) - Number(left.file.id === props.activeFileId)
+            return activeDiff || left.fileIndex - right.fileIndex
         })
+
+    for (const { file, fileIndex } of files) {
+        if (matches.length >= MAX_SEARCH_RESULTS) break
+
+        if (file.name.toLowerCase().includes(term)) {
+            matches.push({
+                id: `${file.id}:name`,
+                fileId: file.id,
+                fileName: file.name,
+                lineNumber: null,
+                excerpt: buildSnippet(file.name, term),
+                sortType: 0,
+                updatedAt: file.updatedAt,
+                sourceIndex: -1,
+                fileIndex
+            })
+        }
+
+        appendLineResults(matches, file, term, fileIndex)
+    }
+
+    return matches
 })
 
 const splitMatch = (text) => {
@@ -189,7 +202,7 @@ const closeResults = () => {
 const selectResult = (result) => {
     emit('select', {
         fileId: result.fileId,
-        lineNumber: result.lineNumber,
+        lineNumber: result.lineNumber
     })
     closeResults()
 }
@@ -237,6 +250,16 @@ const focusFromShortcut = (event) => {
 
 watch(query, () => {
     activeIndex.value = 0
+    clearTimeout(queryTimer)
+
+    if (!query.value.trim()) {
+        debouncedQuery.value = ''
+    } else {
+        queryTimer = setTimeout(() => {
+            debouncedQuery.value = query.value
+        }, SEARCH_DEBOUNCE_MS)
+    }
+
     nextTick(() => {
         isOpen.value = Boolean(query.value)
     })
@@ -248,6 +271,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    clearTimeout(queryTimer)
     document.removeEventListener('pointerdown', closeOnOutsideClick)
     document.removeEventListener('keydown', focusFromShortcut)
 })
@@ -271,7 +295,9 @@ onBeforeUnmount(() => {
     background: var(--color-surface);
     color: var(--color-muted);
     box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .document-search__field:focus-within {
@@ -291,7 +317,7 @@ onBeforeUnmount(() => {
     inset: 1px 3px 3px 1px;
     border: 1.7px solid currentColor;
     border-radius: 50%;
-    content: "";
+    content: '';
 }
 
 .document-search__icon::after {
@@ -302,7 +328,7 @@ onBeforeUnmount(() => {
     height: 1.7px;
     border-radius: 999px;
     background: currentColor;
-    content: "";
+    content: '';
     transform: rotate(45deg);
     transform-origin: right center;
 }
@@ -363,7 +389,9 @@ onBeforeUnmount(() => {
     color: var(--color-text);
     cursor: pointer;
     text-align: left;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .document-search__result:hover,

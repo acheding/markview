@@ -221,7 +221,7 @@ http://localhost:3001/
 生产环境通过 `.env.production` 配置 Vite 的 base 路径：
 
 ```env
-VITE_APP_PATH = /markview/
+VITE_APP_PATH=/markview/
 ```
 
 这意味着项目适合部署到类似 Gitee Pages、GitHub Pages 这样的静态站点服务。如果仓库名或部署路径变化，只需要同步修改 `VITE_APP_PATH` 即可。

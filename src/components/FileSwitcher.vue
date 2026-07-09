@@ -21,12 +21,7 @@
                 role="option"
                 :aria-selected="file.id === activeFileId"
             >
-                <button
-                    class="file-switcher__select"
-                    type="button"
-                    :title="file.name"
-                    @click="selectFile(file.id)"
-                >
+                <button class="file-switcher__select" type="button" :title="file.name" @click="selectFile(file.id)">
                     {{ file.name }}
                 </button>
 
@@ -37,7 +32,11 @@
                     aria-label="删除文档"
                     @click.stop="deleteFile(file)"
                 >
-                    <span class="file-switcher__delete-icon" :style="{ '--icon-url': `url(${deleteFileIcon})` }" aria-hidden="true" />
+                    <span
+                        class="file-switcher__delete-icon"
+                        :style="{ '--icon-url': `url(${deleteFileIcon})` }"
+                        aria-hidden="true"
+                    />
                 </button>
             </div>
         </div>
@@ -51,12 +50,12 @@ import deleteFileIcon from '../assets/delete-file.svg'
 const props = defineProps({
     files: {
         type: Array,
-        default: () => [],
+        default: () => []
     },
     activeFileId: {
         type: String,
-        default: '',
-    },
+        default: ''
+    }
 })
 
 const emit = defineEmits(['select-file', 'delete-file'])
@@ -158,7 +157,8 @@ onBeforeUnmount(() => {
     top: calc(100% + 6px);
     left: 0;
     z-index: 30;
-    width: 100%;
+    width: max-content;
+    max-width: 100%;
     max-height: 280px;
     overflow-y: auto;
     padding: 6px;
@@ -209,7 +209,10 @@ onBeforeUnmount(() => {
     border-color: transparent;
     border-radius: 5px;
     color: var(--color-subtle);
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
 }
 
 .file-switcher__delete:hover {

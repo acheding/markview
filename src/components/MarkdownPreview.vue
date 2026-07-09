@@ -2,20 +2,23 @@
     <section class="preview-panel" :style="{ width: normalizedWidth }">
         <div class="panel-header">
             <div class="preview-stats" aria-label="文档统计">
-                <span class="preview-stat">行数 <strong>{{ stats.lines }}</strong></span>
-                <span class="preview-stat">字数 <strong>{{ stats.words }}</strong></span>
-                <span class="preview-stat">字符 <strong>{{ stats.chars }}</strong></span>
+                <span class="preview-stat"
+                    >行数 <strong>{{ stats.lines }}</strong></span
+                >
+                <span class="preview-stat"
+                    >字数 <strong>{{ stats.words }}</strong></span
+                >
+                <span class="preview-stat"
+                    >字符 <strong>{{ stats.chars }}</strong></span
+                >
             </div>
-            <span class="preview-save-status" :class="{ 'is-saving': saveStatus === '保存中' }">{{ saveStatus }}</span>
+            <span class="preview-save-status">
+                {{ saveStatus }}
+            </span>
         </div>
 
         <div class="preview-layout" :style="{ '--preview-toc-width': tocWidth }">
-            <div
-                ref="contentRef"
-                class="preview-content"
-                v-html="html"
-                @scroll="handleContentScroll"
-            />
+            <div ref="contentRef" class="preview-content" v-html="html" @scroll="handleContentScroll" />
 
             <button
                 v-show="isBackTopVisible"
@@ -25,7 +28,11 @@
                 aria-label="回到顶部"
                 @click="scrollToTop"
             >
-                <span class="preview-back-top__icon" :style="{ '--icon-url': `url(${backToTopIcon})` }" aria-hidden="true" />
+                <span
+                    class="preview-back-top__icon"
+                    :style="{ '--icon-url': `url(${backToTopIcon})` }"
+                    aria-hidden="true"
+                />
             </button>
 
             <ResizeDivider
@@ -34,12 +41,7 @@
                 @resize-start="$emit('toc-resize-start', $event)"
             />
 
-            <TableOfContents
-                :items="toc"
-                :active-id="activeHeadingId"
-                :width="tocWidth"
-                @select="handleTocSelect"
-            />
+            <TableOfContents :items="toc" :active-id="activeHeadingId" :width="tocWidth" @select="handleTocSelect" />
         </div>
     </section>
 </template>
@@ -53,44 +55,42 @@ import TableOfContents from './TableOfContents.vue'
 const props = defineProps({
     html: {
         type: String,
-        required: true,
+        required: true
     },
     toc: {
         type: Array,
-        default: () => [],
+        default: () => []
     },
     activeHeadingId: {
         type: String,
-        default: '',
+        default: ''
     },
     width: {
         type: [Number, String],
-        required: true,
+        required: true
     },
     tocWidth: {
         type: String,
-        default: '220px',
+        default: '220px'
     },
     tocResizeActive: {
         type: Boolean,
-        default: false,
+        default: false
     },
     stats: {
         type: Object,
-        required: true,
+        required: true
     },
     saveStatus: {
         type: String,
-        required: true,
-    },
+        required: true
+    }
 })
 
 const emit = defineEmits(['scroll', 'select-heading', 'toc-resize-start'])
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
-const normalizedWidth = computed(() => (
-    typeof props.width === 'number' ? `${props.width}%` : props.width
-))
+const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
 
 const scrollToElement = (target, options = {}) => {
     const content = contentRef.value
@@ -102,7 +102,7 @@ const scrollToElement = (target, options = {}) => {
 
     content.scrollTo({
         top,
-        behavior: options.behavior || 'smooth',
+        behavior: options.behavior || 'smooth'
     })
 
     return true
@@ -123,7 +123,7 @@ const scrollToSourceLine = (lineNumber, options = {}) => {
     const sourceElements = Array.from(content.querySelectorAll('[data-source-line]'))
         .map((element) => ({
             element,
-            line: Number(element.dataset.sourceLine),
+            line: Number(element.dataset.sourceLine)
         }))
         .filter((item) => Number.isFinite(item.line))
 
@@ -155,14 +155,14 @@ const handleContentScroll = () => {
 const scrollToTop = () => {
     contentRef.value?.scrollTo({
         top: 0,
-        behavior: 'smooth',
+        behavior: 'smooth'
     })
 }
 
 defineExpose({
     getScrollElement: () => contentRef.value,
     scrollToHeading,
-    scrollToSourceLine,
+    scrollToSourceLine
 })
 </script>
 
@@ -221,19 +221,11 @@ defineExpose({
 
 .preview-save-status {
     flex-shrink: 0;
-    padding: 3px 10px;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 28%, #ffffff);
-    border-radius: 999px;
-    background: var(--color-surface-active);
-    color: var(--color-accent-strong);
+    color: var(--color-subtle);
     font-size: 12px;
-    font-weight: 650;
-}
-
-.preview-save-status.is-saving {
-    border-color: color-mix(in srgb, var(--color-blue) 24%, #ffffff);
-    background: #eff6ff;
-    color: var(--color-blue);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .preview-back-top {
@@ -253,7 +245,12 @@ defineExpose({
     cursor: pointer;
     box-shadow: 0 10px 24px rgb(15 23 42 / 14%);
     backdrop-filter: blur(8px);
-    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .preview-back-top:hover {
@@ -339,7 +336,7 @@ defineExpose({
     border-radius: 4px;
     background: #eef2f7;
     color: #a31515;
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     font-size: 0.9em;
 }
 
