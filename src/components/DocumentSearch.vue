@@ -43,7 +43,7 @@
                 <span class="document-search__meta">
                     <span class="document-search__name" :title="result.fileName">{{ result.fileName }}</span>
                     <span class="document-search__badge">
-                        {{ result.lineNumber ? `第 ${result.lineNumber} 行` : '文件名' }}
+                        {{ result.lineNumber ? `第 ${result.lineNumber} 行` : '文档名' }}
                     </span>
                 </span>
                 <span class="document-search__excerpt">

@@ -4,7 +4,7 @@
       <span class="toolbar__mark" aria-hidden="true">Md</span>
       <span class="toolbar__header">
         <span class="toolbar__title">MarkView</span>
-        <span class="toolbar__subtitle">本地 Markdown 多文档工作台</span>
+        <span class="toolbar__subtitle">本地 Markdown 实时预览工具</span>
       </span>
     </div>
 

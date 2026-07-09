@@ -1,9 +1,9 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
-    DEFAULT_CONTENT,
     DEFAULT_DOCUMENT_NAME,
     DOCUMENTS_STORAGE_KEY,
     LEGACY_STORAGE_KEY,
+    PRESET_DOCUMENTS,
 } from '../constants/editor'
 
 const createId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -69,9 +69,9 @@ const deriveDocumentName = (content) => {
     return DEFAULT_DOCUMENT_NAME
 }
 
-const createDocument = (content = '') => ({
+const createDocument = (content = '', name = '') => ({
     id: createId(),
-    name: deriveDocumentName(content),
+    name: name || deriveDocumentName(content),
     content,
     updatedAt: Date.now(),
 })
@@ -93,22 +93,33 @@ const createUniqueName = (files, baseName) => {
 }
 
 const createInitialState = () => {
-    let legacyContent = DEFAULT_CONTENT
+    const files = []
 
+    // 迁移旧版单文档存储的内容（若有），放在最前并作为激活项。
     try {
         const saved = localStorage.getItem(LEGACY_STORAGE_KEY)
-        if (saved !== null) {
-            legacyContent = saved
+        if (saved) {
+            files.push(createDocument(saved))
         }
     } catch (error) {
         console.warn('旧 localStorage 内容读取失败:', error)
     }
 
-    const file = createDocument(legacyContent)
+    // 追加预置文档（欢迎 / README / 博客）。
+    PRESET_DOCUMENTS.forEach((preset) => {
+        const presetFile = createDocument(preset.content, preset.name)
+        presetFile.name = createUniqueName(files, presetFile.name)
+        files.push(presetFile)
+    })
+
+    // 兜底：极端情况下（无预置且无旧内容）至少保留一个空文档。
+    if (!files.length) {
+        files.push(createDocument(''))
+    }
 
     return {
-        activeId: file.id,
-        files: [file],
+        activeId: files[0].id,
+        files,
     }
 }
 
@@ -150,7 +161,7 @@ const loadDocuments = () => {
             return normalizeState(JSON.parse(saved))
         }
     } catch (error) {
-        console.warn('多文件 localStorage 读取失败:', error)
+        console.warn('多文档 localStorage 读取失败:', error)
     }
 
     return createInitialState()
@@ -191,7 +202,8 @@ export const useMarkdownDocuments = () => {
     const createFile = () => {
         const file = createDocument('')
         file.name = createUniqueName(files.value, file.name)
-        state.value.files.push(file)
+        // 新建文档按时间倒序排在最前。
+        state.value.files.unshift(file)
         state.value.activeId = file.id
     }
 
@@ -201,7 +213,8 @@ export const useMarkdownDocuments = () => {
             files.value,
             normalizeImportedFileName(name, file.content),
         )
-        state.value.files.push(file)
+        // 导入文档按时间倒序排在最前。
+        state.value.files.unshift(file)
         state.value.activeId = file.id
     }
 
@@ -234,7 +247,7 @@ export const useMarkdownDocuments = () => {
                 saveStatus.value = '已自动保存'
             } catch (error) {
                 saveStatus.value = '保存失败'
-                console.warn('多文件 localStorage 写入失败:', error)
+                console.warn('多文档 localStorage 写入失败:', error)
             }
         }, 1000)
     }, { deep: true })

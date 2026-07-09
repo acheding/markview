@@ -122,6 +122,79 @@ pnpm build
 
 MarkView 不依赖后端服务，所有文档数据都会保存在当前浏览器的 `localStorage` 中。清理浏览器站点数据、更换浏览器或更换域名路径后，本地保存的内容可能无法继续读取。
 
+## Markdown 语法演示
+
+以下内容演示 MarkView 支持的常见 Markdown 语法，可直接在编辑器中修改查看效果。
+
+### 1. 标题
+
+# H1 标题
+## H2 标题
+### H3 标题
+
+### 2. 列表
+
+- 无序列表项 1
+- 无序列表项 2
+  - 嵌套列表项 2.1
+  - 嵌套列表项 2.2
+- 无序列表项 3
+
+1. 有序列表项 1
+2. 有序列表项 2
+3. 有序列表项 3
+
+### 3. 代码块
+
+```javascript
+function greet(name) {
+    console.log(`你好，${name}！`)
+    return `欢迎 ${name}`
+}
+
+greet('Vue 3 开发者')
+```
+
+```python
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        yield a
+        a, b = b, a + b
+
+print(list(fibonacci(10)))
+```
+
+### 4. 表格
+
+| 名称 | 类型 | 描述 |
+|------|------|------|
+| Vue | 框架 | 渐进式 JavaScript 框架 |
+| Vite | 构建工具 | 下一代前端构建工具 |
+| Markdown | 标记语言 | 轻量级标记语言 |
+
+### 5. 引用
+
+> 技术不在于复杂，而在于优雅地解决问题。
+> -- 某位开发者
+
+### 6. 链接与图片
+
+[访问 Vue 官网](https://vuejs.org/)
+
+![Vue Logo](https://vuejs.org/images/logo.png)
+
+### 7. 其他样式
+
+- **粗体文字**
+- *斜体文字*
+- ~~删除线~~
+- `行内代码`
+
+---
+
+试试在左侧编辑区修改内容，右侧会实时更新。
+
 ## 开源协议
 
 本项目基于 MIT License 开源，详见 [LICENSE](./LICENSE)。
