@@ -8,6 +8,9 @@
             :class="{ 'is-editor-collapsed': isEditorCollapsed, 'is-resizing': isResizing }"
             :style="{ '--toc-width': tocWidthStyle }"
         >
+            <ContentViewSkeleton v-if="!isReady" />
+
+            <template v-else>
             <MarkdownEditor
                 ref="editorRef"
                 v-model="markdownContent"
@@ -53,6 +56,7 @@
                 @select-file="selectFile"
                 @delete-file="deleteFile"
             />
+            </template>
         </main>
     </div>
 </template>
@@ -60,6 +64,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppToolbar from './components/AppToolbar.vue'
+import ContentViewSkeleton from './components/ContentViewSkeleton.vue'
 import MarkdownEditor from './components/MarkdownEditor.vue'
 import MarkdownPreview from './components/MarkdownPreview.vue'
 import ResizeDivider from './components/ResizeDivider.vue'
