@@ -206,6 +206,7 @@ defineExpose({
     white-space: pre-wrap;
     word-wrap: break-word;
     caret-color: var(--color-accent);
+    contain: layout;
 }
 
 .editor-textarea::placeholder {

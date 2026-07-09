@@ -237,6 +237,7 @@ defineExpose({
     font-size: 15px;
     line-height: 1.8;
     scroll-behavior: auto;
+    contain: layout;
 }
 
 .preview-collapsed-toolbar {
