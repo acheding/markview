@@ -11,51 +11,51 @@
             <ContentViewSkeleton v-if="!isReady" />
 
             <template v-else>
-            <MarkdownEditor
-                ref="editorRef"
-                v-model="markdownContent"
-                :files="files"
-                :active-file-id="activeFileId"
-                :width="isEditorCollapsed ? 0 : editorWidth"
-                :collapsed="isEditorCollapsed"
-                :exporting-pdf="isExportingPdf"
-                @clear="clearContent"
-                @scroll="handleEditorScroll"
-                @select-file="selectFile"
-                @create-file="createFile"
-                @import-file="importFile"
-                @export-file="exportActiveFile"
-                @export-pdf="exportPdf"
-                @delete-file="deleteFile"
-                @collapse-editor="setEditorCollapsed(true)"
-            />
+                <MarkdownEditor
+                    ref="editorRef"
+                    v-model="markdownContent"
+                    :files="files"
+                    :active-file-id="activeFileId"
+                    :width="isEditorCollapsed ? 0 : editorWidth"
+                    :collapsed="isEditorCollapsed"
+                    :exporting-pdf="isExportingPdf"
+                    @clear="clearContent"
+                    @scroll="handleEditorScroll"
+                    @select-file="selectFile"
+                    @create-file="createFile"
+                    @import-file="importFile"
+                    @export-file="exportActiveFile"
+                    @export-pdf="exportPdf"
+                    @delete-file="deleteFile"
+                    @collapse-editor="setEditorCollapsed(true)"
+                />
 
-            <ResizeDivider :active="isResizing" :collapsed="isEditorCollapsed" @resize-start="startResize" />
+                <ResizeDivider :active="isResizing" :collapsed="isEditorCollapsed" @resize-start="startResize" />
 
-            <MarkdownPreview
-                ref="previewRef"
-                :html="renderedHtml"
-                :toc="toc"
-                :active-heading-id="activeHeadingId"
-                :width="isEditorCollapsed ? '100%' : previewWidth"
-                :toc-width="tocWidthStyle"
-                :toc-resize-active="isTocResizing"
-                :stats="stats"
-                :save-status="saveStatus"
-                :editor-collapsed="isEditorCollapsed"
-                :files="files"
-                :active-file-id="activeFileId"
-                :exporting-pdf="isExportingPdf"
-                @scroll="handlePreviewScroll"
-                @select-heading="selectHeading"
-                @toc-resize-start="startTocResize"
-                @expand-editor="setEditorCollapsed(false)"
-                @import-file="importFile"
-                @export-file="exportActiveFile"
-                @export-pdf="exportPdf"
-                @select-file="selectFile"
-                @delete-file="deleteFile"
-            />
+                <MarkdownPreview
+                    ref="previewRef"
+                    :html="renderedHtml"
+                    :toc="toc"
+                    :active-heading-id="activeHeadingId"
+                    :width="isEditorCollapsed ? '100%' : previewWidth"
+                    :toc-width="tocWidthStyle"
+                    :toc-resize-active="isTocResizing"
+                    :stats="stats"
+                    :save-status="saveStatus"
+                    :editor-collapsed="isEditorCollapsed"
+                    :files="files"
+                    :active-file-id="activeFileId"
+                    :exporting-pdf="isExportingPdf"
+                    @scroll="handlePreviewScroll"
+                    @select-heading="selectHeading"
+                    @toc-resize-start="startTocResize"
+                    @expand-editor="setEditorCollapsed(false)"
+                    @import-file="importFile"
+                    @export-file="exportActiveFile"
+                    @export-pdf="exportPdf"
+                    @select-file="selectFile"
+                    @delete-file="deleteFile"
+                />
             </template>
         </main>
     </div>
@@ -239,7 +239,9 @@ onBeforeUnmount(() => {
 @media (min-width: 769px) {
     .main-panel:not(.is-resizing) :deep(.editor-panel),
     .main-panel:not(.is-resizing) :deep(.preview-panel) {
-        transition: width 0.28s ease, min-width 0.28s ease;
+        transition:
+            width 0.28s ease,
+            min-width 0.28s ease;
     }
 
     .main-panel:not(.is-resizing) :deep(.divider) {
@@ -251,7 +253,9 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
     .main-panel:not(.is-resizing) :deep(.editor-panel),
     .main-panel:not(.is-resizing) :deep(.preview-panel) {
-        transition: height 0.28s ease, min-height 0.28s ease;
+        transition:
+            height 0.28s ease,
+            min-height 0.28s ease;
     }
 }
 
