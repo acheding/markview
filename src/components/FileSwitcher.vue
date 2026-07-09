@@ -219,8 +219,8 @@ onBeforeUnmount(() => {
 }
 
 .file-switcher__delete-icon {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     background: currentColor;
     mask: var(--icon-url) center / contain no-repeat;
     -webkit-mask: var(--icon-url) center / contain no-repeat;

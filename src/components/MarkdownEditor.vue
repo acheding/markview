@@ -17,11 +17,12 @@
                 <button class="editor-action-button" type="button" title="导入 Markdown" aria-label="导入 Markdown" @click="triggerImport">
                     <span class="editor-action-icon" :style="{ '--icon-url': `url(${importFileIcon})` }" aria-hidden="true" />
                 </button>
-                <button class="editor-action-button" type="button" title="导出当前 Markdown" aria-label="导出当前 Markdown" @click="$emit('export-file')">
+                <button class="editor-action-button editor-action-button--format" type="button" title="导出 Markdown" aria-label="导出 Markdown" @click="$emit('export-file')">
                     <span class="editor-action-icon" :style="{ '--icon-url': `url(${exportFileIcon})` }" aria-hidden="true" />
+                    <span class="editor-action-label">md</span>
                 </button>
                 <button
-                    class="editor-action-button"
+                    class="editor-action-button editor-action-button--format"
                     type="button"
                     :title="exportingPdf ? '正在导出 PDF…' : '导出 PDF'"
                     :aria-label="exportingPdf ? '正在导出 PDF' : '导出 PDF'"
@@ -30,6 +31,7 @@
                 >
                     <span v-if="exportingPdf" class="editor-action-spinner" aria-hidden="true" />
                     <span v-else class="editor-action-icon" :style="{ '--icon-url': `url(${exportPdfIcon})` }" aria-hidden="true" />
+                    <span class="editor-action-label">PDF</span>
                 </button>
             </div>
         </div>
@@ -277,6 +279,16 @@ defineExpose({
     transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.editor-action-button--format {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 42px;
+    gap: 3px;
+    padding: 0 6px;
+}
+
 .editor-action-button:hover {
     border-color: color-mix(in srgb, var(--color-accent) 38%, #ffffff);
     background: var(--color-surface-active);
@@ -305,9 +317,18 @@ defineExpose({
 .editor-action-icon {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
     background: currentColor;
     mask: var(--icon-url) center / contain no-repeat;
     -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
+.editor-action-label {
+    color: currentColor;
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .editor-action-spinner {
