@@ -1,10 +1,13 @@
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import {
     DEFAULT_DOCUMENT_NAME,
-    DOCUMENTS_STORAGE_KEY,
-    LEGACY_STORAGE_KEY,
     PRESET_DOCUMENTS,
 } from '../constants/editor'
+import {
+    isIndexedDbSupported,
+    loadDocumentState,
+    saveDocumentState,
+} from '../utils/documentStore'
 
 const createId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
@@ -95,17 +98,6 @@ const createUniqueName = (files, baseName) => {
 const createInitialState = () => {
     const files = []
 
-    // 迁移旧版单文档存储的内容（若有），放在最前并作为激活项。
-    try {
-        const saved = localStorage.getItem(LEGACY_STORAGE_KEY)
-        if (saved) {
-            files.push(createDocument(saved))
-        }
-    } catch (error) {
-        console.warn('旧 localStorage 内容读取失败:', error)
-    }
-
-    // 追加预置文档（欢迎 / README / 博客）。
     PRESET_DOCUMENTS.forEach((preset) => {
         const presetFile = createDocument(preset.content, preset.name)
         presetFile.name = createUniqueName(files, presetFile.name)
@@ -154,23 +146,22 @@ const normalizeState = (state) => {
     }
 }
 
-const loadDocuments = () => {
-    try {
-        const saved = localStorage.getItem(DOCUMENTS_STORAGE_KEY)
-        if (saved) {
-            return normalizeState(JSON.parse(saved))
-        }
-    } catch (error) {
-        console.warn('多文档 localStorage 读取失败:', error)
-    }
-
-    return createInitialState()
-}
+const snapshotState = (state) => ({
+    activeId: state.activeId,
+    files: state.files.map((file) => ({
+        id: file.id,
+        name: file.name,
+        content: file.content,
+        updatedAt: file.updatedAt,
+    })),
+})
 
 export const useMarkdownDocuments = () => {
     const saveStatus = ref('已自动保存')
-    const state = ref(loadDocuments())
+    const isReady = ref(false)
+    const state = ref({ activeId: '', files: [] })
     let saveTimer = null
+    let canPersist = isIndexedDbSupported()
 
     const files = computed(() => state.value.files)
     const activeFileId = computed(() => state.value.activeId)
@@ -237,24 +228,77 @@ export const useMarkdownDocuments = () => {
         }
     }
 
-    watch(state, (nextState) => {
+    const persist = async (snapshot) => {
+        if (!canPersist) {
+            saveStatus.value = '保存失败'
+            return
+        }
+
+        await saveDocumentState(snapshot)
+    }
+
+    // 首次加载：优先读取 IndexedDB；为空时生成预置文档并写入。
+    const hydrate = async () => {
+        let nextState
+        let needsInitialWrite = false
+
+        if (canPersist) {
+            try {
+                const savedState = await loadDocumentState()
+                if (savedState) {
+                    nextState = normalizeState(savedState)
+                } else {
+                    nextState = createInitialState()
+                    needsInitialWrite = true
+                }
+            } catch (error) {
+                console.warn('IndexedDB 加载失败，改用内存数据:', error)
+                nextState = createInitialState()
+                canPersist = false
+                saveStatus.value = '保存失败'
+            }
+        } else {
+            nextState = createInitialState()
+            saveStatus.value = '保存失败'
+        }
+
+        state.value = nextState
+
+        if (needsInitialWrite) {
+            try {
+                await saveDocumentState(snapshotState(nextState))
+            } catch (error) {
+                console.warn('IndexedDB 初始化写入失败:', error)
+                saveStatus.value = '保存失败'
+            }
+        }
+
+        await nextTick()
+        isReady.value = true
+    }
+
+    watch(state, () => {
+        if (!isReady.value) return
+
         saveStatus.value = '保存中'
         clearTimeout(saveTimer)
 
-        saveTimer = setTimeout(() => {
+        saveTimer = setTimeout(async () => {
             try {
-                localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(nextState))
+                await persist(snapshotState(state.value))
                 saveStatus.value = '已自动保存'
             } catch (error) {
                 saveStatus.value = '保存失败'
-                console.warn('多文档 localStorage 写入失败:', error)
+                console.warn('IndexedDB 写入失败:', error)
             }
-        }, 1000)
+        }, 800)
     }, { deep: true })
 
     onBeforeUnmount(() => {
         clearTimeout(saveTimer)
     })
+
+    hydrate()
 
     return {
         files,
@@ -262,6 +306,7 @@ export const useMarkdownDocuments = () => {
         activeFileId,
         markdownContent,
         saveStatus,
+        isReady,
         selectFile,
         createFile,
         importFile,

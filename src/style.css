@@ -149,7 +149,7 @@ textarea:focus-visible {
         print-color-adjust: exact;
     }
 
-    /* 尽量避免代码块、表格、图片、引用被跨页截断 */
+    // 尽量避免代码块、表格、图片、引用被跨页截断
     .preview-content pre,
     .preview-content table,
     .preview-content blockquote,
