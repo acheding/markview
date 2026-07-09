@@ -130,7 +130,9 @@ const setEditorCollapsed = async (collapsed) => {
     await nextTick()
 
     if (!collapsed) {
-        editorRef.value?.focus()
+        // preventScroll 避免 focus 导致浏览器自动滚动到光标位置
+        const textarea = editorRef.value?.getScrollElement()
+        textarea?.focus({ preventScroll: true })
     }
 
     updateActiveHeading()
