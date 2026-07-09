@@ -2,13 +2,19 @@
     <div class="app-shell">
         <AppToolbar :files="files" :active-file-id="activeFileId" @select-search-result="selectSearchResult" />
 
-        <main ref="mainPanelRef" class="main-panel" :style="{ '--toc-width': tocWidthStyle }">
+        <main
+            ref="mainPanelRef"
+            class="main-panel"
+            :class="{ 'is-editor-collapsed': isEditorCollapsed, 'is-resizing': isResizing }"
+            :style="{ '--toc-width': tocWidthStyle }"
+        >
             <MarkdownEditor
                 ref="editorRef"
                 v-model="markdownContent"
                 :files="files"
                 :active-file-id="activeFileId"
-                :width="editorWidth"
+                :width="isEditorCollapsed ? 0 : editorWidth"
+                :collapsed="isEditorCollapsed"
                 :exporting-pdf="isExportingPdf"
                 @clear="clearContent"
                 @scroll="handleEditorScroll"
@@ -18,23 +24,34 @@
                 @export-file="exportActiveFile"
                 @export-pdf="exportPdf"
                 @delete-file="deleteFile"
+                @collapse-editor="setEditorCollapsed(true)"
             />
 
-            <ResizeDivider :active="isResizing" @resize-start="startResize" />
+            <ResizeDivider :active="isResizing" :collapsed="isEditorCollapsed" @resize-start="startResize" />
 
             <MarkdownPreview
                 ref="previewRef"
                 :html="renderedHtml"
                 :toc="toc"
                 :active-heading-id="activeHeadingId"
-                :width="previewWidth"
+                :width="isEditorCollapsed ? '100%' : previewWidth"
                 :toc-width="tocWidthStyle"
                 :toc-resize-active="isTocResizing"
                 :stats="stats"
                 :save-status="saveStatus"
+                :editor-collapsed="isEditorCollapsed"
+                :files="files"
+                :active-file-id="activeFileId"
+                :exporting-pdf="isExportingPdf"
                 @scroll="handlePreviewScroll"
                 @select-heading="selectHeading"
                 @toc-resize-start="startTocResize"
+                @expand-editor="setEditorCollapsed(false)"
+                @import-file="importFile"
+                @export-file="exportActiveFile"
+                @export-pdf="exportPdf"
+                @select-file="selectFile"
+                @delete-file="deleteFile"
             />
         </main>
     </div>
@@ -50,14 +67,18 @@ import { useDocumentExport } from './composables/useDocumentExport.js'
 import { useHeadingNavigation } from './composables/useHeadingNavigation.js'
 import { useMarkdownDocuments } from './composables/useMarkdownDocuments.js'
 import { useMarkdownRenderer } from './composables/useMarkdownRenderer.js'
+import { useLocalStoragePreference } from './composables/useLocalStoragePreference.js'
 import { usePaneResize } from './composables/usePaneResize.js'
 import { useScrollSync } from './composables/useScrollSync.js'
 import { useTocResize } from './composables/useTocResize.js'
 import { countWords } from './utils/text.js'
 
+const EDITOR_COLLAPSED_STORAGE_KEY = 'markview:editor-collapsed'
+
 const mainPanelRef = ref(null)
 const editorRef = ref(null)
 const previewRef = ref(null)
+const isEditorCollapsed = useLocalStoragePreference(EDITOR_COLLAPSED_STORAGE_KEY, false)
 
 const {
     files,
@@ -99,6 +120,17 @@ const scrollPanesToTop = () => {
     getPreviewElement()?.scrollTo({ top: 0, behavior: 'auto' })
 }
 
+const setEditorCollapsed = async (collapsed) => {
+    isEditorCollapsed.value = collapsed
+    await nextTick()
+
+    if (!collapsed) {
+        editorRef.value?.focus()
+    }
+
+    updateActiveHeading()
+}
+
 const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScrollSync({
     getEditorElement,
     getPreviewElement,
@@ -119,8 +151,13 @@ const selectSearchResult = async ({ fileId, lineNumber }) => {
 
     if (lineNumber) {
         // 编辑区只做选中高亮，两侧滚动统一交给 alignToSourceLine，避免多个滚动源竞争。
-        editorRef.value?.focusLine(lineNumber, { scroll: false })
-        alignToSourceLine(lineNumber)
+        if (isEditorCollapsed.value) {
+            previewRef.value?.scrollToSourceLine(lineNumber)
+            updateActiveHeading()
+        } else {
+            editorRef.value?.focusLine(lineNumber, { scroll: false })
+            alignToSourceLine(lineNumber)
+        }
     } else {
         editorRef.value?.focus()
     }
@@ -156,7 +193,9 @@ watch(isReady, async (ready) => {
 })
 
 onMounted(() => {
-    editorRef.value?.focus()
+    if (!isEditorCollapsed.value) {
+        editorRef.value?.focus()
+    }
     document.addEventListener('keydown', handleKeydown)
 })
 
@@ -188,6 +227,31 @@ onBeforeUnmount(() => {
     --toc-width: 220px;
 }
 
+/* 非拖拽时启用面板过渡（折叠/展开动画） */
+/* 桌面端（横向）：宽度过渡 */
+@media (min-width: 769px) {
+    .main-panel:not(.is-resizing) :deep(.editor-panel),
+    .main-panel:not(.is-resizing) :deep(.preview-panel) {
+        transition: width 0.28s ease, min-width 0.28s ease;
+    }
+
+    .main-panel:not(.is-resizing) :deep(.divider) {
+        transition: width 0.28s ease;
+    }
+}
+
+/* 移动端（纵向）：高度过渡 */
+@media (max-width: 768px) {
+    .main-panel:not(.is-resizing) :deep(.editor-panel),
+    .main-panel:not(.is-resizing) :deep(.preview-panel) {
+        transition: height 0.28s ease, min-height 0.28s ease;
+    }
+}
+
+.main-panel.is-editor-collapsed .preview-panel {
+    min-width: 0;
+}
+
 @media (max-width: 1120px) {
     .main-panel {
         --toc-width: 180px;
@@ -204,6 +268,10 @@ onBeforeUnmount(() => {
     .main-panel {
         flex-direction: column;
         margin: 8px;
+    }
+
+    .main-panel.is-editor-collapsed .preview-panel {
+        height: 100%;
     }
 }
 </style>

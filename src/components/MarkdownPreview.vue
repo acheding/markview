@@ -1,7 +1,23 @@
 <template>
     <section class="preview-panel" :style="{ width: normalizedWidth }">
         <div class="panel-header">
-            <div class="preview-stats" aria-label="文档统计">
+            <!-- 折叠态：文件切换 + 操作按钮 -->
+            <div v-if="editorCollapsed" class="preview-collapsed-toolbar">
+                <PanelToolbar
+                    context="preview"
+                    :files="files"
+                    :active-file-id="activeFileId"
+                    :exporting-pdf="exportingPdf"
+                    @select-file="$emit('select-file', $event)"
+                    @delete-file="$emit('delete-file', $event)"
+                    @import-file="$emit('import-file', $event)"
+                    @export-file="$emit('export-file')"
+                    @export-pdf="$emit('export-pdf')"
+                    @expand-editor="$emit('expand-editor')"
+                />
+            </div>
+
+            <div v-if="!editorCollapsed" class="preview-stats" aria-label="文档统计">
                 <span class="preview-stat"
                     >行数 <strong>{{ stats.lines }}</strong></span
                 >
@@ -12,7 +28,8 @@
                     >字符 <strong>{{ stats.chars }}</strong></span
                 >
             </div>
-            <span class="preview-save-status">
+
+            <span v-if="!editorCollapsed" class="preview-save-status">
                 {{ saveStatus }}
             </span>
         </div>
@@ -49,6 +66,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
+import PanelToolbar from './PanelToolbar.vue'
 import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
 
@@ -84,10 +102,36 @@ const props = defineProps({
     saveStatus: {
         type: String,
         required: true
+    },
+    editorCollapsed: {
+        type: Boolean,
+        default: false
+    },
+    files: {
+        type: Array,
+        default: () => []
+    },
+    activeFileId: {
+        type: String,
+        default: ''
+    },
+    exportingPdf: {
+        type: Boolean,
+        default: false
     }
 })
 
-const emit = defineEmits(['scroll', 'select-heading', 'toc-resize-start'])
+const emit = defineEmits([
+    'scroll',
+    'select-heading',
+    'toc-resize-start',
+    'expand-editor',
+    'import-file',
+    'export-file',
+    'export-pdf',
+    'select-file',
+    'delete-file'
+])
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
 const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
@@ -193,6 +237,11 @@ defineExpose({
     font-size: 15px;
     line-height: 1.8;
     scroll-behavior: auto;
+}
+
+.preview-collapsed-toolbar {
+    flex: 1;
+    min-width: 0;
 }
 
 .preview-stats {

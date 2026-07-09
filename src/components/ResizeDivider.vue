@@ -3,7 +3,7 @@
         class="divider"
         role="separator"
         aria-orientation="vertical"
-        :class="{ 'is-active': active }"
+        :class="{ 'is-active': active, 'is-collapsed': collapsed }"
         @pointerdown="$emit('resize-start', $event)"
     ></div>
 </template>
@@ -11,6 +11,10 @@
 <script setup>
 defineProps({
     active: {
+        type: Boolean,
+        default: false
+    },
+    collapsed: {
         type: Boolean,
         default: false
     }
@@ -30,7 +34,15 @@ defineEmits(['resize-start'])
     flex-shrink: 0;
     cursor: col-resize;
     background: transparent;
-    transition: background 0.15s ease;
+    transition:
+        background 0.15s ease,
+        opacity 0.22s ease;
+}
+
+.divider.is-collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .divider::before {
@@ -59,6 +71,11 @@ defineEmits(['resize-start'])
         width: 100%;
         height: 5px;
         cursor: default;
+    }
+
+    .divider.is-collapsed {
+        width: 100%;
+        height: 0;
     }
 
     .divider::before {

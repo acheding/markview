@@ -588,10 +588,6 @@ onBeforeUnmount(() => {
         width: 100%;
     }
 
-    .document-search.has-query .document-search__input {
-        padding: 0 68px;
-    }
-
     .document-search__menu {
         right: auto;
         left: 0;
