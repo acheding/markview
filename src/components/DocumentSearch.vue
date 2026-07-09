@@ -1,6 +1,6 @@
 <template>
-    <div ref="searchRef" class="document-search">
-        <label class="document-search__field" for="document-search-input">
+    <div ref="searchRef" class="document-search" :class="{ 'is-expanded': isOpen || query, 'has-query': query }">
+        <div class="document-search__field">
             <span class="document-search__icon" aria-hidden="true"></span>
             <input
                 id="document-search-input"
@@ -17,7 +17,16 @@
                 @keydown="handleKeydown"
             />
             <span v-if="query" class="document-search__count">{{ results.length }}</span>
-        </label>
+            <button
+                v-if="query"
+                class="document-search__clear"
+                type="button"
+                aria-label="清空搜索"
+                title="清空搜索"
+                @mousedown.prevent
+                @click="clearSearch"
+            ></button>
+        </div>
 
         <div
             v-if="isOpen && query"
@@ -67,6 +76,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const SEARCH_DEBOUNCE_MS = 120
 const MAX_SEARCH_RESULTS = 80
+const SNIPPET_CONTEXT_BEFORE = 36
+const SNIPPET_CONTEXT_AFTER = 72
+const SNIPPET_FALLBACK_LENGTH = 128
 
 const props = defineProps({
     files: {
@@ -91,16 +103,31 @@ let queryTimer = null
 
 const normalizedQuery = computed(() => debouncedQuery.value.trim().toLowerCase())
 
+const truncateEnd = (text, maxLength) => {
+    if (text.length <= maxLength) return text
+    return `${text.slice(0, maxLength)}...`
+}
+
 const buildSnippet = (line, term) => {
     const text = line.trim().replace(/\s+/g, ' ')
     if (!text) return '空行'
-    if (!term) return text
+    if (!term) return truncateEnd(text, SNIPPET_FALLBACK_LENGTH)
 
     const index = text.toLowerCase().indexOf(term)
-    if (index < 0) return text.slice(0, 84)
+    if (index < 0) return truncateEnd(text, SNIPPET_FALLBACK_LENGTH)
 
-    const start = Math.max(0, index - 18)
-    const end = Math.min(text.length, index + term.length + 38)
+    const targetLength = Math.min(text.length, SNIPPET_CONTEXT_BEFORE + term.length + SNIPPET_CONTEXT_AFTER)
+    let start = Math.max(0, index - SNIPPET_CONTEXT_BEFORE)
+    let end = Math.min(text.length, index + term.length + SNIPPET_CONTEXT_AFTER)
+
+    if (end - start < targetLength) {
+        if (start === 0) {
+            end = Math.min(text.length, targetLength)
+        } else if (end === text.length) {
+            start = Math.max(0, text.length - targetLength)
+        }
+    }
+
     const prefix = start > 0 ? '...' : ''
     const suffix = end < text.length ? '...' : ''
 
@@ -199,6 +226,17 @@ const closeResults = () => {
     isOpen.value = false
 }
 
+const clearSearch = () => {
+    query.value = ''
+    debouncedQuery.value = ''
+    activeIndex.value = 0
+    closeResults()
+
+    nextTick(() => {
+        inputRef.value?.focus()
+    })
+}
+
 const selectResult = (result) => {
     emit('select', {
         fileId: result.fileId,
@@ -279,17 +317,26 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .document-search {
+    --document-search-collapsed-width: 148px;
+    --document-search-expanded-width: min(46vw, 520px);
+
     position: relative;
-    width: min(36vw, 420px);
-    min-width: 220px;
+    width: var(--document-search-collapsed-width);
+    max-width: 100%;
+    min-width: 0;
+    transition: width 0.3s ease;
+}
+
+.document-search:focus-within,
+.document-search.is-expanded {
+    width: min(100%, var(--document-search-expanded-width));
 }
 
 .document-search__field {
-    display: flex;
-    align-items: center;
+    position: relative;
+    display: block;
     height: 34px;
-    gap: 8px;
-    padding: 0 10px;
+    padding: 0;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     background: var(--color-surface);
@@ -306,10 +353,12 @@ onBeforeUnmount(() => {
 }
 
 .document-search__icon {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 10px;
     width: 14px;
     height: 14px;
-    flex-shrink: 0;
+    transform: translateY(-50%);
 }
 
 .document-search__icon::before {
@@ -334,13 +383,18 @@ onBeforeUnmount(() => {
 }
 
 .document-search__input {
+    box-sizing: border-box;
     width: 100%;
+    height: 100%;
     min-width: 0;
+    padding: 0 10px 0 32px;
     border: none;
     outline: none;
     background: transparent;
     color: var(--color-text);
     font-size: 13px;
+    text-align: left;
+    transition: padding 0.3s ease;
 }
 
 .document-search__input::placeholder {
@@ -352,6 +406,9 @@ onBeforeUnmount(() => {
 }
 
 .document-search__count {
+    position: absolute;
+    top: 50%;
+    right: 40px;
     display: inline-grid;
     min-width: 22px;
     height: 20px;
@@ -361,6 +418,55 @@ onBeforeUnmount(() => {
     color: var(--color-muted);
     font-size: 11px;
     font-weight: 700;
+    transform: translateY(-50%);
+}
+
+.document-search__clear {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-subtle);
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.document-search__clear:hover,
+.document-search__clear:focus-visible {
+    background: var(--color-surface-soft);
+    color: var(--color-muted);
+}
+
+.document-search__clear:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 48%, #ffffff);
+    outline-offset: 1px;
+}
+
+.document-search__clear::before,
+.document-search__clear::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 999px;
+    background: currentColor;
+    content: '';
+}
+
+.document-search__clear::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.document-search__clear::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .document-search__menu {
@@ -376,6 +482,19 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     background: var(--color-surface);
     box-shadow: var(--shadow-menu);
+    animation: document-search-menu-in 0.16s ease-out;
+}
+
+@keyframes document-search-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .document-search__result {
@@ -462,6 +581,15 @@ onBeforeUnmount(() => {
         width: 100%;
         min-width: 0;
         order: 2;
+    }
+
+    .document-search:focus-within,
+    .document-search.is-expanded {
+        width: 100%;
+    }
+
+    .document-search.has-query .document-search__input {
+        padding: 0 68px;
     }
 
     .document-search__menu {
