@@ -8,7 +8,12 @@
             </span>
         </div>
 
-        <DocumentSearch :files="files" :active-file-id="activeFileId" @select="$emit('select-search-result', $event)" />
+        <DocumentSearch
+            :files="files"
+            :active-file-id="activeFileId"
+            @select="$emit('select-search-result', $event)"
+            @query-change="$emit('search-query-change', $event)"
+        />
     </header>
 </template>
 
@@ -26,7 +31,7 @@ defineProps({
     }
 })
 
-defineEmits(['select-search-result'])
+defineEmits(['select-search-result', 'search-query-change'])
 </script>
 
 <style scoped>

@@ -91,7 +91,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'query-change'])
 
 const query = ref('')
 const isOpen = ref(false)
@@ -138,13 +138,16 @@ const appendLineResults = (results, file, term, fileIndex) => {
     const lines = file.content.split('\n')
 
     for (let index = 0; index < lines.length && results.length < MAX_SEARCH_RESULTS; index += 1) {
-        if (!lines[index].toLowerCase().includes(term)) continue
+        const matchStart = lines[index].toLowerCase().indexOf(term)
+        if (matchStart < 0) continue
 
         results.push({
             id: `${file.id}:line:${index}`,
             fileId: file.id,
             fileName: file.name,
             lineNumber: index + 1,
+            matchStart,
+            matchEnd: matchStart + term.length,
             excerpt: buildSnippet(lines[index], term),
             sortType: 1,
             updatedAt: file.updatedAt,
@@ -241,6 +244,8 @@ const selectResult = (result) => {
     emit('select', {
         fileId: result.fileId,
         lineNumber: result.lineNumber,
+        matchStart: result.matchStart,
+        matchEnd: result.matchEnd,
         query: normalizedQuery.value
     })
     closeResults()
@@ -288,6 +293,7 @@ const focusFromShortcut = (event) => {
 }
 
 watch(query, () => {
+    emit('query-change', query.value)
     activeIndex.value = 0
     clearTimeout(queryTimer)
 

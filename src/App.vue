@@ -1,6 +1,11 @@
 <template>
     <div class="app-shell">
-        <AppToolbar :files="files" :active-file-id="activeFileId" @select-search-result="selectSearchResult" />
+        <AppToolbar
+            :files="files"
+            :active-file-id="activeFileId"
+            @select-search-result="selectSearchResult"
+            @search-query-change="handleSearchQueryChange"
+        />
 
         <main
             ref="mainPanelRef"
@@ -19,8 +24,10 @@
                     :width="isEditorCollapsed ? 0 : editorWidth"
                     :collapsed="isEditorCollapsed"
                     :exporting-pdf="isExportingPdf"
+                    :search-match="activeSearchMatch"
                     @clear="clearContent"
                     @scroll="handleEditorScroll"
+                    @dismiss-search-highlight="clearSearchMatch"
                     @select-file="selectFile"
                     @create-file="createFile"
                     @import-file="importFile"
@@ -46,7 +53,9 @@
                     :files="files"
                     :active-file-id="activeFileId"
                     :exporting-pdf="isExportingPdf"
+                    :search-match="activeSearchMatch"
                     @scroll="handlePreviewScroll"
+                    @dismiss-search-highlight="clearSearchMatch"
                     @select-heading="selectHeading"
                     @toc-resize-start="startTocResize"
                     @expand-editor="setEditorCollapsed(false)"
@@ -69,26 +78,27 @@ import MarkdownEditor from './components/MarkdownEditor.vue'
 import MarkdownPreview from './components/MarkdownPreview.vue'
 import ResizeDivider from './components/ResizeDivider.vue'
 import { useDocumentExport } from './composables/useDocumentExport.js'
+import { useEditorPanel } from './composables/useEditorPanel.js'
 import { useHeadingNavigation } from './composables/useHeadingNavigation.js'
 import { useMarkdownDocuments } from './composables/useMarkdownDocuments.js'
 import { useMarkdownRenderer } from './composables/useMarkdownRenderer.js'
-import { useLocalStoragePreference } from './composables/useLocalStoragePreference.js'
 import { usePaneResize } from './composables/usePaneResize.js'
+import { useSearchMatch } from './composables/useSearchMatch.js'
 import { useScrollSync } from './composables/useScrollSync.js'
 import { useTocResize } from './composables/useTocResize.js'
 import { countWords } from './utils/text.js'
 
 const EDITOR_COLLAPSED_STORAGE_KEY = 'markview:editor-collapsed'
-const PANE_TRANSITION_SETTLE_MS = 300
 const SEARCH_VIEWPORT_RATIO = 0.3
 
 const mainPanelRef = ref(null)
 const editorRef = ref(null)
 const previewRef = ref(null)
-const isEditorCollapsed = useLocalStoragePreference(EDITOR_COLLAPSED_STORAGE_KEY, false)
-const isScrollSyncEnabled = ref(!isEditorCollapsed.value)
-let collapsedSearchTarget = null
-let paneTransitionRunId = 0
+const { isEditorCollapsed, isScrollSyncEnabled, setEditorPanelCollapsed } = useEditorPanel({
+    editorRef,
+    previewRef,
+    storageKey: EDITOR_COLLAPSED_STORAGE_KEY
+})
 
 const {
     files,
@@ -105,6 +115,7 @@ const {
 const { renderedHtml, toc } = useMarkdownRenderer(markdownContent)
 const { editorWidth, previewWidth, isResizing, startResize } = usePaneResize(mainPanelRef)
 const { tocWidthStyle, isTocResizing, startTocResize } = useTocResize()
+const { activeSearchMatch, clearSearchMatch, handleSearchQueryChange, setSearchMatch } = useSearchMatch()
 
 const stats = computed(() => ({
     lines: markdownContent.value ? markdownContent.value.split('\n').length : 0,
@@ -113,6 +124,8 @@ const stats = computed(() => ({
 }))
 
 const getEditorElement = () => editorRef.value?.getScrollElement()
+const getEditorDocumentLength = () => editorRef.value?.getDocumentLength() || 0
+const getEditorLineTop = (lineNumber) => editorRef.value?.getLineTop(lineNumber)
 const getPreviewElement = () => previewRef.value?.getScrollElement()
 const { isExportingPdf, exportActiveFile, exportPdf } = useDocumentExport({
     activeFile,
@@ -131,38 +144,22 @@ const scrollPanesToTop = () => {
 }
 
 const setEditorCollapsed = async (collapsed) => {
-    const runId = ++paneTransitionRunId
-    isScrollSyncEnabled.value = false
-    isEditorCollapsed.value = collapsed
-    await nextTick()
+    const { expanded, settled } = await setEditorPanelCollapsed(collapsed)
+    if (!settled) return
 
-    if (collapsed) {
-        previewRef.value?.focus()
-        updateActiveHeading()
-        return
-    }
-
-    // preventScroll 避免 focus 导致浏览器自动滚动到光标位置
-    const textarea = editorRef.value?.getScrollElement()
-    textarea?.focus({ preventScroll: true })
-
-    await new Promise((resolve) => setTimeout(resolve, PANE_TRANSITION_SETTLE_MS))
-    if (runId !== paneTransitionRunId || isEditorCollapsed.value) return
-
-    isScrollSyncEnabled.value = true
-
-    if (collapsedSearchTarget) {
-        const { lineNumber, query } = collapsedSearchTarget
-        editorRef.value?.focusLine(lineNumber, { scroll: false, query })
+    if (expanded && activeSearchMatch.value?.lineNumber) {
+        const { lineNumber, matchStart, query } = activeSearchMatch.value
+        editorRef.value?.focusLine(lineNumber, { scroll: false, query, matchStart })
         alignToSourceLine(lineNumber, { viewportRatio: SEARCH_VIEWPORT_RATIO })
-        collapsedSearchTarget = null
     }
 
     updateActiveHeading()
 }
 
 const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScrollSync({
+    getEditorDocumentLength,
     getEditorElement,
+    getEditorLineTop,
     getPreviewElement,
     isSyncEnabled: () => isScrollSyncEnabled.value,
     onPreviewScroll: updateActiveHeading
@@ -171,28 +168,29 @@ const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScroll
 const clearContent = async () => {
     if (!confirm('确定要清空所有内容吗？')) return
 
+    clearSearchMatch()
     markdownContent.value = ''
     await nextTick()
     editorRef.value?.focus()
 }
 
-const selectSearchResult = async ({ fileId, lineNumber, query }) => {
+const selectSearchResult = async ({ fileId, lineNumber, matchStart, matchEnd, query }) => {
     selectFile(fileId)
     await nextTick()
 
-    previewRef.value?.clearSearchHighlight()
-
     if (lineNumber) {
-        previewRef.value?.highlightSourceLine(lineNumber, query)
+        setSearchMatch({ fileId, lineNumber, matchStart, matchEnd, query })
+        await nextTick()
+
         editorRef.value?.focusLine(lineNumber, {
             scroll: false,
             query,
+            matchStart,
             focus: !isEditorCollapsed.value
         })
 
-        // 编辑区只做选中高亮，两侧滚动统一交给 alignToSourceLine，避免多个滚动源竞争。
+        // 两侧滚动统一交给 alignToSourceLine，避免多个滚动源竞争。
         if (isEditorCollapsed.value) {
-            collapsedSearchTarget = { lineNumber, query }
             previewRef.value?.scrollToSourceLine(lineNumber, {
                 behavior: 'auto',
                 viewportRatio: SEARCH_VIEWPORT_RATIO
@@ -200,13 +198,13 @@ const selectSearchResult = async ({ fileId, lineNumber, query }) => {
             previewRef.value?.focus()
             updateActiveHeading()
         } else {
-            collapsedSearchTarget = null
             alignToSourceLine(lineNumber, { viewportRatio: SEARCH_VIEWPORT_RATIO })
         }
     } else if (isEditorCollapsed.value) {
-        collapsedSearchTarget = null
+        clearSearchMatch()
         previewRef.value?.focus()
     } else {
+        clearSearchMatch()
         editorRef.value?.focus()
     }
 }
@@ -222,7 +220,7 @@ watch(activeFileId, async () => {
     // 首次异步加载(hydrate)会把 activeId 从空变为初始值，此时不应置顶或清除 hash。
     if (!isReady.value) return
 
-    collapsedSearchTarget = null
+    clearSearchMatch()
     activeHeadingId.value = ''
 
     // 渲染前同步置顶：若随后有行内定位（搜索跳转），它在 nextTick 后执行会自然覆盖这里。

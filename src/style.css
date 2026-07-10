@@ -28,6 +28,11 @@
     --shadow-menu: 0 18px 38px rgb(15 23 42 / 16%);
 }
 
+::highlight(markview-search) {
+    background: var(--color-search-highlight);
+    color: var(--color-search-highlight-text);
+}
+
 html,
 body,
 #app {
@@ -38,8 +43,7 @@ body,
     color: var(--color-text);
 }
 
-button,
-textarea {
+button {
     font: inherit;
 }
 
@@ -47,8 +51,7 @@ button {
     -webkit-tap-highlight-color: transparent;
 }
 
-button:focus-visible,
-textarea:focus-visible {
+button:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
     outline-offset: 2px;
 }

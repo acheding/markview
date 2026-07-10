@@ -1,5 +1,10 @@
 <template>
-    <section class="editor-panel" :class="{ 'is-collapsed': collapsed }" :style="{ width: normalizedWidth }">
+    <section
+        ref="panelRef"
+        class="editor-panel"
+        :class="{ 'is-collapsed': collapsed }"
+        :style="{ width: normalizedWidth }"
+    >
         <div class="panel-header">
             <PanelToolbar
                 context="editor"
@@ -17,20 +22,20 @@
             />
         </div>
 
-        <textarea
-            ref="textareaRef"
-            class="editor-textarea"
-            :value="modelValue"
-            spellcheck="false"
-            placeholder="在此输入 Markdown 内容..."
-            @input="$emit('update:modelValue', $event.target.value)"
+        <CodeMirrorEditor
+            ref="editorRef"
+            :model-value="modelValue"
+            :search-match="searchMatch"
+            @update:model-value="$emit('update:modelValue', $event)"
             @scroll="$emit('scroll')"
+            @dismiss-search-highlight="$emit('dismiss-search-highlight')"
         />
     </section>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import CodeMirrorEditor from './CodeMirrorEditor.vue'
 import PanelToolbar from './PanelToolbar.vue'
 
 const props = defineProps({
@@ -57,6 +62,10 @@ const props = defineProps({
     exportingPdf: {
         type: Boolean,
         default: false
+    },
+    searchMatch: {
+        type: Object,
+        default: null
     }
 })
 
@@ -64,6 +73,7 @@ defineEmits([
     'update:modelValue',
     'clear',
     'scroll',
+    'dismiss-search-highlight',
     'select-file',
     'create-file',
     'delete-file',
@@ -73,102 +83,18 @@ defineEmits([
     'collapse-editor'
 ])
 
-const textareaRef = ref(null)
+const panelRef = ref(null)
+const editorRef = ref(null)
 const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
 
-const getLineStartIndex = (value, lineNumber) => {
-    if (lineNumber <= 1) return 0
-
-    let line = 1
-    let index = 0
-
-    while (line < lineNumber) {
-        const nextIndex = value.indexOf('\n', index)
-        if (nextIndex < 0) return value.length
-
-        index = nextIndex + 1
-        line += 1
-    }
-
-    return index
-}
-
-const getRenderedLineTop = (textarea, value, start) => {
-    const computedStyle = getComputedStyle(textarea)
-    const mirror = document.createElement('div')
-    const marker = document.createElement('span')
-    const copiedProperties = [
-        'border',
-        'boxSizing',
-        'fontFamily',
-        'fontSize',
-        'fontWeight',
-        'letterSpacing',
-        'lineHeight',
-        'padding',
-        'tabSize',
-        'textTransform',
-        'width',
-        'wordBreak',
-        'wordSpacing'
-    ]
-
-    copiedProperties.forEach((property) => {
-        mirror.style[property] = computedStyle[property]
-    })
-
-    mirror.style.position = 'absolute'
-    mirror.style.left = '-9999px'
-    mirror.style.top = '0'
-    mirror.style.height = 'auto'
-    mirror.style.overflow = 'hidden'
-    mirror.style.overflowWrap = 'break-word'
-    mirror.style.visibility = 'hidden'
-    mirror.style.whiteSpace = 'pre-wrap'
-    mirror.style.width = `${textarea.clientWidth}px`
-    mirror.textContent = value.slice(0, start) || '\u200b'
-    marker.textContent = '\u200b'
-    mirror.appendChild(marker)
-    document.body.appendChild(mirror)
-
-    const top = marker.offsetTop
-    document.body.removeChild(mirror)
-
-    return top
-}
-
-const focusLine = (lineNumber, { scroll = true, query = '', focus = true } = {}) => {
-    const textarea = textareaRef.value
-    if (!textarea) return
-
-    const line = Math.max(1, Number(lineNumber) || 1)
-    const value = textarea.value
-    const start = getLineStartIndex(value, line)
-    const nextLineIndex = value.indexOf('\n', start)
-    const end = nextLineIndex < 0 ? value.length : nextLineIndex
-    const searchQuery = String(query).trim()
-    const matchIndex = searchQuery ? value.slice(start, end).toLowerCase().indexOf(searchQuery.toLowerCase()) : -1
-    const selectionStart = matchIndex >= 0 ? start + matchIndex : start
-    const selectionEnd = matchIndex >= 0 ? selectionStart + searchQuery.length : end
-
-    if (focus) textarea.focus()
-    textarea.setSelectionRange(selectionStart, selectionEnd)
-
-    if (!scroll) return
-
-    const renderedTop = getRenderedLineTop(textarea, value, start)
-    requestAnimationFrame(() => {
-        textarea.scrollTo({
-            top: Math.max(0, renderedTop - textarea.clientHeight * 0.36),
-            behavior: 'smooth'
-        })
-    })
-}
-
 defineExpose({
-    focus: () => textareaRef.value?.focus(),
-    focusLine,
-    getScrollElement: () => textareaRef.value
+    focus: (options) => editorRef.value?.focus(options),
+    focusLine: (lineNumber, options) => editorRef.value?.focusLine(lineNumber, options),
+    getDocumentLength: () => editorRef.value?.getDocumentLength() || 0,
+    getLineTop: (lineNumber) => editorRef.value?.getLineTop(lineNumber),
+    getPanelElement: () => panelRef.value,
+    getScrollElement: () => editorRef.value?.getScrollElement(),
+    requestMeasure: () => editorRef.value?.requestMeasure()
 })
 </script>
 
@@ -188,36 +114,6 @@ defineExpose({
     pointer-events: none;
 }
 
-.editor-textarea {
-    flex: 1;
-    width: 100%;
-    min-height: 0;
-    padding: 18px 22px;
-    resize: none;
-    overflow-y: auto;
-    border: none;
-    outline: none;
-    background: #fbfdff;
-    color: var(--color-text);
-    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
-    font-size: 14px;
-    line-height: 1.74;
-    tab-size: 2;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    caret-color: var(--color-accent);
-    contain: layout;
-}
-
-.editor-textarea::placeholder {
-    color: var(--color-subtle);
-}
-
-.editor-textarea::selection {
-    background: var(--color-search-highlight);
-    color: var(--color-search-highlight-text);
-}
-
 @media (max-width: 768px) {
     .editor-panel {
         width: 100% !important;
@@ -230,11 +126,6 @@ defineExpose({
         height: 0 !important;
         min-height: 0 !important;
         border-bottom: none;
-    }
-
-    .editor-textarea {
-        padding: 12px 14px;
-        font-size: 13px;
     }
 }
 </style>

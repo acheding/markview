@@ -1,28 +1,11 @@
 import { nextTick, onBeforeUnmount, onMounted } from 'vue'
-import { clamp, escapeHtml } from '../utils/text'
+import { clamp } from '../utils/text'
 
 const SOURCE_RELEASE_DELAY = 180
 const PROGRAMMATIC_RELEASE_DELAY = 120
 const SCROLL_EPSILON = 1
 const USER_SCROLL_EVENTS = ['wheel', 'pointerdown', 'touchstart', 'keydown']
 const SOURCE_LINE_SELECTOR = '[data-source-line]'
-
-// 复制到隐藏镜像元素上的样式属性，使其折行方式与 textarea 完全一致，
-// 从而能精确测量任意源行的 Y 偏移。
-const MIRROR_COPY_PROPS = [
-    'border',
-    'boxSizing',
-    'fontFamily',
-    'fontSize',
-    'fontWeight',
-    'letterSpacing',
-    'lineHeight',
-    'padding',
-    'tabSize',
-    'textTransform',
-    'wordBreak',
-    'wordSpacing'
-]
 
 const getElementTop = (container, element) => {
     const containerRect = container.getBoundingClientRect()
@@ -39,95 +22,17 @@ const getPreviewBlocks = (preview) =>
         }))
         .filter((item) => Number.isFinite(item.line))
 
-// 计算每个请求的源行（从 1 开始）在文本中的起始字符下标。
-const getLineStartIndices = (value, lines) => {
-    const wanted = new Set(lines)
-    const result = new Map()
-
-    if (wanted.has(1)) result.set(1, 0)
-
-    let line = 1
-    for (let index = 0; index < value.length && result.size < wanted.size; index += 1) {
-        if (value[index] === '\n') {
-            line += 1
-            if (wanted.has(line)) result.set(line, index + 1)
-        }
-    }
-
-    // 超出内容末尾的行统一落到文本末尾。
-    lines.forEach((item) => {
-        if (!result.has(item)) result.set(item, value.length)
-    })
-
-    return result
-}
-
-// 通过一次隐藏镜像布局，测量每个源行在 textarea 自身滚动坐标系中的顶部偏移。
-const measureEditorLineTops = (editor, lines) => {
-    const uniqueLines = Array.from(new Set(lines.filter((line) => Number.isFinite(line) && line >= 1))).sort(
-        (a, b) => a - b
-    )
-    const tops = new Map()
-    if (!uniqueLines.length) return tops
-
-    const value = editor.value
-    const styles = getComputedStyle(editor)
-    const mirror = document.createElement('div')
-
-    MIRROR_COPY_PROPS.forEach((property) => {
-        mirror.style[property] = styles[property]
-    })
-
-    mirror.style.position = 'absolute'
-    mirror.style.left = '-9999px'
-    mirror.style.top = '0'
-    mirror.style.height = 'auto'
-    mirror.style.overflow = 'hidden'
-    mirror.style.visibility = 'hidden'
-    mirror.style.whiteSpace = 'pre-wrap'
-    mirror.style.overflowWrap = 'break-word'
-    mirror.style.width = `${editor.clientWidth}px`
-
-    const lineStarts = getLineStartIndices(value, uniqueLines)
-    let html = ''
-    let cursor = 0
-
-    uniqueLines.forEach((line, index) => {
-        const start = lineStarts.get(line)
-        html += escapeHtml(value.slice(cursor, start))
-        html += `<span data-line-index="${index}">\u200b</span>`
-        cursor = start
-    })
-    html += escapeHtml(value.slice(cursor))
-
-    mirror.innerHTML = html
-    document.body.appendChild(mirror)
-
-    mirror.querySelectorAll('span[data-line-index]').forEach((marker) => {
-        const index = Number(marker.dataset.lineIndex)
-        tops.set(uniqueLines[index], marker.offsetTop)
-    })
-
-    document.body.removeChild(mirror)
-
-    return tops
-}
-
 // 构建锚点表：对每个共享的源行，记录一对对齐的滚动偏移（编辑区、预览区）。
 // 两端各加一个哨兵锚点，把文档顶部与底部钉在一起，使两侧能同时到达 0 和最大值。
-const buildAnchors = (editor, preview) => {
+const buildAnchors = (editor, preview, getEditorLineTop) => {
     const editorMax = Math.max(0, editor.scrollHeight - editor.clientHeight)
     const previewMax = Math.max(0, preview.scrollHeight - preview.clientHeight)
 
     const blocks = getPreviewBlocks(preview)
-    const lineTops = measureEditorLineTops(
-        editor,
-        blocks.map((block) => block.line)
-    )
 
     const raw = blocks
         .map((block) => ({
-            editor: lineTops.get(block.line),
+            editor: getEditorLineTop(block.line),
             preview: getElementTop(preview, block.element)
         }))
         .filter((anchor) => Number.isFinite(anchor.editor) && Number.isFinite(anchor.preview))
@@ -187,7 +92,14 @@ const applyScroll = (element, top) => {
     return true
 }
 
-export const useScrollSync = ({ getEditorElement, getPreviewElement, isSyncEnabled = () => true, onPreviewScroll }) => {
+export const useScrollSync = ({
+    getEditorDocumentLength,
+    getEditorElement,
+    getEditorLineTop,
+    getPreviewElement,
+    isSyncEnabled = () => true,
+    onPreviewScroll
+}) => {
     let activeSource = ''
     let sourceReleaseTimer = null
     const programmaticScroll = {
@@ -206,7 +118,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, isSyncEnabl
 
     const getAnchors = (editor, preview) => {
         const signature = [
-            editor.value.length,
+            getEditorDocumentLength(),
             editor.scrollHeight,
             editor.clientWidth,
             editor.clientHeight,
@@ -217,7 +129,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, isSyncEnabl
 
         if (anchorCache.signature !== signature || !anchorCache.anchors) {
             anchorCache.signature = signature
-            anchorCache.anchors = buildAnchors(editor, preview)
+            anchorCache.anchors = buildAnchors(editor, preview, getEditorLineTop)
         }
 
         return anchorCache.anchors
@@ -304,7 +216,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, isSyncEnabl
         if (!editor || !preview) return
 
         const targetLine = Math.max(1, Number(line) || 1)
-        const editorLineTop = measureEditorLineTops(editor, [targetLine]).get(targetLine)
+        const editorLineTop = getEditorLineTop(targetLine)
         if (!Number.isFinite(editorLineTop)) return
 
         // 锁定：清除激活来源、两侧标记程序滚动，屏蔽本次滚动触发的联动回环。

@@ -40,8 +40,8 @@
                 class="preview-content"
                 tabindex="-1"
                 aria-label="Markdown 预览"
-                :style="{ '--search-highlight-duration': `${SEARCH_HIGHLIGHT_DURATION_MS}ms` }"
                 v-html="html"
+                @pointerdown="$emit('dismiss-search-highlight')"
                 @click="handlePreviewClick"
                 @scroll="handleContentScroll"
             />
@@ -73,13 +73,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
+import { findTextMatch } from '../utils/search.js'
 import PanelToolbar from './PanelToolbar.vue'
 import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
 
-const SEARCH_HIGHLIGHT_DURATION_MS = 2400
+const SEARCH_HIGHLIGHT_NAME = 'markview-search'
 
 const props = defineProps({
     html: {
@@ -129,11 +130,16 @@ const props = defineProps({
     exportingPdf: {
         type: Boolean,
         default: false
+    },
+    searchMatch: {
+        type: Object,
+        default: null
     }
 })
 
 const emit = defineEmits([
     'scroll',
+    'dismiss-search-highlight',
     'select-heading',
     'toc-resize-start',
     'expand-editor',
@@ -146,20 +152,12 @@ const emit = defineEmits([
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
 const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
-let searchHighlightTimer = null
 
 const clearSearchHighlight = () => {
-    clearTimeout(searchHighlightTimer)
-    searchHighlightTimer = null
-
     const content = contentRef.value
     if (!content) return
 
-    content.querySelectorAll('.preview-search-highlight').forEach((mark) => {
-        const parent = mark.parentNode
-        mark.replaceWith(document.createTextNode(mark.textContent || ''))
-        parent?.normalize()
-    })
+    window.CSS?.highlights?.delete(SEARCH_HIGHLIGHT_NAME)
     content.querySelectorAll('.is-search-highlight').forEach((element) => {
         element.classList.remove('is-search-highlight')
     })
@@ -192,10 +190,7 @@ const getSourceElement = (lineNumber) => {
     return target
 }
 
-const highlightText = (target, query) => {
-    const searchQuery = String(query).trim()
-    if (!searchQuery) return false
-
+const createTextRanges = (target, query) => {
     const textNodes = []
     const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT)
     let text = ''
@@ -209,24 +204,17 @@ const highlightText = (target, query) => {
         node = walker.nextNode()
     }
 
-    const matchStart = text.toLowerCase().indexOf(searchQuery.toLowerCase())
-    if (matchStart < 0) return false
+    const match = findTextMatch(text, query)
+    if (!match) return []
 
-    const matchEnd = matchStart + searchQuery.length
-    textNodes
-        .filter((item) => item.start < matchEnd && item.end > matchStart)
-        .reverse()
-        .forEach((item) => {
+    return textNodes
+        .filter((item) => item.start < match.to && item.end > match.from)
+        .map((item) => {
             const range = document.createRange()
-            range.setStart(item.node, Math.max(0, matchStart - item.start))
-            range.setEnd(item.node, Math.min(item.node.data.length, matchEnd - item.start))
-
-            const mark = document.createElement('mark')
-            mark.className = 'preview-search-highlight'
-            range.surroundContents(mark)
+            range.setStart(item.node, Math.max(0, match.from - item.start))
+            range.setEnd(item.node, Math.min(item.node.data.length, match.to - item.start))
+            return range
         })
-
-    return true
 }
 
 const highlightSourceLine = (lineNumber, query) => {
@@ -235,13 +223,26 @@ const highlightSourceLine = (lineNumber, query) => {
     const target = getSourceElement(lineNumber)
     if (!target) return false
 
-    if (!highlightText(target, query)) {
+    const ranges = createTextRanges(target, query)
+    const supportsCustomHighlight = Boolean(window.CSS?.highlights && window.Highlight)
+
+    if (ranges.length && supportsCustomHighlight) {
+        // Custom Highlight 只增加绘制层，不会修改 v-html 生成的正文 DOM。
+        window.CSS.highlights.set(SEARCH_HIGHLIGHT_NAME, new window.Highlight(...ranges))
+    } else {
         target.classList.add('is-search-highlight')
     }
 
-    searchHighlightTimer = setTimeout(clearSearchHighlight, SEARCH_HIGHLIGHT_DURATION_MS)
-
     return true
+}
+
+const applySearchHighlight = async () => {
+    await nextTick()
+    clearSearchHighlight()
+
+    if (props.searchMatch?.lineNumber) {
+        highlightSourceLine(props.searchMatch.lineNumber, props.searchMatch.query)
+    }
 }
 
 const scrollToElement = (target, options = {}) => {
@@ -322,13 +323,15 @@ const scrollToTop = () => {
     })
 }
 
-onBeforeUnmount(clearSearchHighlight)
+watch([() => props.html, () => props.searchMatch], applySearchHighlight, {
+    deep: true,
+    flush: 'post',
+    immediate: true
+})
 
 defineExpose({
-    clearSearchHighlight,
     focus: () => contentRef.value?.focus({ preventScroll: true }),
     getScrollElement: () => contentRef.value,
-    highlightSourceLine,
     scrollToHeading,
     scrollToSourceLine
 })
@@ -364,41 +367,9 @@ defineExpose({
     contain: layout;
 }
 
-.preview-content :deep(.preview-search-highlight) {
-    border-radius: 3px;
-    background: var(--color-search-highlight);
-    color: var(--color-search-highlight-text);
-    animation: preview-search-highlight-fade var(--search-highlight-duration) ease forwards;
-}
-
 .preview-content :deep(.is-search-highlight) {
     outline: 3px solid var(--color-search-highlight);
     outline-offset: 3px;
-    animation: preview-search-outline-fade var(--search-highlight-duration) ease forwards;
-}
-
-@keyframes preview-search-highlight-fade {
-    0%,
-    72% {
-        background: var(--color-search-highlight);
-        color: var(--color-search-highlight-text);
-    }
-
-    100% {
-        background: transparent;
-        color: inherit;
-    }
-}
-
-@keyframes preview-search-outline-fade {
-    0%,
-    72% {
-        outline-color: var(--color-search-highlight);
-    }
-
-    100% {
-        outline-color: transparent;
-    }
 }
 
 .preview-collapsed-toolbar {
