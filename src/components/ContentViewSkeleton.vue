@@ -31,7 +31,12 @@
                 <span v-for="i in 8" :key="'p' + i" class="skeleton-line" :style="{ width: textWidth(i + 20) }" />
                 <!-- 代码块 -->
                 <span class="skeleton-code-block">
-                    <span v-for="i in 4" :key="'c' + i" class="skeleton-line skeleton-line--code" :style="{ width: codeWidth(i) }" />
+                    <span
+                        v-for="i in 4"
+                        :key="'c' + i"
+                        class="skeleton-line skeleton-line--code"
+                        :style="{ width: codeWidth(i) }"
+                    />
                 </span>
                 <!-- 更多内容 -->
                 <span class="skeleton-line skeleton-line--subheading" />
@@ -45,12 +50,54 @@
 
 <script setup>
 const textWidths = [
-    '92%', '78%', '85%', '45%', '88%', '52%', '90%', '68%',
-    '82%', '55%', '76%', '48%', '94%', '72%', '86%', '60%',
-    '80%', '44%', '96%', '70%', '84%', '50%', '88%', '66%',
-    '74%', '58%', '92%', '40%', '82%', '54%', '90%', '62%',
-    '78%', '46%', '86%', '64%', '80%', '52%', '94%', '68%',
-    '76%', '42%', '88%', '56%', '72%', '48%', '84%', '60%'
+    '92%',
+    '78%',
+    '85%',
+    '45%',
+    '88%',
+    '52%',
+    '90%',
+    '68%',
+    '82%',
+    '55%',
+    '76%',
+    '48%',
+    '94%',
+    '72%',
+    '86%',
+    '60%',
+    '80%',
+    '44%',
+    '96%',
+    '70%',
+    '84%',
+    '50%',
+    '88%',
+    '66%',
+    '74%',
+    '58%',
+    '92%',
+    '40%',
+    '82%',
+    '54%',
+    '90%',
+    '62%',
+    '78%',
+    '46%',
+    '86%',
+    '64%',
+    '80%',
+    '52%',
+    '94%',
+    '68%',
+    '76%',
+    '42%',
+    '88%',
+    '56%',
+    '72%',
+    '48%',
+    '84%',
+    '60%'
 ]
 
 const codeWidths = ['65%', '82%', '30%', '58%']
@@ -151,8 +198,7 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
 .skeleton-line--code {
     height: 12px;
     border-radius: 3px;
-    background:
-        linear-gradient(90deg, #e2e8f0 25%, #edf2f7 50%, #e2e8f0 75%);
+    background: linear-gradient(90deg, #e2e8f0 25%, #edf2f7 50%, #e2e8f0 75%);
     background-size: 200% 100%;
 }
 
@@ -168,8 +214,7 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background:
-        linear-gradient(135deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(135deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
     background-size: 200% 100%;
     flex-shrink: 0;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
@@ -191,8 +236,12 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
 }
 
 @keyframes skeleton-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 @media (max-width: 768px) {

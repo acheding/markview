@@ -1,9 +1,5 @@
 <template>
-    <section
-        class="editor-panel"
-        :class="{ 'is-collapsed': collapsed }"
-        :style="{ width: normalizedWidth }"
-    >
+    <section class="editor-panel" :class="{ 'is-collapsed': collapsed }" :style="{ width: normalizedWidth }">
         <div class="panel-header">
             <PanelToolbar
                 context="editor"

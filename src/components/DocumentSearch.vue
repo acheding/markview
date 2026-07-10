@@ -397,6 +397,10 @@ onBeforeUnmount(() => {
     transition: padding 0.3s ease;
 }
 
+.document-search.has-query .document-search__input {
+    padding-right: 68px;
+}
+
 .document-search__input::placeholder {
     color: var(--color-subtle);
 }

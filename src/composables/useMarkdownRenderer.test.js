@@ -9,8 +9,12 @@ describe('useMarkdownRenderer', () => {
         const source = ref('# 安装\n\n## 安装')
         const { renderedHtml, toc } = useMarkdownRenderer(source)
 
-        expect(renderedHtml.value).toContain('<h1 id="安装" data-source-line="1">安装</h1>')
-        expect(renderedHtml.value).toContain('<h2 id="安装-1" data-source-line="3">安装</h2>')
+        expect(renderedHtml.value).toContain(
+            '<h1 id="安装" data-source-line="1"><a class="heading-anchor" href="#安装" aria-hidden="true">#</a>安装</h1>'
+        )
+        expect(renderedHtml.value).toContain(
+            '<h2 id="安装-1" data-source-line="3"><a class="heading-anchor" href="#安装-1" aria-hidden="true">#</a>安装</h2>'
+        )
         expect(toc.value).toEqual([
             { id: '安装', title: '安装', level: 1, sourceLine: 1 },
             { id: '安装-1', title: '安装', level: 2, sourceLine: 3 }
