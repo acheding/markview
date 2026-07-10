@@ -22,6 +22,8 @@
     --color-blue: #2563eb;
     --color-danger: #dc2626;
     --color-danger-soft: #fee2e2;
+    --color-search-highlight: #fef08a;
+    --color-search-highlight-text: #713f12;
     --shadow-panel: 0 18px 42px rgb(15 23 42 / 8%);
     --shadow-menu: 0 18px 38px rgb(15 23 42 / 16%);
 }

@@ -240,7 +240,8 @@ const clearSearch = () => {
 const selectResult = (result) => {
     emit('select', {
         fileId: result.fileId,
-        lineNumber: result.lineNumber
+        lineNumber: result.lineNumber,
+        query: normalizedQuery.value
     })
     closeResults()
 }
@@ -566,8 +567,8 @@ onBeforeUnmount(() => {
 
 .document-search__excerpt mark {
     border-radius: 3px;
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--color-search-highlight);
+    color: var(--color-search-highlight-text);
     font-weight: 700;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;

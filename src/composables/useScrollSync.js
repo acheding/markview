@@ -187,7 +187,7 @@ const applyScroll = (element, top) => {
     return true
 }
 
-export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewScroll }) => {
+export const useScrollSync = ({ getEditorElement, getPreviewElement, isSyncEnabled = () => true, onPreviewScroll }) => {
     let activeSource = ''
     let sourceReleaseTimer = null
     const programmaticScroll = {
@@ -236,6 +236,8 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     }
 
     const markUserSource = (source) => {
+        if (!isSyncEnabled()) return
+
         activeSource = source
         clearSourceRelease()
     }
@@ -265,6 +267,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     }
 
     const handleEditorScroll = () => {
+        if (!isSyncEnabled()) return
         if (programmaticScroll.editor || (activeSource && activeSource !== 'editor')) return
 
         activeSource = 'editor'
@@ -279,6 +282,7 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     const handlePreviewScroll = () => {
         onPreviewScroll?.()
 
+        if (!isSyncEnabled()) return
         if (programmaticScroll.preview || (activeSource && activeSource !== 'preview')) return
 
         activeSource = 'preview'
@@ -293,6 +297,8 @@ export const useScrollSync = ({ getEditorElement, getPreviewElement, onPreviewSc
     // 编辑区按固定视口比例定位，预览区用锚点映射跟随，两侧都以程序滚动瞬时完成，
     // 避免与联动同步竞争，保证同一行每次定位到相同位置。
     const alignToSourceLine = (line, { viewportRatio = 0.3 } = {}) => {
+        if (!isSyncEnabled()) return
+
         const editor = getEditorElement()
         const preview = getPreviewElement()
         if (!editor || !preview) return

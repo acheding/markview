@@ -137,7 +137,7 @@ const getRenderedLineTop = (textarea, value, start) => {
     return top
 }
 
-const focusLine = (lineNumber, { scroll = true } = {}) => {
+const focusLine = (lineNumber, { scroll = true, query = '', focus = true } = {}) => {
     const textarea = textareaRef.value
     if (!textarea) return
 
@@ -146,9 +146,13 @@ const focusLine = (lineNumber, { scroll = true } = {}) => {
     const start = getLineStartIndex(value, line)
     const nextLineIndex = value.indexOf('\n', start)
     const end = nextLineIndex < 0 ? value.length : nextLineIndex
+    const searchQuery = String(query).trim()
+    const matchIndex = searchQuery ? value.slice(start, end).toLowerCase().indexOf(searchQuery.toLowerCase()) : -1
+    const selectionStart = matchIndex >= 0 ? start + matchIndex : start
+    const selectionEnd = matchIndex >= 0 ? selectionStart + searchQuery.length : end
 
-    textarea.focus()
-    textarea.setSelectionRange(start, end)
+    if (focus) textarea.focus()
+    textarea.setSelectionRange(selectionStart, selectionEnd)
 
     if (!scroll) return
 
@@ -207,6 +211,11 @@ defineExpose({
 
 .editor-textarea::placeholder {
     color: var(--color-subtle);
+}
+
+.editor-textarea::selection {
+    background: var(--color-search-highlight);
+    color: var(--color-search-highlight-text);
 }
 
 @media (max-width: 768px) {

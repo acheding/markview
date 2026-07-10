@@ -79,11 +79,16 @@ import { useTocResize } from './composables/useTocResize.js'
 import { countWords } from './utils/text.js'
 
 const EDITOR_COLLAPSED_STORAGE_KEY = 'markview:editor-collapsed'
+const PANE_TRANSITION_SETTLE_MS = 300
+const SEARCH_VIEWPORT_RATIO = 0.3
 
 const mainPanelRef = ref(null)
 const editorRef = ref(null)
 const previewRef = ref(null)
 const isEditorCollapsed = useLocalStoragePreference(EDITOR_COLLAPSED_STORAGE_KEY, false)
+const isScrollSyncEnabled = ref(!isEditorCollapsed.value)
+let collapsedSearchTarget = null
+let paneTransitionRunId = 0
 
 const {
     files,
@@ -126,13 +131,31 @@ const scrollPanesToTop = () => {
 }
 
 const setEditorCollapsed = async (collapsed) => {
+    const runId = ++paneTransitionRunId
+    isScrollSyncEnabled.value = false
     isEditorCollapsed.value = collapsed
     await nextTick()
 
-    if (!collapsed) {
-        // preventScroll 避免 focus 导致浏览器自动滚动到光标位置
-        const textarea = editorRef.value?.getScrollElement()
-        textarea?.focus({ preventScroll: true })
+    if (collapsed) {
+        previewRef.value?.focus()
+        updateActiveHeading()
+        return
+    }
+
+    // preventScroll 避免 focus 导致浏览器自动滚动到光标位置
+    const textarea = editorRef.value?.getScrollElement()
+    textarea?.focus({ preventScroll: true })
+
+    await new Promise((resolve) => setTimeout(resolve, PANE_TRANSITION_SETTLE_MS))
+    if (runId !== paneTransitionRunId || isEditorCollapsed.value) return
+
+    isScrollSyncEnabled.value = true
+
+    if (collapsedSearchTarget) {
+        const { lineNumber, query } = collapsedSearchTarget
+        editorRef.value?.focusLine(lineNumber, { scroll: false, query })
+        alignToSourceLine(lineNumber, { viewportRatio: SEARCH_VIEWPORT_RATIO })
+        collapsedSearchTarget = null
     }
 
     updateActiveHeading()
@@ -141,6 +164,7 @@ const setEditorCollapsed = async (collapsed) => {
 const { handleEditorScroll, handlePreviewScroll, alignToSourceLine } = useScrollSync({
     getEditorElement,
     getPreviewElement,
+    isSyncEnabled: () => isScrollSyncEnabled.value,
     onPreviewScroll: updateActiveHeading
 })
 
@@ -152,19 +176,36 @@ const clearContent = async () => {
     editorRef.value?.focus()
 }
 
-const selectSearchResult = async ({ fileId, lineNumber }) => {
+const selectSearchResult = async ({ fileId, lineNumber, query }) => {
     selectFile(fileId)
     await nextTick()
 
+    previewRef.value?.clearSearchHighlight()
+
     if (lineNumber) {
+        previewRef.value?.highlightSourceLine(lineNumber, query)
+        editorRef.value?.focusLine(lineNumber, {
+            scroll: false,
+            query,
+            focus: !isEditorCollapsed.value
+        })
+
         // 编辑区只做选中高亮，两侧滚动统一交给 alignToSourceLine，避免多个滚动源竞争。
         if (isEditorCollapsed.value) {
-            previewRef.value?.scrollToSourceLine(lineNumber)
+            collapsedSearchTarget = { lineNumber, query }
+            previewRef.value?.scrollToSourceLine(lineNumber, {
+                behavior: 'auto',
+                viewportRatio: SEARCH_VIEWPORT_RATIO
+            })
+            previewRef.value?.focus()
             updateActiveHeading()
         } else {
-            editorRef.value?.focusLine(lineNumber, { scroll: false })
-            alignToSourceLine(lineNumber)
+            collapsedSearchTarget = null
+            alignToSourceLine(lineNumber, { viewportRatio: SEARCH_VIEWPORT_RATIO })
         }
+    } else if (isEditorCollapsed.value) {
+        collapsedSearchTarget = null
+        previewRef.value?.focus()
     } else {
         editorRef.value?.focus()
     }
@@ -181,6 +222,7 @@ watch(activeFileId, async () => {
     // 首次异步加载(hydrate)会把 activeId 从空变为初始值，此时不应置顶或清除 hash。
     if (!isReady.value) return
 
+    collapsedSearchTarget = null
     activeHeadingId.value = ''
 
     // 渲染前同步置顶：若随后有行内定位（搜索跳转），它在 nextTick 后执行会自然覆盖这里。

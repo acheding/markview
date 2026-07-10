@@ -38,6 +38,9 @@
             <div
                 ref="contentRef"
                 class="preview-content"
+                tabindex="-1"
+                aria-label="Markdown 预览"
+                :style="{ '--search-highlight-duration': `${SEARCH_HIGHLIGHT_DURATION_MS}ms` }"
                 v-html="html"
                 @click="handlePreviewClick"
                 @scroll="handleContentScroll"
@@ -70,11 +73,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
 import PanelToolbar from './PanelToolbar.vue'
 import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
+
+const SEARCH_HIGHLIGHT_DURATION_MS = 2400
 
 const props = defineProps({
     html: {
@@ -141,6 +146,103 @@ const emit = defineEmits([
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
 const normalizedWidth = computed(() => (typeof props.width === 'number' ? `${props.width}%` : props.width))
+let searchHighlightTimer = null
+
+const clearSearchHighlight = () => {
+    clearTimeout(searchHighlightTimer)
+    searchHighlightTimer = null
+
+    const content = contentRef.value
+    if (!content) return
+
+    content.querySelectorAll('.preview-search-highlight').forEach((mark) => {
+        const parent = mark.parentNode
+        mark.replaceWith(document.createTextNode(mark.textContent || ''))
+        parent?.normalize()
+    })
+    content.querySelectorAll('.is-search-highlight').forEach((element) => {
+        element.classList.remove('is-search-highlight')
+    })
+}
+
+const getSourceElement = (lineNumber) => {
+    const content = contentRef.value
+    const line = Number(lineNumber)
+    if (!content || !Number.isFinite(line)) return null
+
+    const sourceElements = Array.from(content.querySelectorAll('[data-source-line]'))
+        .map((element) => ({
+            element,
+            line: Number(element.dataset.sourceLine)
+        }))
+        .filter((item) => Number.isFinite(item.line))
+
+    if (!sourceElements.length) return null
+
+    let target = sourceElements[0].element
+
+    for (const item of sourceElements) {
+        if (item.line <= line) {
+            target = item.element
+        } else {
+            break
+        }
+    }
+
+    return target
+}
+
+const highlightText = (target, query) => {
+    const searchQuery = String(query).trim()
+    if (!searchQuery) return false
+
+    const textNodes = []
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT)
+    let text = ''
+    let node = walker.nextNode()
+
+    while (node) {
+        if (!node.parentElement?.closest('.heading-anchor')) {
+            textNodes.push({ node, start: text.length, end: text.length + node.data.length })
+            text += node.data
+        }
+        node = walker.nextNode()
+    }
+
+    const matchStart = text.toLowerCase().indexOf(searchQuery.toLowerCase())
+    if (matchStart < 0) return false
+
+    const matchEnd = matchStart + searchQuery.length
+    textNodes
+        .filter((item) => item.start < matchEnd && item.end > matchStart)
+        .reverse()
+        .forEach((item) => {
+            const range = document.createRange()
+            range.setStart(item.node, Math.max(0, matchStart - item.start))
+            range.setEnd(item.node, Math.min(item.node.data.length, matchEnd - item.start))
+
+            const mark = document.createElement('mark')
+            mark.className = 'preview-search-highlight'
+            range.surroundContents(mark)
+        })
+
+    return true
+}
+
+const highlightSourceLine = (lineNumber, query) => {
+    clearSearchHighlight()
+
+    const target = getSourceElement(lineNumber)
+    if (!target) return false
+
+    if (!highlightText(target, query)) {
+        target.classList.add('is-search-highlight')
+    }
+
+    searchHighlightTimer = setTimeout(clearSearchHighlight, SEARCH_HIGHLIGHT_DURATION_MS)
+
+    return true
+}
 
 const scrollToElement = (target, options = {}) => {
     const content = contentRef.value
@@ -148,7 +250,8 @@ const scrollToElement = (target, options = {}) => {
 
     const contentRect = content.getBoundingClientRect()
     const targetRect = target.getBoundingClientRect()
-    const top = content.scrollTop + targetRect.top - contentRect.top - (options.offset || 0)
+    const viewportOffset = content.clientHeight * (options.viewportRatio || 0)
+    const top = content.scrollTop + targetRect.top - contentRect.top - viewportOffset - (options.offset || 0)
 
     content.scrollTo({
         top,
@@ -166,28 +269,7 @@ const scrollToHeading = (id, options = {}) => {
 }
 
 const scrollToSourceLine = (lineNumber, options = {}) => {
-    const content = contentRef.value
-    const line = Number(lineNumber)
-    if (!content || !Number.isFinite(line)) return false
-
-    const sourceElements = Array.from(content.querySelectorAll('[data-source-line]'))
-        .map((element) => ({
-            element,
-            line: Number(element.dataset.sourceLine)
-        }))
-        .filter((item) => Number.isFinite(item.line))
-
-    if (!sourceElements.length) return false
-
-    let target = sourceElements[0].element
-
-    for (const item of sourceElements) {
-        if (item.line <= line) {
-            target = item.element
-        } else {
-            break
-        }
-    }
+    const target = getSourceElement(lineNumber)
 
     return scrollToElement(target, options)
 }
@@ -240,8 +322,13 @@ const scrollToTop = () => {
     })
 }
 
+onBeforeUnmount(clearSearchHighlight)
+
 defineExpose({
+    clearSearchHighlight,
+    focus: () => contentRef.value?.focus({ preventScroll: true }),
     getScrollElement: () => contentRef.value,
+    highlightSourceLine,
     scrollToHeading,
     scrollToSourceLine
 })
@@ -275,6 +362,43 @@ defineExpose({
     line-height: 1.8;
     scroll-behavior: auto;
     contain: layout;
+}
+
+.preview-content :deep(.preview-search-highlight) {
+    border-radius: 3px;
+    background: var(--color-search-highlight);
+    color: var(--color-search-highlight-text);
+    animation: preview-search-highlight-fade var(--search-highlight-duration) ease forwards;
+}
+
+.preview-content :deep(.is-search-highlight) {
+    outline: 3px solid var(--color-search-highlight);
+    outline-offset: 3px;
+    animation: preview-search-outline-fade var(--search-highlight-duration) ease forwards;
+}
+
+@keyframes preview-search-highlight-fade {
+    0%,
+    72% {
+        background: var(--color-search-highlight);
+        color: var(--color-search-highlight-text);
+    }
+
+    100% {
+        background: transparent;
+        color: inherit;
+    }
+}
+
+@keyframes preview-search-outline-fade {
+    0%,
+    72% {
+        outline-color: var(--color-search-highlight);
+    }
+
+    100% {
+        outline-color: transparent;
+    }
 }
 
 .preview-collapsed-toolbar {
