@@ -35,7 +35,7 @@ defineEmits(['resize-start'])
     cursor: col-resize;
     background: transparent;
     transition:
-        background 0.15s ease,
+        background var(--duration-fast) ease,
         opacity 0.22s ease;
 }
 
@@ -51,19 +51,18 @@ defineEmits(['resize-start'])
     background: var(--color-border);
     content: '';
     transition:
-        background 0.15s ease,
-        box-shadow 0.15s ease;
+        background var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
 }
 
 .divider:hover,
 .divider.is-active {
-    background: rgb(15 118 110 / 5%);
+    background: rgb(var(--color-accent-channel) / 5%);
 }
 
 .divider:hover::before,
 .divider.is-active::before {
-    /* background: var(--color-accent); */
-    box-shadow: 0 0 0 2px rgb(15 118 110 / 10%);
+    box-shadow: 0 0 0 2px rgb(var(--color-accent-channel) / 10%);
 }
 
 @media (max-width: 768px) {

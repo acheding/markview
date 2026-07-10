@@ -2,6 +2,7 @@ import { ref, watch } from 'vue'
 
 const canUseLocalStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 
+// 自动读写 localStorage 的偏好 ref。
 export const useLocalStoragePreference = (key, defaultValue) => {
     const value = ref(defaultValue)
 

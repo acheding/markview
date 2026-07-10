@@ -46,23 +46,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import deleteFileIcon from '../assets/delete-file.svg'
+import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const props = defineProps({
-    files: {
-        type: Array,
-        default: () => []
-    },
-    activeFileId: {
-        type: String,
-        default: ''
-    }
-})
-
-const emit = defineEmits(['select-file', 'delete-file'])
+const { documents } = useWorkspace()
+const files = documents.files
+const activeFileId = documents.activeFileId
 
 const isOpen = ref(false)
 const switcherRef = ref(null)
-const activeFile = computed(() => props.files.find((file) => file.id === props.activeFileId))
+const activeFile = computed(() => files.value.find((file) => file.id === activeFileId.value))
 
 const closeOnOutsideClick = (event) => {
     if (!switcherRef.value?.contains(event.target)) {
@@ -71,14 +63,14 @@ const closeOnOutsideClick = (event) => {
 }
 
 const selectFile = (id) => {
-    emit('select-file', id)
+    documents.select(id)
     isOpen.value = false
 }
 
 const deleteFile = (file) => {
     if (!confirm(`确定要删除「${file.name}」吗？`)) return
 
-    emit('delete-file', file.id)
+    documents.remove(file.id)
     isOpen.value = false
 }
 
@@ -118,9 +110,9 @@ onBeforeUnmount(() => {
     background: transparent;
     color: var(--color-text);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-md);
     font-weight: 650;
-    transition: color 0.15s ease;
+    transition: color var(--duration-fast) ease;
 }
 
 .file-switcher__trigger:hover {
@@ -143,27 +135,18 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
 }
 
-.file-switcher__delete {
-    display: inline-grid;
-    place-items: center;
-    padding: 0;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    cursor: pointer;
-}
-
 .file-switcher__menu {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    z-index: 30;
+    z-index: var(--z-file-menu);
     width: max-content;
     max-width: 100%;
     max-height: 280px;
     overflow-y: auto;
     padding: 6px;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
     box-shadow: var(--shadow-menu);
 }
@@ -172,8 +155,8 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     min-height: 32px;
-    border-radius: 6px;
-    transition: background 0.15s ease;
+    border-radius: var(--radius-md);
+    transition: background var(--duration-fast) ease;
 }
 
 .file-switcher__option:hover,
@@ -196,7 +179,7 @@ onBeforeUnmount(() => {
     background: transparent;
     color: var(--color-text);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-md);
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -206,13 +189,18 @@ onBeforeUnmount(() => {
     width: 24px;
     height: 24px;
     margin-right: 2px;
-    border-color: transparent;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
     border-radius: 5px;
+    background: var(--color-surface);
     color: var(--color-subtle);
+    cursor: pointer;
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        color 0.15s ease;
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease;
 }
 
 .file-switcher__delete:hover {

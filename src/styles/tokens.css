@@ -1,0 +1,108 @@
+/* 设计 token：颜色、阴影、间距、圆角、字号、层级、动效时长。
+   组件与编辑器主题一律引用这里的变量，改主题只需改这一处。 */
+:root {
+    /* 颜色 —— 背景 / 表面 */
+    --color-bg: #f6f6f7;
+    --color-surface: #ffffff;
+    --color-surface-soft: #f6f6f7;
+    --color-surface-active: rgb(100 108 255 / 10%);
+    --color-surface-glass: rgb(255 255 255 / 92%);
+
+    /* 颜色 —— 边框 / 文字 */
+    --color-border: #c2c2c4;
+    --color-border-soft: #e2e2e3;
+    --color-text: #3c3c43;
+    --color-muted: #67676c;
+    --color-subtle: #929295;
+
+    /* 颜色 —— 强调 / 功能 */
+    --color-accent: #3a5ccc;
+    --color-accent-strong: #3451b2;
+    --color-accent-solid: #5672cd;
+    --color-accent-soft: rgb(100 108 255 / 14%);
+    --color-accent-channel: 52 81 178;
+    --color-selection: rgb(100 108 255 / 16%);
+    --color-blue: #3451b2;
+    --color-danger: #b8272c;
+    --color-danger-soft: rgb(244 63 94 / 14%);
+    --color-search-highlight: #fef08a;
+    --color-search-highlight-text: #713f12;
+
+    /* 预览正文里用到的少量专属色（原散落在组件内的硬编码色，收敛到此） */
+    --color-heading-strong: #3c3c43;
+    --color-blockquote-bg: #f6f6f7;
+    --color-blockquote-text: #67676c;
+    --color-inline-code-bg: rgb(142 150 170 / 14%);
+    --color-inline-code-text: #3451b2;
+    --color-pre-bg: #f6f6f7;
+    --color-pre-text: #67676c;
+    --color-table-stripe: #f9f9fa;
+    --color-scrollbar-thumb: #c2c2c4;
+    --color-scrollbar-thumb-hover: #929295;
+
+    /* VitePress 默认浅色代码块使用的 GitHub Light / Shiki 色阶 */
+    --color-syntax-comment: #6a737d;
+    --color-syntax-keyword: #d73a49;
+    --color-syntax-string: #032f62;
+    --color-syntax-title: #6f42c1;
+    --color-syntax-constant: #005cc5;
+    --color-syntax-type: #22863a;
+    --color-syntax-meta: #e36209;
+
+    /* 阴影 */
+    --shadow-panel: 0 3px 12px rgb(0 0 0 / 7%), 0 1px 4px rgb(0 0 0 / 7%);
+    --shadow-menu: 0 12px 32px rgb(0 0 0 / 10%), 0 2px 6px rgb(0 0 0 / 8%);
+
+    /* 间距 */
+    --space-1: 2px;
+    --space-2: 4px;
+    --space-3: 6px;
+    --space-4: 8px;
+    --space-5: 10px;
+    --space-6: 12px;
+    --space-7: 14px;
+    --space-8: 16px;
+    --space-9: 20px;
+    --space-10: 24px;
+
+    /* 圆角 */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-full: 999px;
+
+    /* 字号 */
+    --font-size-xs: 11px;
+    --font-size-sm: 12px;
+    --font-size-md: 13px;
+    --font-size-base: 14px;
+    --font-size-lg: 15px;
+
+    /* 字体族 */
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+    /* 层级 */
+    --z-toolbar: 60;
+    --z-menu: 40;
+    --z-file-menu: 30;
+    --z-float: 12;
+
+    /* 动效时长 */
+    --duration-fast: 0.15s;
+    --duration-panel: 0.28s;
+
+    /* 编辑器专属：字号 / 内边距（媒体查询只改这些变量，主题规则引用它们即可响应式） */
+    --editor-font-size: 14px;
+    --editor-line-height: 1.74;
+    --editor-content-padding-y: 18px;
+    --editor-line-padding-x: 16px;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --editor-font-size: 13px;
+        --editor-content-padding-y: 12px;
+        --editor-line-padding-x: 12px;
+    }
+}

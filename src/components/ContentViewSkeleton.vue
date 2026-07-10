@@ -131,7 +131,7 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     padding: 6px 14px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--color-border-soft);
-    background: linear-gradient(180deg, #ffffff 0%, var(--color-surface-soft) 100%);
+    background: var(--color-surface-soft);
 }
 
 .skeleton-header-actions {
@@ -147,7 +147,7 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     flex-direction: column;
     gap: 14px;
     padding: 20px 22px;
-    background: #fbfdff;
+    background: var(--color-surface);
 }
 
 .skeleton-divider {
@@ -232,7 +232,7 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
 }
 
 .skeleton-preview .skeleton-body {
-    background: #fcfdff;
+    background: var(--color-surface);
 }
 
 @keyframes skeleton-shimmer {

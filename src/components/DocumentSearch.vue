@@ -57,7 +57,7 @@
                 </span>
                 <span class="document-search__excerpt">
                     <template
-                        v-for="(part, partIndex) in splitMatch(result.excerpt)"
+                        v-for="(part, partIndex) in splitMatchParts(result.excerpt, result.query)"
                         :key="`${result.id}-${partIndex}`"
                     >
                         <mark v-if="part.match">{{ part.text }}</mark>
@@ -72,157 +72,22 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { splitMatchParts } from '../core/search/snippet.js'
+import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const SEARCH_DEBOUNCE_MS = 120
-const MAX_SEARCH_RESULTS = 80
-const SNIPPET_CONTEXT_BEFORE = 36
-const SNIPPET_CONTEXT_AFTER = 72
-const SNIPPET_FALLBACK_LENGTH = 128
+const { search, documents, actions } = useWorkspace()
+const query = search.query
+const results = search.results
+const activeFileId = documents.activeFileId
 
-const props = defineProps({
-    files: {
-        type: Array,
-        default: () => []
-    },
-    activeFileId: {
-        type: String,
-        default: ''
-    }
-})
-
-const emit = defineEmits(['select', 'query-change'])
-
-const query = ref('')
 const isOpen = ref(false)
 const activeIndex = ref(0)
 const searchRef = ref(null)
 const inputRef = ref(null)
-const debouncedQuery = ref('')
-let queryTimer = null
-
-const normalizedQuery = computed(() => debouncedQuery.value.trim().toLowerCase())
-
-const truncateEnd = (text, maxLength) => {
-    if (text.length <= maxLength) return text
-    return `${text.slice(0, maxLength)}...`
-}
-
-const buildSnippet = (line, term) => {
-    const text = line.trim().replace(/\s+/g, ' ')
-    if (!text) return '空行'
-    if (!term) return truncateEnd(text, SNIPPET_FALLBACK_LENGTH)
-
-    const index = text.toLowerCase().indexOf(term)
-    if (index < 0) return truncateEnd(text, SNIPPET_FALLBACK_LENGTH)
-
-    const targetLength = Math.min(text.length, SNIPPET_CONTEXT_BEFORE + term.length + SNIPPET_CONTEXT_AFTER)
-    let start = Math.max(0, index - SNIPPET_CONTEXT_BEFORE)
-    let end = Math.min(text.length, index + term.length + SNIPPET_CONTEXT_AFTER)
-
-    if (end - start < targetLength) {
-        if (start === 0) {
-            end = Math.min(text.length, targetLength)
-        } else if (end === text.length) {
-            start = Math.max(0, text.length - targetLength)
-        }
-    }
-
-    const prefix = start > 0 ? '...' : ''
-    const suffix = end < text.length ? '...' : ''
-
-    return `${prefix}${text.slice(start, end)}${suffix}`
-}
-
-const appendLineResults = (results, file, term, fileIndex) => {
-    const lines = file.content.split('\n')
-
-    for (let index = 0; index < lines.length && results.length < MAX_SEARCH_RESULTS; index += 1) {
-        const matchStart = lines[index].toLowerCase().indexOf(term)
-        if (matchStart < 0) continue
-
-        results.push({
-            id: `${file.id}:line:${index}`,
-            fileId: file.id,
-            fileName: file.name,
-            lineNumber: index + 1,
-            matchStart,
-            matchEnd: matchStart + term.length,
-            excerpt: buildSnippet(lines[index], term),
-            sortType: 1,
-            updatedAt: file.updatedAt,
-            sourceIndex: index,
-            fileIndex
-        })
-    }
-}
-
-const results = computed(() => {
-    const term = normalizedQuery.value
-    if (!term) return []
-
-    const matches = []
-    const files = props.files
-        .map((file, fileIndex) => ({ file, fileIndex }))
-        .sort((left, right) => {
-            const activeDiff =
-                Number(right.file.id === props.activeFileId) - Number(left.file.id === props.activeFileId)
-            return activeDiff || left.fileIndex - right.fileIndex
-        })
-
-    for (const { file, fileIndex } of files) {
-        if (matches.length >= MAX_SEARCH_RESULTS) break
-
-        if (file.name.toLowerCase().includes(term)) {
-            matches.push({
-                id: `${file.id}:name`,
-                fileId: file.id,
-                fileName: file.name,
-                lineNumber: null,
-                excerpt: buildSnippet(file.name, term),
-                sortType: 0,
-                updatedAt: file.updatedAt,
-                sourceIndex: -1,
-                fileIndex
-            })
-        }
-
-        appendLineResults(matches, file, term, fileIndex)
-    }
-
-    return matches
-})
-
-const splitMatch = (text) => {
-    const term = normalizedQuery.value
-    if (!term) return [{ text, match: false }]
-
-    const lowerText = text.toLowerCase()
-    const parts = []
-    let cursor = 0
-    let index = lowerText.indexOf(term)
-
-    while (index >= 0) {
-        if (index > cursor) {
-            parts.push({ text: text.slice(cursor, index), match: false })
-        }
-
-        parts.push({ text: text.slice(index, index + term.length), match: true })
-        cursor = index + term.length
-        index = lowerText.indexOf(term, cursor)
-    }
-
-    if (cursor < text.length) {
-        parts.push({ text: text.slice(cursor), match: false })
-    }
-
-    return parts.length ? parts : [{ text, match: false }]
-}
 
 const openResults = () => {
-    if (query.value) {
-        isOpen.value = true
-    }
+    if (query.value) isOpen.value = true
 }
 
 const closeResults = () => {
@@ -230,25 +95,22 @@ const closeResults = () => {
 }
 
 const clearSearch = () => {
-    query.value = ''
-    debouncedQuery.value = ''
+    search.clear()
     activeIndex.value = 0
     closeResults()
-
-    nextTick(() => {
-        inputRef.value?.focus()
-    })
+    nextTick(() => inputRef.value?.focus())
 }
 
 const selectResult = (result) => {
-    emit('select', {
-        fileId: result.fileId,
-        lineNumber: result.lineNumber,
-        matchStart: result.matchStart,
-        matchEnd: result.matchEnd,
-        query: normalizedQuery.value
-    })
+    actions.revealSearchResult(result)
     closeResults()
+}
+
+// 键盘移动选中项后，把它滚入结果列表可视区（结果多到出现滚动条时才有意义）。
+const scrollActiveIntoView = () => {
+    nextTick(() => {
+        searchRef.value?.querySelector('.document-search__result.is-active')?.scrollIntoView({ block: 'nearest' })
+    })
 }
 
 const handleKeydown = (event) => {
@@ -256,12 +118,14 @@ const handleKeydown = (event) => {
         event.preventDefault()
         isOpen.value = true
         activeIndex.value = Math.min(activeIndex.value + 1, Math.max(results.value.length - 1, 0))
+        scrollActiveIntoView()
         return
     }
 
     if (event.key === 'ArrowUp') {
         event.preventDefault()
         activeIndex.value = Math.max(activeIndex.value - 1, 0)
+        scrollActiveIntoView()
         return
     }
 
@@ -278,9 +142,7 @@ const handleKeydown = (event) => {
 }
 
 const closeOnOutsideClick = (event) => {
-    if (!searchRef.value?.contains(event.target)) {
-        closeResults()
-    }
+    if (!searchRef.value?.contains(event.target)) closeResults()
 }
 
 const focusFromShortcut = (event) => {
@@ -293,18 +155,7 @@ const focusFromShortcut = (event) => {
 }
 
 watch(query, () => {
-    emit('query-change', query.value)
     activeIndex.value = 0
-    clearTimeout(queryTimer)
-
-    if (!query.value.trim()) {
-        debouncedQuery.value = ''
-    } else {
-        queryTimer = setTimeout(() => {
-            debouncedQuery.value = query.value
-        }, SEARCH_DEBOUNCE_MS)
-    }
-
     nextTick(() => {
         isOpen.value = Boolean(query.value)
     })
@@ -316,7 +167,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-    clearTimeout(queryTimer)
     document.removeEventListener('pointerdown', closeOnOutsideClick)
     document.removeEventListener('keydown', focusFromShortcut)
 })
@@ -325,7 +175,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .document-search {
     --document-search-collapsed-width: 148px;
-    --document-search-expanded-width: min(46vw, 520px);
+    --document-search-expanded-width: min(46vw, 400px);
 
     position: relative;
     width: var(--document-search-collapsed-width);
@@ -345,18 +195,18 @@ onBeforeUnmount(() => {
     height: 34px;
     padding: 0;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
     color: var(--color-muted);
     box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
     transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
+        border-color var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
 }
 
 .document-search__field:focus-within {
     border-color: color-mix(in srgb, var(--color-accent) 48%, #ffffff);
-    box-shadow: 0 0 0 3px rgb(15 118 110 / 10%);
+    box-shadow: 0 0 0 3px rgb(var(--color-accent-channel) / 10%);
 }
 
 .document-search__icon {
@@ -399,7 +249,7 @@ onBeforeUnmount(() => {
     outline: none;
     background: transparent;
     color: var(--color-text);
-    font-size: 13px;
+    font-size: var(--font-size-md);
     text-align: left;
     transition: padding 0.3s ease;
 }
@@ -427,7 +277,7 @@ onBeforeUnmount(() => {
     border-radius: 999px;
     background: var(--color-surface-soft);
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     transform: translateY(-50%);
 }
@@ -445,8 +295,8 @@ onBeforeUnmount(() => {
     cursor: pointer;
     transform: translateY(-50%);
     transition:
-        background 0.15s ease,
-        color 0.15s ease;
+        background var(--duration-fast) ease,
+        color var(--duration-fast) ease;
 }
 
 .document-search__clear:hover,
@@ -484,13 +334,15 @@ onBeforeUnmount(() => {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    z-index: 40;
+    z-index: var(--z-menu);
     width: 100%;
     max-height: min(480px, calc(100vh - 90px));
     overflow-y: auto;
     padding: 7px;
+    /* scrollIntoView 时上下各留 7px，与菜单内边距一致，选中项不贴边 */
+    scroll-padding-block: 7px;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
     box-shadow: var(--shadow-menu);
     animation: document-search-menu-in 0.16s ease-out;
@@ -520,18 +372,29 @@ onBeforeUnmount(() => {
     cursor: pointer;
     text-align: left;
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease;
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease;
 }
 
-.document-search__result:hover,
-.document-search__result.is-active {
+.document-search__result:hover {
     border-color: var(--color-border-soft);
     background: var(--color-surface-soft);
 }
 
 .document-search__result.is-current-file {
-    background: color-mix(in srgb, var(--color-accent-soft) 36%, #ffffff);
+    background: color-mix(in srgb, var(--color-accent-soft) 60%, #ffffff);
+}
+
+/* 键盘上下键选中项：强调色边框 + 底色 + 左侧强调条，明显区分当前项。
+   放在 is-current-file 之后，确保选中态在"当前文档"结果上也不被盖过。 */
+.document-search__result.is-active {
+    border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+    box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.document-search__result.is-active .document-search__name {
+    color: var(--color-accent-strong);
 }
 
 .document-search__meta {
@@ -546,7 +409,7 @@ onBeforeUnmount(() => {
     min-width: 0;
     overflow: hidden;
     color: var(--color-text);
-    font-size: 13px;
+    font-size: var(--font-size-md);
     font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -555,7 +418,7 @@ onBeforeUnmount(() => {
 .document-search__badge {
     flex-shrink: 0;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 650;
 }
 
@@ -563,7 +426,7 @@ onBeforeUnmount(() => {
     display: -webkit-box;
     overflow: hidden;
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     line-height: 1.45;
     overflow-wrap: anywhere;
     white-space: normal;
@@ -583,7 +446,7 @@ onBeforeUnmount(() => {
 .document-search__empty {
     padding: 18px 12px;
     color: var(--color-subtle);
-    font-size: 13px;
+    font-size: var(--font-size-md);
     text-align: center;
 }
 

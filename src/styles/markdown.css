@@ -1,0 +1,230 @@
+/* 预览正文排版 + highlight.js 配色。
+   用全局 .markdown-body 类而非 scoped，好处：导出 PDF 时把预览 DOM 克隆到离屏容器也能
+   直接继承这套样式，无需依赖 scoped 属性。 */
+.markdown-body {
+    color: var(--color-text);
+    font-size: var(--font-size-lg);
+    line-height: 1.8;
+}
+
+.markdown-body ::selection {
+    background: var(--color-selection);
+    color: inherit;
+}
+
+.markdown-body h1 {
+    margin: 18px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-heading-strong);
+    font-size: 28px;
+    font-weight: 760;
+    line-height: 1.25;
+}
+
+.markdown-body h2 {
+    margin: 20px 0 10px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--color-border-soft);
+    color: var(--color-text);
+    font-size: 22px;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.markdown-body h3 {
+    margin: 16px 0 8px;
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    margin: 14px 0 6px;
+    color: var(--color-text);
+    font-weight: 680;
+}
+
+.markdown-body .heading-anchor {
+    float: left;
+    margin-left: -0.8em;
+    color: var(--color-accent);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity var(--duration-fast) ease;
+}
+
+.markdown-body h1:hover .heading-anchor,
+.markdown-body h2:hover .heading-anchor,
+.markdown-body h3:hover .heading-anchor,
+.markdown-body h4:hover .heading-anchor,
+.markdown-body h5:hover .heading-anchor,
+.markdown-body h6:hover .heading-anchor {
+    opacity: 1;
+}
+
+.markdown-body p {
+    margin: 10px 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+    margin: 8px 0;
+    padding-left: 28px;
+}
+
+.markdown-body li {
+    margin: 3px 0;
+}
+
+.markdown-body blockquote {
+    margin: 12px 0;
+    padding: 10px 16px;
+    border-left: 3px solid var(--color-border);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    background: var(--color-blockquote-bg);
+    color: var(--color-blockquote-text);
+}
+
+.markdown-body code {
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--color-inline-code-bg);
+    color: var(--color-inline-code-text);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+.markdown-body pre {
+    margin: 12px 0;
+    padding: 0;
+    overflow-x: auto;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--color-pre-bg);
+    color: var(--color-pre-text);
+    font-size: var(--font-size-md);
+    line-height: 1.6;
+}
+
+.markdown-body pre code {
+    display: block;
+    padding: 14px 18px;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+}
+
+/* highlight.js —— 对齐 VitePress 默认浅色代码块的 GitHub Light / Shiki 配色 */
+.markdown-body .hljs-comment,
+.markdown-body .hljs-quote {
+    color: var(--color-syntax-comment);
+}
+
+.markdown-body .hljs-keyword,
+.markdown-body .hljs-selector-tag,
+.markdown-body .hljs-subst {
+    color: var(--color-syntax-keyword);
+}
+
+.markdown-body .hljs-string,
+.markdown-body .hljs-attr,
+.markdown-body .hljs-symbol,
+.markdown-body .hljs-bullet {
+    color: var(--color-syntax-string);
+}
+
+.markdown-body .hljs-title,
+.markdown-body .hljs-section,
+.markdown-body .hljs-selector-id {
+    color: var(--color-syntax-title);
+}
+
+.markdown-body .hljs-number,
+.markdown-body .hljs-literal,
+.markdown-body .hljs-variable,
+.markdown-body .hljs-template-variable {
+    color: var(--color-syntax-constant);
+}
+
+.markdown-body .hljs-type,
+.markdown-body .hljs-built_in,
+.markdown-body .hljs-class .hljs-title {
+    color: var(--color-syntax-type);
+}
+
+.markdown-body .hljs-meta,
+.markdown-body .hljs-doctag {
+    color: var(--color-syntax-meta);
+}
+
+.markdown-body table {
+    width: 100%;
+    margin: 12px 0;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+}
+
+.markdown-body th,
+.markdown-body td {
+    padding: 8px 14px;
+    border: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.markdown-body th {
+    background: var(--color-surface-soft);
+    font-weight: 650;
+}
+
+.markdown-body tr:nth-child(even) {
+    background: var(--color-table-stripe);
+}
+
+.markdown-body a {
+    color: var(--color-blue);
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body img {
+    max-width: 100%;
+    height: auto;
+    margin: 8px 0;
+    border-radius: var(--radius-lg);
+}
+
+.markdown-body hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+}
+
+.markdown-body del {
+    color: var(--color-subtle);
+}
+
+.markdown-body .empty-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    color: var(--color-subtle);
+    font-size: 16px;
+    text-align: center;
+}
+
+.markdown-body .error-hint {
+    padding: 16px 20px;
+    border-left: 4px solid var(--color-danger);
+    border-radius: var(--radius-lg);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}

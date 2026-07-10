@@ -74,14 +74,14 @@ watch(() => props.activeId, scrollActiveItemIntoView)
     max-width: 360px;
     padding: 14px 10px;
     overflow-y: auto;
-    background: #fbfdff;
+    background: var(--color-surface-soft);
     color: var(--color-muted);
 }
 
 .toc__title {
     padding: 0 10px 10px;
     color: var(--color-subtle);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     letter-spacing: 0;
 }
@@ -100,20 +100,20 @@ watch(() => props.activeId, scrollActiveItemIntoView)
     padding-bottom: 6px;
     overflow: hidden;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: transparent;
     color: inherit;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     line-height: 1.35;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
     transition:
-        color 0.15s ease,
-        background 0.15s ease,
-        border-color 0.15s ease;
+        color var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease;
 }
 
 .toc__item:hover {
@@ -132,7 +132,7 @@ watch(() => props.activeId, scrollActiveItemIntoView)
 .toc__empty {
     padding: 12px 10px;
     color: var(--color-subtle);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
 }
 
 @media (max-width: 1120px) {

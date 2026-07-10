@@ -1,12 +1,6 @@
 <template>
     <div class="panel-toolbar">
-        <FileSwitcher
-            class="panel-toolbar__switcher"
-            :files="files"
-            :active-file-id="activeFileId"
-            @select-file="$emit('select-file', $event)"
-            @delete-file="$emit('delete-file', $event)"
-        />
+        <FileSwitcher class="panel-toolbar__switcher" />
 
         <div class="panel-toolbar__actions">
             <!-- 编辑区专属：新建、清空 -->
@@ -16,7 +10,7 @@
                     type="button"
                     title="新建文档"
                     aria-label="新建文档"
-                    @click="$emit('create-file')"
+                    @click="documents.create()"
                 >
                     <span
                         class="toolbar-action-icon"
@@ -29,7 +23,7 @@
                     type="button"
                     title="清空内容"
                     aria-label="清空内容"
-                    @click="$emit('clear')"
+                    @click="actions.clearContent()"
                 >
                     <span
                         class="toolbar-action-icon"
@@ -58,7 +52,7 @@
                 type="button"
                 title="导出 Markdown"
                 aria-label="导出 Markdown"
-                @click="$emit('export-file')"
+                @click="exporting.exportActiveFile()"
             >
                 <span
                     class="toolbar-action-icon"
@@ -70,12 +64,12 @@
             <button
                 class="toolbar-action-button toolbar-action-button--format"
                 type="button"
-                :title="exportingPdf ? '正在导出 PDF…' : '导出 PDF'"
-                :aria-label="exportingPdf ? '正在导出 PDF' : '导出 PDF'"
-                :disabled="exportingPdf"
-                @click="$emit('export-pdf')"
+                :title="exporting.isExportingPdf.value ? '正在导出 PDF…' : '导出 PDF'"
+                :aria-label="exporting.isExportingPdf.value ? '正在导出 PDF' : '导出 PDF'"
+                :disabled="exporting.isExportingPdf.value"
+                @click="exporting.exportPdf()"
             >
-                <span v-if="exportingPdf" class="toolbar-action-spinner" aria-hidden="true" />
+                <span v-if="exporting.isExportingPdf.value" class="toolbar-action-spinner" aria-hidden="true" />
                 <span
                     v-else
                     class="toolbar-action-icon"
@@ -92,7 +86,7 @@
                 type="button"
                 title="折叠编辑区"
                 aria-label="折叠编辑区"
-                @click="$emit('collapse-editor')"
+                @click="actions.setEditorCollapsed(true)"
             >
                 <span
                     class="toolbar-action-icon"
@@ -108,7 +102,7 @@
                 type="button"
                 title="展开编辑区"
                 aria-label="展开编辑区"
-                @click="$emit('expand-editor')"
+                @click="actions.setEditorCollapsed(false)"
             >
                 <span
                     class="toolbar-action-icon"
@@ -138,39 +132,18 @@ import exportFileIcon from '../assets/export-file.svg'
 import exportPdfIcon from '../assets/export-pdf.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
+import { useWorkspace } from '../workspace/workspaceKey.js'
 import FileSwitcher from './FileSwitcher.vue'
 
 defineProps({
-    files: {
-        type: Array,
-        default: () => []
-    },
-    activeFileId: {
-        type: String,
-        default: ''
-    },
     context: {
         type: String,
         default: 'editor',
         validator: (v) => ['editor', 'preview'].includes(v)
-    },
-    exportingPdf: {
-        type: Boolean,
-        default: false
     }
 })
 
-const emit = defineEmits([
-    'select-file',
-    'delete-file',
-    'create-file',
-    'clear',
-    'import-file',
-    'export-file',
-    'export-pdf',
-    'collapse-editor',
-    'expand-editor'
-])
+const { documents, actions, exporting } = useWorkspace()
 
 const fileInputRef = ref(null)
 
@@ -185,10 +158,7 @@ const importFiles = async (event) => {
     try {
         for (const file of selectedFiles) {
             const content = await file.text()
-            emit('import-file', {
-                name: file.name,
-                content
-            })
+            documents.importFile({ name: file.name, content })
         }
     } catch (error) {
         console.warn('Markdown import failed:', error)
@@ -228,17 +198,17 @@ const importFiles = async (event) => {
     height: 24px;
     padding: 0;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: var(--color-surface);
     color: var(--color-muted);
     cursor: pointer;
     box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
     transition:
-        transform 0.15s ease,
-        background 0.15s ease,
-        border-color 0.15s ease,
-        color 0.15s ease,
-        box-shadow 0.15s ease;
+        transform var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
 }
 
 .toolbar-action-button--format {
@@ -255,7 +225,7 @@ const importFiles = async (event) => {
     border-color: color-mix(in srgb, var(--color-accent) 38%, #ffffff);
     background: var(--color-surface-active);
     color: var(--color-accent);
-    box-shadow: 0 6px 14px rgb(15 118 110 / 12%);
+    box-shadow: 0 6px 14px rgb(var(--color-accent-channel) / 12%);
     transform: translateY(-1px);
 }
 
@@ -287,7 +257,7 @@ const importFiles = async (event) => {
 
 .toolbar-action-label {
     color: currentColor;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 750;
     line-height: 1;
     white-space: nowrap;

@@ -1,0 +1,64 @@
+/* 全局重置、根元素、通用面板骨架类、滚动条。 */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+button {
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
+    outline-offset: 2px;
+}
+
+/* 面板头部：编辑区与预览区顶部工具条共用 */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    height: 40px;
+    padding: var(--space-3) var(--space-7);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border-soft);
+    background: var(--color-surface-soft);
+    color: var(--color-muted);
+    font-size: var(--font-size-md);
+    user-select: none;
+}
+
+.panel-label {
+    color: var(--color-text);
+    font-weight: 650;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+}

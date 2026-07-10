@@ -1,20 +1,22 @@
 # README
 
-一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。提供左右分栏编辑、实时渲染、多文档管理、文件导入导出、PDF 导出、目录导航、跨文档搜索、滚动同步、编辑区折叠/展开、代码高亮等能力，适合用来快速编写或预览文档。
+一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。左侧编辑，右侧实时渲染；提供多文档管理、文件导入导出、PDF 导出、目录导航、跨文档搜索、滚动同步、编辑区折叠/展开等能力，适合用来快速编写或预览文档。所有数据保存在浏览器本地，无需后端。
 
 ## 功能特性
 
+- **代码编辑器**：基于 CodeMirror 6，带行号、语法高亮、智能补全。
 - **实时预览**：左侧输入 Markdown，右侧即时渲染结果。
-- **多文档工作区**：支持新建、切换、删除、导入多个本地文档。
+- **智能补全**：输入链接 `](` 时补全工作区文档路径与当前文档的标题锚点；代码块内按语言（JavaScript / TypeScript / CSS / HTML / Python 等）补全。
+- **多文档工作区**：支持新建、切换、删除、导入多个本地文档，每个文档拥有独立的撤销历史。
 - **文件导入导出**：支持导入 `.md` / `.markdown` / 文本文件，可导出 Markdown 文档或 PDF。
-- **全文搜索**：按文件名和正文内容跨文档搜索，`Ctrl + K` 快速唤起，支持精确定位到行。
-- **自动保存**：文档内容自动保存到浏览器 `IndexedDB`。
+- **全文搜索**：按文件名和正文内容跨文档搜索，`Ctrl + K` 快速唤起，选中结果精确定位到行并双侧高亮。
+- **自动保存**：文档内容自动保存到浏览器 `IndexedDB`，增量写入并显示保存状态。
 - **智能命名**：根据文档标题或正文内容自动生成文件名，导入文件同样使用内容识别命名。
 - **目录导航**：根据标题自动生成目录，点击跳转，当前标题高亮自动跟随。
-- **标题锚点**：预览区标题带 `#` 锚点，hover 显示，点击复制带 hash 的完整链接到剪贴板。
+- **标题锚点**：预览区标题带 `#` 锚点，hover 显示，点击复制带 hash 的完整链接到剪贴板；刷新或新标签打开可直达对应标题。
 - **滚动同步**：编辑区与预览区按源码行号联动滚动，双向同步。
 - **编辑区折叠**：支持折叠编辑区专注预览，折叠后文件名和操作按钮移至预览区头部。
-- **代码高亮**：内置 `highlight.js`，支持 JavaScript、TypeScript、Python、CSS、Bash 等。
+- **代码高亮**：预览区用 `highlight.js`；编辑区代码块按围栏语言（js/ts/css/html/python/json/xml 等）解析高亮。
 - **文档统计**：实时显示行数、字数和字符数。
 - **回到顶部**：预览区滚动较深时显示快捷返回按钮。
 - **可调布局**：编辑区、预览区、目录宽度均支持拖拽调整。
@@ -24,8 +26,10 @@
 
 - [Vue 3](https://vuejs.org/)：组合式 API + `<script setup>`
 - [Vite](https://vitejs.dev/)：开发服务器与构建工具
+- [CodeMirror 6](https://codemirror.net/)：编辑器（语法高亮、补全、行号等）
 - [marked](https://marked.js.org/)：Markdown 解析
-- [highlight.js](https://highlightjs.org/)：代码块语法高亮
+- [highlight.js](https://highlightjs.org/)：预览区代码块语法高亮
+- [Vitest](https://vitest.dev/)：核心逻辑单元测试
 
 ## 快速开始
 
@@ -59,52 +63,42 @@ http://localhost:3001/
 pnpm dev      # 启动开发环境
 pnpm build    # 构建生产版本
 pnpm preview  # 本地预览生产构建
-pnpm check    # 构建检查
+pnpm test     # 运行单元测试（Vitest）
+pnpm lint     # ESLint 检查
+pnpm format   # Prettier 格式化
+pnpm check    # 一键校验：lint + 格式检查 + 测试 + 构建
 ```
 
 ## 项目结构
 
+采用分层架构，依赖单向向下：组件只负责 UI（`inject` 工作区直接消费），业务状态与横切编排集中在 `workspace`，编辑器 / 预览的命令式能力封装为 controller，纯逻辑下沉到 `core`（不依赖 Vue、不直接操作 DOM，便于单元测试）。
+
 ```text
-.
-├── public/                         # 静态资源
-├── src/
-│   ├── assets/                     # SVG 图标资源
-│   │   ├── back-to-top.svg
-│   │   ├── clear-content.svg
-│   │   ├── collapse-editor.svg
-│   │   ├── delete-file.svg
-│   │   ├── expand-editor.svg
-│   │   ├── export-file.svg
-│   │   ├── export-pdf.svg
-│   │   ├── import-file.svg
-│   │   └── new-file.svg
-│   ├── components/                 # 页面组件
-│   │   ├── AppToolbar.vue          # 顶部工具栏 + 搜索入口
-│   │   ├── ContentViewSkeleton.vue # 加载骨架屏
-│   │   ├── DocumentSearch.vue      # 跨文档搜索弹窗
-│   │   ├── FileSwitcher.vue        # 文档切换下拉
-│   │   ├── MarkdownEditor.vue      # Markdown 编辑区
-│   │   ├── MarkdownPreview.vue     # Markdown 预览区
-│   │   ├── PanelToolbar.vue        # 共享工具栏（文件名 + 操作按钮）
-│   │   ├── ResizeDivider.vue       # 面板拖拽分割条
-│   │   └── TableOfContents.vue     # 目录导航
-│   ├── composables/                # 组合式逻辑
-│   │   ├── useDocumentExport.js    # 文档导出（Markdown / PDF）
-│   │   ├── useHeadingNavigation.js # 标题 hash 导航
-│   │   ├── useLocalStoragePreference.js # 用户偏好持久化
-│   │   ├── useMarkdownDocuments.js # 多文档状态管理 + IndexedDB
-│   │   ├── useMarkdownRenderer.js  # Markdown 解析与渲染
-│   │   ├── usePaneResize.js        # 面板宽度拖拽
-│   │   ├── useScrollSync.js        # 编辑/预览滚动同步
-│   │   └── useTocResize.js         # 目录宽度拖拽
-│   ├── constants/                  # 编辑器常量
-│   ├── utils/                      # 通用工具函数
-│   ├── App.vue                     # 应用主界面
-│   ├── main.js                     # 应用入口
-│   └── style.css                   # 全局样式
-├── index.html
-├── package.json
-└── vite.config.js
+src/
+├── main.js / App.vue        # 入口 + 根布局（组装并 provide 工作区，渲染骨架屏 / 分栏）
+├── styles/                  # 设计 token 与全局样式（tokens / base / markdown / highlights）
+├── core/                    # 纯逻辑领域层（零 Vue、零 DOM，Vitest 直测）
+│   ├── documents/           # 文档模型、IndexedDB 存储、保存状态机
+│   ├── search/              # 跨文档搜索、匹配、摘要
+│   ├── markdown/            # marked 渲染、源行标注、代码高亮、slug 生成
+│   ├── sync/                # 滚动锚点表与防回环
+│   └── text.js              # 通用文本工具
+├── editor/                  # CodeMirror 6 封装（无 Vue）
+│   ├── EditorController.js  # 编辑器唯一门面（多文档独立 EditorState）
+│   └── extensions/          # 主题、语法高亮、行链接/代码补全、搜索高亮、代码语言等扩展
+├── preview/                 # 预览 DOM 门面（源行定位、搜索高亮）
+├── workspace/               # 响应式状态 + 横切编排
+│   ├── createWorkspace.js   # 组装会话 / 控制器 / 生命周期，provide 下发
+│   ├── documentSession.js   # 多文档状态与持久化
+│   ├── searchSession.js     # 搜索查询与命中
+│   ├── layoutSession.js     # 分栏宽度 / 折叠 / 目录宽度
+│   ├── headingNavigation.js # 标题 hash 导航
+│   └── orchestrations.js    # 搜索定位、折叠展开等跨子系统流程
+├── composables/             # 通用 UI 工具（拖拽、媒体查询、偏好持久化、过渡等待）
+├── services/exporter.js     # Markdown / PDF 导出
+├── components/              # 哑组件（AppToolbar / EditorPane / PreviewPane / 工具栏等）
+├── constants/presets.js     # 预置文档
+└── assets/                  # SVG 图标资源
 ```
 
 ## 部署说明

@@ -8,46 +8,27 @@
             </span>
         </div>
 
-        <DocumentSearch
-            :files="files"
-            :active-file-id="activeFileId"
-            @select="$emit('select-search-result', $event)"
-            @query-change="$emit('search-query-change', $event)"
-        />
+        <DocumentSearch />
     </header>
 </template>
 
 <script setup>
 import DocumentSearch from './DocumentSearch.vue'
-
-defineProps({
-    files: {
-        type: Array,
-        default: () => []
-    },
-    activeFileId: {
-        type: String,
-        default: ''
-    }
-})
-
-defineEmits(['select-search-result', 'search-query-change'])
 </script>
 
 <style scoped>
 .toolbar {
     position: relative;
-    z-index: 60;
+    z-index: var(--z-toolbar);
     display: flex;
     align-items: center;
     justify-content: space-between;
     height: 58px;
     gap: 18px;
     padding: 0 22px;
-    background: rgb(255 255 255 / 86%);
+    background: var(--color-surface-glass);
     border-bottom: 1px solid var(--color-border-soft);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 80%) inset;
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(12px);
     flex-shrink: 0;
     user-select: none;
 }
@@ -65,12 +46,12 @@ defineEmits(['select-search-result', 'search-query-change'])
     width: 32px;
     height: 32px;
     flex-shrink: 0;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, #ffffff);
-    border-radius: 8px;
-    background: linear-gradient(145deg, #ffffff 0%, #e6fffb 100%);
-    color: var(--color-accent-strong);
-    box-shadow: 0 8px 20px rgb(15 118 110 / 14%);
-    font-size: 12px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    background: var(--color-accent-solid);
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgb(var(--color-accent-channel) / 18%);
+    font-size: var(--font-size-sm);
     font-weight: 800;
     letter-spacing: 0;
 }
@@ -85,14 +66,14 @@ defineEmits(['select-search-result', 'search-query-change'])
 
 .toolbar__title {
     color: var(--color-text);
-    font-size: 15px;
+    font-size: var(--font-size-lg);
     font-weight: 760;
     line-height: 1.2;
 }
 
 .toolbar__subtitle {
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     line-height: 1.2;
     white-space: nowrap;
 }

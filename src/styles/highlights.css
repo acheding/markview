@@ -1,0 +1,12 @@
+/* 搜索命中高亮：预览区优先用 CSS Custom Highlight API（不改 DOM），
+   不支持时降级为 .is-search-highlight 的 outline。编辑器侧的 .cm-search-highlight
+   由编辑器主题定义。 */
+::highlight(markview-search) {
+    background: var(--color-search-highlight);
+    color: var(--color-search-highlight-text);
+}
+
+.markdown-body .is-search-highlight {
+    outline: 3px solid var(--color-search-highlight);
+    outline-offset: 3px;
+}
