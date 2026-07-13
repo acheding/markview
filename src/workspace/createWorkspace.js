@@ -13,6 +13,7 @@ import { createHeadingNavigation } from './headingNavigation.js'
 import { createOrchestrations } from './orchestrations.js'
 import { createToastSession } from './toastSession.js'
 import { createConfirmSession } from './confirmSession.js'
+import { useTheme } from '../composables/useTheme.js'
 
 const getElementTop = (container, element) => {
     const containerRect = container.getBoundingClientRect()
@@ -28,6 +29,7 @@ export const createWorkspace = () => {
     const layout = createLayoutSession()
     const toast = createToastSession()
     const confirm = createConfirmSession()
+    const { theme } = useTheme()
 
     const rendered = computed(() => renderMarkdown(documents.content.value))
     const html = computed(() => rendered.value.html)
@@ -173,6 +175,7 @@ export const createWorkspace = () => {
     const attachPreview = (contentEl) => {
         previewController = createPreviewController({ contentEl })
         previewController.setSearchHighlight(search.activeMatch.value)
+        previewController.renderDiagrams(theme.value)
         ensureScrollMaster()
     }
     const detachPreview = () => {
@@ -255,6 +258,12 @@ export const createWorkspace = () => {
         },
         { flush: 'post' }
     )
+
+    // html 更新后异步渲染 Mermaid 图表（flush post 确保 v-html 已写入 DOM）。
+    watch(html, () => previewController?.renderDiagrams(theme.value), { flush: 'post' })
+
+    // 主题切换 → 用新主题重渲已有图表（SVG 配色跟随明暗）。
+    watch(theme, () => previewController?.renderDiagrams(theme.value))
 
     // 数据就绪后处理初始 hash 直达。
     watch(

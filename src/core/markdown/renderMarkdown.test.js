@@ -68,4 +68,24 @@ describe('renderMarkdown', () => {
         expect(html).toContain('<li>甲</li>')
         expect(html).toContain('<li>乙</li>')
     })
+
+    it('renders inline and block math with KaTeX', () => {
+        const inline = renderMarkdown('质能方程 $E = mc^2$ 很短').html
+        expect(inline).toContain('class="katex"')
+        expect(inline).not.toContain('$E = mc^2$')
+
+        const block = renderMarkdown('$$\n\\frac{1}{2}\n$$').html
+        expect(block).toContain('katex-block')
+        expect(block).toContain('katex-display')
+    })
+
+    it('emits a mermaid placeholder instead of highlighting mermaid code blocks', () => {
+        const { html } = renderMarkdown('```mermaid\nflowchart TD\n  A --> B\n```')
+
+        expect(html).toContain('<div class="mermaid-block"')
+        expect(html).toContain('flowchart TD')
+        // 不应作为普通代码块高亮
+        expect(html).not.toContain('<pre')
+        expect(html).not.toContain('class="hljs')
+    })
 })

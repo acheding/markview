@@ -1,10 +1,26 @@
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import { escapeHtml, stripHtml } from '../text.js'
 import { highlightCode } from './highlightCode.js'
+import { mathExtensions, mathRenderers } from './mathExtension.js'
 import { createSlugger } from './slugger.js'
 
+// 独立 Marked 实例承载 KaTeX 数学扩展（$…$ / $$…$$）。
+// 注意：不能用全局 marked.use + marked.lexer(src, options)——显式传 options 会覆盖已注册的扩展。
+const markdownParser = new Marked({ breaks: true, gfm: true })
+markdownParser.use({ extensions: mathExtensions })
+
 const getLanguage = (infoString = '') => infoString.trim().split(/\s+/)[0]
-const SOURCE_LINE_TYPES = new Set(['blockquote', 'code', 'heading', 'html', 'hr', 'list', 'paragraph', 'table'])
+const SOURCE_LINE_TYPES = new Set([
+    'blockquote',
+    'blockMath',
+    'code',
+    'heading',
+    'html',
+    'hr',
+    'list',
+    'paragraph',
+    'table'
+])
 
 const countLines = (text) => (text.match(/\n/g) || []).length
 
@@ -74,11 +90,8 @@ export const renderMarkdown = (source) => {
 
     try {
         const slug = createSlugger()
-        const options = {
-            breaks: true,
-            gfm: true
-        }
-        const tokens = marked.lexer(source, options)
+        // 不传 options：用实例配置（breaks/gfm + 数学扩展），否则会覆盖已注册的扩展。
+        const tokens = markdownParser.lexer(source)
         annotateSourceLines(tokens, source)
 
         const extensions = {
@@ -108,6 +121,12 @@ export const renderMarkdown = (source) => {
 
                 code(token) {
                     const language = getLanguage(token.lang)
+
+                    // mermaid：不做语法高亮，输出占位块，源码作为文本子节点，由预览层异步渲染成图。
+                    if (language === 'mermaid') {
+                        return `<div class="mermaid-block"${getSourceLineAttr(token)}>${escapeHtml(token.text)}</div>`
+                    }
+
                     const languageClass = language ? ` language-${escapeHtml(language)}` : ''
 
                     return `<pre${getSourceLineAttr(token)}><code class="hljs${languageClass}">${highlightCode(token.text, language)}</code></pre>`
@@ -186,11 +205,11 @@ export const renderMarkdown = (source) => {
             }
         }
 
+        // 数学 token 的 renderer 并入 per-call renderers（parser 传 options 会覆盖实例扩展）。
+        Object.assign(extensions.renderers, mathRenderers)
+
         return {
-            html: marked.parser(tokens, {
-                ...options,
-                extensions
-            }),
+            html: markdownParser.parser(tokens, { extensions }),
             toc
         }
     } catch (error) {

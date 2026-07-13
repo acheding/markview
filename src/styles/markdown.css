@@ -238,3 +238,38 @@
     background: var(--color-danger-soft);
     color: var(--color-danger);
 }
+
+/* Mermaid 图表：居中、响应式缩放 */
+.markdown-body .mermaid-block {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+}
+
+.markdown-body .mermaid-block svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.markdown-body .mermaid-error {
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+    white-space: pre-wrap;
+}
+
+/* KaTeX 块级公式：居中、超宽横向滚动 */
+.markdown-body .katex-block {
+    margin: 16px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.markdown-body .katex-block .katex-display {
+    margin: 0;
+}
+
+.markdown-body .katex-error {
+    color: var(--color-danger);
+}

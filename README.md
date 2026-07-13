@@ -232,6 +232,32 @@ print(list(fibonacci(10)))
 
 ---
 
+## Mermaid 流程图
+
+在代码块标注 `mermaid` 语言即可绘制流程图、时序图等，预览区会异步渲染为 SVG，并跟随明暗主题切换配色：
+
+```mermaid
+flowchart TD
+    A[输入 Markdown] --> B{是 mermaid 代码块？}
+    B -->|是| C[按需加载 mermaid]
+    B -->|否| D[语法高亮为代码]
+    C --> E[异步渲染为 SVG]
+    D --> F[预览区展示]
+    E --> F
+```
+
+## 数学公式（KaTeX）
+
+行内公式用单个 `$` 包裹，例如质能方程 $E = mc^2$、勾股定理 $c = \sqrt{a^2 + b^2}$；块级公式用 `$$` 独占一行：
+
+$$
+\int_{a}^{b} f(x)\,\mathrm{d}x = F(b) - F(a)
+$$
+
+$$
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+$$
+
 ## 开源协议
 
 本项目基于 MIT License 开源，详见 [LICENSE](./LICENSE)。

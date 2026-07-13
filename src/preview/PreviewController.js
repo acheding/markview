@@ -1,3 +1,4 @@
+import { renderMermaidDiagrams } from './mermaidRenderer.js'
 import { applyPreviewHighlight, clearPreviewHighlight } from './previewSearchHighlight.js'
 
 /**
@@ -71,6 +72,9 @@ export const createPreviewController = ({ contentEl }) => {
         },
 
         focus: () => contentEl.focus({ preventScroll: true }),
+
+        // 异步渲染预览区内的 Mermaid 图表（html 更新后、主题切换后调用）。
+        renderDiagrams: (theme) => renderMermaidDiagrams(contentEl, theme),
 
         // html 更新后调用：源行块缓存失效。
         invalidate() {
