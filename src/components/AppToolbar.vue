@@ -8,12 +8,16 @@
             </span>
         </div>
 
-        <DocumentSearch />
+        <div class="toolbar__right">
+            <DocumentSearch />
+            <ThemeToggle />
+        </div>
     </header>
 </template>
 
 <script setup>
 import DocumentSearch from './DocumentSearch.vue'
+import ThemeToggle from './ThemeToggle.vue'
 </script>
 
 <style scoped>
@@ -38,6 +42,13 @@ import DocumentSearch from './DocumentSearch.vue'
     align-items: center;
     gap: 11px;
     min-width: 0;
+}
+
+.toolbar__right {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .toolbar__mark {

@@ -40,6 +40,13 @@
     --color-scrollbar-thumb: #c2c2c4;
     --color-scrollbar-thumb-hover: #929295;
 
+    /* 骨架屏占位（加载态微光） */
+    --color-skeleton-base: #e5e7eb;
+    --color-skeleton-sheen: #f3f4f6;
+    --color-skeleton-code-base: #e2e8f0;
+    --color-skeleton-code-sheen: #edf2f7;
+    --color-skeleton-block: #f1f5f9;
+
     /* VitePress 默认浅色代码块使用的 GitHub Light / Shiki 色阶 */
     --color-syntax-comment: #6a737d;
     --color-syntax-keyword: #d73a49;
@@ -97,6 +104,69 @@
     --editor-line-height: 1.74;
     --editor-content-padding-y: 18px;
     --editor-line-padding-x: 16px;
+}
+
+/* 暗色主题：仅覆盖颜色相关 token，其余（间距/圆角/字号/动效）沿用 :root。
+   全应用颜色都引用这些变量，故编辑器、预览、语法高亮、骨架屏均自动跟随。 */
+:root[data-theme='dark'] {
+    /* 背景 / 表面 */
+    --color-bg: #17171a;
+    --color-surface: #1e1e21;
+    --color-surface-soft: #242428;
+    --color-surface-active: rgb(124 156 255 / 16%);
+    --color-surface-glass: rgb(30 30 34 / 82%);
+
+    /* 边框 / 文字 */
+    --color-border: #3a3a40;
+    --color-border-soft: #2c2c31;
+    --color-text: #e4e4e7;
+    --color-muted: #a1a1aa;
+    --color-subtle: #71717a;
+
+    /* 强调 / 功能 */
+    --color-accent: #93a7ff;
+    --color-accent-strong: #aab6ff;
+    --color-accent-solid: #6b83e0;
+    --color-accent-soft: rgb(124 156 255 / 20%);
+    --color-accent-channel: 147 167 255;
+    --color-selection: rgb(124 156 255 / 26%);
+    --color-blue: #93a7ff;
+    --color-danger: #f87171;
+    --color-danger-soft: rgb(244 63 94 / 22%);
+    --color-search-highlight: #b59818;
+    --color-search-highlight-text: #fef9c3;
+
+    /* 预览正文专属色 */
+    --color-heading-strong: #e4e4e7;
+    --color-blockquote-bg: #202024;
+    --color-blockquote-text: #a1a1aa;
+    --color-inline-code-bg: rgb(160 170 200 / 14%);
+    --color-inline-code-text: #aab6ff;
+    --color-pre-bg: #18181b;
+    --color-pre-text: #c4c4cc;
+    --color-table-stripe: #202024;
+    --color-scrollbar-thumb: #3a3a40;
+    --color-scrollbar-thumb-hover: #52525b;
+
+    /* 代码高亮：GitHub Dark 色阶 */
+    --color-syntax-comment: #8b949e;
+    --color-syntax-keyword: #ff7b72;
+    --color-syntax-string: #a5d6ff;
+    --color-syntax-title: #d2a8ff;
+    --color-syntax-constant: #79c0ff;
+    --color-syntax-type: #7ee787;
+    --color-syntax-meta: #ffa657;
+
+    /* 阴影：暗色下加深 */
+    --shadow-panel: 0 3px 12px rgb(0 0 0 / 40%), 0 1px 4px rgb(0 0 0 / 40%);
+    --shadow-menu: 0 12px 32px rgb(0 0 0 / 52%), 0 2px 6px rgb(0 0 0 / 44%);
+
+    /* 骨架屏占位 */
+    --color-skeleton-base: #2a2a2f;
+    --color-skeleton-sheen: #34343a;
+    --color-skeleton-code-base: #26262b;
+    --color-skeleton-code-sheen: #303036;
+    --color-skeleton-block: #202024;
 }
 
 @media (max-width: 768px) {

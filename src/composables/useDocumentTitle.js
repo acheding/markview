@@ -2,13 +2,13 @@ import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 
 const APP_NAME = 'MarkView'
-// 标签页失焦时的挽留文案（切回来即恢复正常标题）。
-const AWAY_TITLE = '(´･ω･) 回来继续呀~'
+// 标签页失焦时，在正常标题前加一个颜文字作为「等你回来」的小提示。
+const AWAY_PREFIX = '(´･ω･) '
 // 未保存 / 保存中时标题前缀的小圆点。
 const DIRTY_MARK = '● '
 
 // 动态网页标题：`● 文件名 · MarkView`（有未保存改动时带圆点），
-// 切走标签页时换成挽留文案。依赖 documents 会话的响应式状态。
+// 切走标签页时在标题前追加颜文字。依赖 documents 会话的响应式状态。
 export const useDocumentTitle = ({ activeFile, saveStatus }) => {
     let isAway = false
 
@@ -19,7 +19,8 @@ export const useDocumentTitle = ({ activeFile, saveStatus }) => {
     }
 
     const apply = () => {
-        document.title = isAway ? AWAY_TITLE : composeTitle()
+        const title = composeTitle()
+        document.title = isAway ? `${AWAY_PREFIX}${title}` : title
     }
 
     const handleVisibility = () => {

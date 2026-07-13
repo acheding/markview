@@ -262,7 +262,12 @@ const tocIndent = (i) => `${pick(tocIndents, i)}px`
 .skeleton-line {
     height: 13px;
     border-radius: 5px;
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(
+        90deg,
+        var(--color-skeleton-base) 25%,
+        var(--color-skeleton-sheen) 50%,
+        var(--color-skeleton-base) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
@@ -285,7 +290,12 @@ const tocIndent = (i) => `${pick(tocIndents, i)}px`
 .skeleton-line--code {
     height: 12px;
     border-radius: 3px;
-    background: linear-gradient(90deg, #e2e8f0 25%, #edf2f7 50%, #e2e8f0 75%);
+    background: linear-gradient(
+        90deg,
+        var(--color-skeleton-code-base) 25%,
+        var(--color-skeleton-code-sheen) 50%,
+        var(--color-skeleton-code-base) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
@@ -303,14 +313,19 @@ const tocIndent = (i) => `${pick(tocIndents, i)}px`
     gap: 8px;
     padding: 12px 14px;
     border-radius: 8px;
-    background: #f1f5f9;
+    background: var(--color-skeleton-block);
     margin: 6px 0;
 }
 
 /* —— 头部占位块（药丸 / 按钮）—— */
 .skeleton-pill,
 .skeleton-btn {
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(
+        90deg,
+        var(--color-skeleton-base) 25%,
+        var(--color-skeleton-sheen) 50%,
+        var(--color-skeleton-base) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
     flex-shrink: 0;
@@ -366,7 +381,12 @@ const tocIndent = (i) => `${pick(tocIndents, i)}px`
     height: 13px;
     margin: 0 8px 12px;
     border-radius: 5px;
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(
+        90deg,
+        var(--color-skeleton-base) 25%,
+        var(--color-skeleton-sheen) 50%,
+        var(--color-skeleton-base) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
@@ -381,7 +401,12 @@ const tocIndent = (i) => `${pick(tocIndents, i)}px`
 .skeleton-toc-item {
     height: 12px;
     border-radius: 5px;
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(
+        90deg,
+        var(--color-skeleton-base) 25%,
+        var(--color-skeleton-sheen) 50%,
+        var(--color-skeleton-base) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
