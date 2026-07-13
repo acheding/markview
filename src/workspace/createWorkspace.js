@@ -1,5 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { renderMarkdown } from '../core/markdown/renderMarkdown.js'
+import { decodeShareHash, encodeSharePayload } from '../core/share/shareLink.js'
 import { buildAnchorTable } from '../core/sync/anchorMap.js'
 import { createScrollMaster } from '../core/sync/scrollMaster.js'
 import { createEditorController } from '../editor/EditorController.js'
@@ -14,6 +15,7 @@ import { createOrchestrations } from './orchestrations.js'
 import { createToastSession } from './toastSession.js'
 import { createConfirmSession } from './confirmSession.js'
 import { useTheme } from '../composables/useTheme.js'
+import { copyText } from '../composables/clipboard.js'
 
 const getElementTop = (container, element) => {
     const containerRect = container.getBoundingClientRect()
@@ -265,13 +267,46 @@ export const createWorkspace = () => {
     // 主题切换 → 用新主题重渲已有图表（SVG 配色跟随明暗）。
     watch(theme, () => previewController?.renderDiagrams(theme.value))
 
-    // 数据就绪后处理初始 hash 直达。
+    // 分享链接（#share=…）→ 解压为新文档导入，随后清 hash（避免刷新重复导入、干扰标题锚点）。
+    const importSharedFromHash = () => {
+        const shared = decodeShareHash(window.location.hash)
+        if (!shared) return false
+        documents.importFile({ name: shared.name, content: shared.content })
+        history.replaceState(null, '', window.location.pathname + window.location.search)
+        toast.show('已打开分享的文档', { tone: 'success' })
+        return true
+    }
+
+    // 把当前文档压缩进 URL hash，复制到剪贴板。链接自包含、无需后端。
+    const shareActiveDocument = async () => {
+        const name = documents.activeFile.value?.name || '未命名文档.md'
+        const compressed = encodeSharePayload({ name, content: documents.content.value })
+        const url = new URL(window.location.href)
+        url.hash = `share=${compressed}`
+        const link = url.toString()
+
+        if (await copyText(link)) {
+            // hash 不会发到服务器，故不受 8KB URL 限制；真正的上限是浏览器地址栏（Safari 约 8 万字符最保守）
+            // 与聊天软件粘贴截断，故阈值放宽到 5 万，超出也只是温和提示、仍复制成功。
+            const isLong = link.length > 50000
+            toast.show(isLong ? '分享链接已复制（较长，用聊天软件发送可能被截断）' : '分享链接已复制到剪贴板', {
+                tone: 'success',
+                duration: isLong ? 3200 : 2200
+            })
+        } else {
+            // 复制彻底失败：把链接写进地址栏，用户可手动复制。
+            window.location.hash = `share=${compressed}`
+            toast.show('已生成链接，请从地址栏手动复制', { tone: 'warn', duration: 3600 })
+        }
+    }
+
+    // 数据就绪后：优先处理分享链接，否则处理初始 hash 标题直达。
     watch(
         () => documents.isReady.value,
         async (ready) => {
             if (!ready) return
             await nextTick()
-            headings.scrollToHashHeading()
+            if (!importSharedFromHash()) headings.scrollToHashHeading()
         }
     )
 
@@ -343,6 +378,7 @@ export const createWorkspace = () => {
             exportPdf: exportActivePdf
         },
         actions: orchestrations,
+        share: shareActiveDocument,
         attachEditor,
         detachEditor,
         attachPreview,

@@ -79,6 +79,17 @@
                 <span class="toolbar-action-label">PDF</span>
             </button>
 
+            <!-- 共用：复制分享链接（压缩进 URL，无需后端） -->
+            <button
+                class="toolbar-action-button"
+                type="button"
+                title="复制分享链接"
+                aria-label="复制分享链接"
+                @click="share"
+            >
+                <span class="toolbar-action-icon" :style="{ '--icon-url': `url(${shareIcon})` }" aria-hidden="true" />
+            </button>
+
             <!-- 编辑区专属：折叠(<) -->
             <button
                 v-if="context === 'editor'"
@@ -132,6 +143,7 @@ import exportFileIcon from '../assets/export-file.svg'
 import exportPdfIcon from '../assets/export-pdf.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
+import shareIcon from '../assets/share.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import FileSwitcher from './FileSwitcher.vue'
 
@@ -143,7 +155,7 @@ defineProps({
     }
 })
 
-const { documents, actions, exporting } = useWorkspace()
+const { documents, actions, exporting, share } = useWorkspace()
 
 const fileInputRef = ref(null)
 
