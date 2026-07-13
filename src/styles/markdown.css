@@ -85,8 +85,11 @@
 }
 
 .markdown-body li > input[type='checkbox'] {
-    margin: 0 6px 0 -20px;
-    vertical-align: middle;
+    width: 1em;
+    height: 1em;
+    margin: 0 0.45em 0 -1.5em;
+    /* 正文行高较大（1.8），用固定偏移让复选框与第一行文字视觉对齐 */
+    vertical-align: -0.04em;
 }
 
 .markdown-body blockquote {
