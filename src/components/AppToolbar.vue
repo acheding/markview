@@ -8,10 +8,8 @@
             </span>
         </div>
 
-        <div class="toolbar__right">
-            <DocumentSearch />
-            <ThemeToggle />
-        </div>
+        <DocumentSearch class="toolbar__search" />
+        <ThemeToggle />
     </header>
 </template>
 
@@ -26,9 +24,8 @@ import ThemeToggle from './ThemeToggle.vue'
     z-index: var(--z-toolbar);
     display: flex;
     align-items: center;
-    justify-content: space-between;
     height: 58px;
-    gap: 18px;
+    gap: 12px;
     padding: 0 22px;
     background: var(--color-surface-glass);
     border-bottom: 1px solid var(--color-border-soft);
@@ -37,17 +34,17 @@ import ThemeToggle from './ThemeToggle.vue'
     user-select: none;
 }
 
+/* 品牌占据左侧并用 auto 外边距把搜索框+主题按钮推到右侧；
+   搜索框展开时向左吃掉这段弹性空间，右边缘（贴主题按钮）保持不动，按钮不再被顶。 */
 .toolbar__brand {
     display: inline-flex;
     align-items: center;
     gap: 11px;
     min-width: 0;
+    margin-right: auto;
 }
 
-.toolbar__right {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
+.toolbar__search {
     flex-shrink: 0;
 }
 
