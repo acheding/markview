@@ -1,7 +1,4 @@
-import { escapeHtml } from '../core/text.js'
-
-// 预览区 Mermaid 渲染：按需动态加载 mermaid（体积大，仅当文档含图表时才加载），
-// 按「主题 + 源码」缓存 SVG，避免实时编辑时重复编译。渲染是异步 DOM 副作用，故置于 preview 层。
+// Mermaid SVG 生产器：按需加载、按主题和源码缓存，并串行保护全局 initialize + render。
 let mermaidPromise = null
 const loadMermaid = () => {
     if (!mermaidPromise) {
@@ -12,36 +9,23 @@ const loadMermaid = () => {
 
 const cache = new Map()
 let renderSeq = 0
+let renderQueue = Promise.resolve()
 
-export const renderMermaidDiagrams = async (contentEl, theme = 'light') => {
-    const blocks = contentEl.querySelectorAll('.mermaid-block')
-    if (!blocks.length) return
-
-    const mermaid = await loadMermaid()
+export const renderMermaidSvg = (code, theme = 'light') => {
     const mermaidTheme = theme === 'dark' ? 'dark' : 'default'
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: mermaidTheme })
+    const key = `${mermaidTheme}\n${code}`
+    if (cache.has(key)) return Promise.resolve(cache.get(key))
 
-    for (const block of blocks) {
-        if (!block.isConnected) continue
+    const render = renderQueue.then(async () => {
+        if (cache.has(key)) return cache.get(key)
 
-        // 首次渲染前把源码固化到 data-code：渲染后 textContent 会变成 SVG，重渲（如切主题）需从此读取。
-        const code = block.dataset.code ?? block.textContent ?? ''
-        if (block.dataset.code === undefined) block.dataset.code = code
+        const mermaid = await loadMermaid()
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: mermaidTheme })
+        const { svg } = await mermaid.render(`mmd-${(renderSeq += 1)}`, code)
+        cache.set(key, svg)
+        return svg
+    })
 
-        const key = `${mermaidTheme}\n${code}`
-        if (cache.has(key)) {
-            block.innerHTML = cache.get(key)
-            continue
-        }
-
-        try {
-            const { svg } = await mermaid.render(`mmd-${(renderSeq += 1)}`, code)
-            cache.set(key, svg)
-            if (block.isConnected) block.innerHTML = svg
-        } catch (error) {
-            if (block.isConnected) {
-                block.innerHTML = `<pre class="mermaid-error">Mermaid 渲染失败：${escapeHtml(error?.message || String(error))}</pre>`
-            }
-        }
-    }
+    renderQueue = render.catch(() => undefined)
+    return render
 }

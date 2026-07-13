@@ -27,7 +27,7 @@ export const createMarkdownRenderer = ({
     const apply = (resultSeq, result) => {
         if (disposed || resultSeq < applied) return
         applied = resultSeq
-        onResult(result)
+        onResult(result, resultSeq)
         settleWaiters(true)
     }
 

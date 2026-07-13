@@ -1,4 +1,3 @@
-import { renderMermaidDiagrams } from './mermaidRenderer.js'
 import { applyPreviewHighlight, clearPreviewHighlight } from './previewSearchHighlight.js'
 
 /**
@@ -53,6 +52,32 @@ export const createPreviewController = ({ contentEl }) => {
         return true
     }
 
+    const captureViewport = () => {
+        const contentRect = contentEl.getBoundingClientRect()
+        const blocks = sourceBlocks()
+        const visibleBlock =
+            blocks.find(({ element }) => element.getBoundingClientRect().bottom > contentRect.top) ?? blocks.at(-1)
+
+        if (!visibleBlock) return { line: null, offset: 0, scrollTop: contentEl.scrollTop }
+
+        return {
+            line: visibleBlock.line,
+            offset: visibleBlock.element.getBoundingClientRect().top - contentRect.top,
+            scrollTop: contentEl.scrollTop
+        }
+    }
+
+    const restoreViewport = (snapshot) => {
+        if (!snapshot) return false
+
+        const target = Number.isFinite(snapshot.line) ? blockForLine(snapshot.line) : null
+        const top = target ? scrollTopForElement(target, { offset: snapshot.offset }) : Number(snapshot.scrollTop)
+        if (!Number.isFinite(top)) return false
+
+        contentEl.scrollTo({ top, behavior: 'auto' })
+        return true
+    }
+
     return {
         get scrollDOM() {
             return contentEl
@@ -60,6 +85,9 @@ export const createPreviewController = ({ contentEl }) => {
 
         sourceBlocks,
         blockForLine,
+
+        captureViewport,
+        restoreViewport,
 
         scrollToSourceLine: (lineNumber, options) => scrollToElement(blockForLine(lineNumber), options),
 
@@ -79,9 +107,6 @@ export const createPreviewController = ({ contentEl }) => {
         },
 
         focus: () => contentEl.focus({ preventScroll: true }),
-
-        // 异步渲染预览区内的 Mermaid 图表（html 更新后、主题切换后调用）。
-        renderDiagrams: (theme) => renderMermaidDiagrams(contentEl, theme),
 
         // html 更新后调用：源行块缓存失效。
         invalidate() {

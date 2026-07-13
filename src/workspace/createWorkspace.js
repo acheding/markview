@@ -13,9 +13,10 @@ import { createHeadingNavigation } from './headingNavigation.js'
 import { createOrchestrations } from './orchestrations.js'
 import { createToastSession } from './toastSession.js'
 import { createConfirmSession } from './confirmSession.js'
-import { createMarkdownRenderer } from './markdownRenderer.js'
+import { createPreviewRenderSession } from './previewRenderSession.js'
 import { useTheme } from '../composables/useTheme.js'
 import { copyText } from '../composables/clipboard.js'
+import { waitForAnimationFrame } from '../composables/useTransitionSettled.js'
 
 const getElementTop = (container, element) => {
     const containerRect = container.getBoundingClientRect()
@@ -37,34 +38,58 @@ export const createWorkspace = () => {
     const html = ref('')
     const toc = ref([])
     let latestRenderSequence = 0
-    const markdownRenderer = createMarkdownRenderer({
-        onResult: (result) => {
+    let editorController = null
+    let previewController = null
+    let scrollMaster = null
+    let previewCommitUpdating = false
+    let renderRevision = 0
+
+    const containsMermaid = (value) => String(value || '').includes('class="mermaid-block"')
+
+    const publishPreview = async (result) => {
+        const preserveViewport = Boolean(
+            previewController && (containsMermaid(html.value) || containsMermaid(result.html))
+        )
+        const viewportSnapshot = preserveViewport ? previewController.captureViewport() : null
+        previewCommitUpdating = preserveViewport
+
+        try {
             html.value = result.html
             toc.value = result.toc
+            renderRevision += 1
+            await nextTick()
+
+            previewController?.invalidate()
+            editorController?.setSearchHighlight(search.activeMatch.value)
+            previewController?.setSearchHighlight(search.activeMatch.value)
+            if (preserveViewport) previewController?.restoreViewport(viewportSnapshot)
+            headings.updateActiveHeading()
+
+            if (preserveViewport) await waitForAnimationFrame()
+        } finally {
+            scrollMaster?.reset()
+            previewCommitUpdating = false
         }
+    }
+
+    const previewRenderer = createPreviewRenderSession({
+        onResult: publishPreview,
+        getTheme: () => theme.value
     })
     watch(
         () => documents.content.value,
         (source) => {
-            latestRenderSequence = markdownRenderer.render(source ?? '')
+            latestRenderSequence = previewRenderer.render(source ?? '')
         },
         { immediate: true }
     )
 
     const waitForPreviewReady = async () => {
-        const ready = await markdownRenderer.whenApplied(latestRenderSequence)
-        if (!ready) return false
-        await nextTick()
-        return true
+        return previewRenderer.whenPublished(latestRenderSequence)
     }
 
     // —— 命令式控制器（挂载时创建） ——
-    let editorController = null
-    let previewController = null
-    let scrollMaster = null
     let anchorCache = { signature: '', anchors: null }
-    // 每次预览重渲染自增，作为锚点缓存签名的一部分：等长编辑/等高重渲染也能强制重建锚点。
-    let renderRevision = 0
 
     const getEditor = () => editorController
     const getPreview = () => previewController
@@ -161,10 +186,12 @@ export const createWorkspace = () => {
     }
 
     const handleEditorScroll = () => {
+        if (previewCommitUpdating) return
         if (syncOwner && syncOwner !== 'editor') return
         scrollMaster?.handleScroll('editor')
     }
     const handlePreviewScroll = () => {
+        if (previewCommitUpdating) return
         if (syncOwner && syncOwner !== 'preview') {
             headings.updateActiveHeading()
             return
@@ -199,7 +226,6 @@ export const createWorkspace = () => {
     const attachPreview = (contentEl) => {
         previewController = createPreviewController({ contentEl })
         previewController.setSearchHighlight(search.activeMatch.value)
-        previewController.renderDiagrams(theme.value)
         ensureScrollMaster()
     }
     const detachPreview = () => {
@@ -267,16 +293,10 @@ export const createWorkspace = () => {
         }
     )
 
-    // 预览重渲染 → 锚点缓存签名自增，强制下次重建（覆盖等长/等高编辑的场景）。
-    watch(html, () => {
-        renderRevision += 1
-    })
-
-    // 渲染结果或激活命中变化 → 复位预览高亮并刷新标题（flush post 确保 DOM 已更新）。
+    // 搜索命中本身变化时只更新两侧高亮；HTML 原子发布后会显式恢复一次高亮。
     watch(
-        [html, () => search.activeMatch.value],
+        () => search.activeMatch.value,
         () => {
-            previewController?.invalidate()
             editorController?.setSearchHighlight(search.activeMatch.value)
             previewController?.setSearchHighlight(search.activeMatch.value)
             headings.updateActiveHeading()
@@ -284,11 +304,8 @@ export const createWorkspace = () => {
         { flush: 'post' }
     )
 
-    // html 更新后异步渲染 Mermaid 图表（flush post 确保 v-html 已写入 DOM）。
-    watch(html, () => previewController?.renderDiagrams(theme.value), { flush: 'post' })
-
-    // 主题切换 → 用新主题重渲已有图表（SVG 配色跟随明暗）。
-    watch(theme, () => previewController?.renderDiagrams(theme.value))
+    // 用最新 Worker 原始结果离屏重建主题对应的 Mermaid SVG，再原子发布。
+    watch(theme, () => previewRenderer.refresh())
 
     // 分享链接（#share=…）→ 解压为新文档导入，随后清 hash（避免刷新重复导入、干扰标题锚点）。
     const importSharedFromHash = () => {
@@ -374,7 +391,7 @@ export const createWorkspace = () => {
         releaseNavLock()
         toast.dispose()
         confirm.dispose()
-        markdownRenderer.dispose()
+        previewRenderer.dispose()
         documents.dispose()
         headings.dispose()
         detachEditor()

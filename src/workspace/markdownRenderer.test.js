@@ -22,7 +22,7 @@ describe('createMarkdownRenderer', () => {
         worker.onmessage({ data: { seq: sequence, html: '<p>target</p>', toc: [] } })
 
         await expect(ready).resolves.toBe(true)
-        expect(onResult).toHaveBeenCalledWith({ html: '<p>target</p>', toc: [] })
+        expect(onResult).toHaveBeenCalledWith({ html: '<p>target</p>', toc: [] }, sequence)
     })
 
     it('lets a newer result satisfy older waiters and ignores a late stale result', async () => {
@@ -40,7 +40,7 @@ describe('createMarkdownRenderer', () => {
 
         await expect(Promise.all([firstReady, secondReady])).resolves.toEqual([true, true])
         expect(onResult).toHaveBeenCalledTimes(1)
-        expect(onResult).toHaveBeenLastCalledWith({ html: '<p>second</p>', toc: [] })
+        expect(onResult).toHaveBeenLastCalledWith({ html: '<p>second</p>', toc: [] }, second)
     })
 
     it('falls back to the main-thread renderer when the worker fails', async () => {
@@ -57,7 +57,7 @@ describe('createMarkdownRenderer', () => {
 
         await expect(ready).resolves.toBe(true)
         expect(worker.terminate).toHaveBeenCalledOnce()
-        expect(onResult).toHaveBeenCalledWith({ html: '<p>fallback</p>', toc: [] })
+        expect(onResult).toHaveBeenCalledWith({ html: '<p>fallback</p>', toc: [] }, sequence)
     })
 
     it('releases pending waiters when disposed', async () => {
