@@ -22,11 +22,16 @@
                 <PreviewPane />
             </template>
         </main>
+
+        <AppToast />
+        <AppConfirm />
     </div>
 </template>
 
 <script setup>
 import { provide } from 'vue'
+import AppConfirm from './components/AppConfirm.vue'
+import AppToast from './components/AppToast.vue'
 import AppToolbar from './components/AppToolbar.vue'
 import ContentViewSkeleton from './components/ContentViewSkeleton.vue'
 import EditorPane from './components/EditorPane.vue'

@@ -14,6 +14,7 @@ export const createOrchestrations = ({
     search,
     layout,
     headings,
+    confirm,
     getEditor,
     getPreview,
     getScrollMaster
@@ -93,7 +94,13 @@ export const createOrchestrations = ({
     }
 
     const clearContent = async () => {
-        if (!confirm('确定要清空所有内容吗？')) return
+        const ok = await confirm.ask({
+            title: '清空内容',
+            message: '确定要清空当前文档的所有内容吗？此操作可撤销（Ctrl + Z）。',
+            confirmLabel: '清空',
+            tone: 'danger'
+        })
+        if (!ok) return
 
         search.clearActiveMatch()
         documents.clearContent()

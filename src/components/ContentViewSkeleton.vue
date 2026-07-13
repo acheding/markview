@@ -3,15 +3,31 @@
         <!-- 编辑区骨架 -->
         <div class="skeleton-pane skeleton-editor">
             <div class="skeleton-header">
-                <!-- 文件名 + 操作按钮占位 -->
-                <span class="skeleton-line skeleton-line--filename" />
+                <!-- 文件切换器占位 -->
+                <span class="skeleton-pill skeleton-pill--switcher" />
+                <!-- 工具栏按钮占位：方形图标 + md/PDF 宽按钮 + 折叠 -->
                 <div class="skeleton-header-actions">
-                    <span v-for="i in 5" :key="'ea' + i" class="skeleton-avatar" />
+                    <span class="skeleton-btn" />
+                    <span class="skeleton-btn" />
+                    <span class="skeleton-btn" />
+                    <span class="skeleton-btn skeleton-btn--wide" />
+                    <span class="skeleton-btn skeleton-btn--wide" />
+                    <span class="skeleton-btn" />
                 </div>
             </div>
-            <div class="skeleton-body">
-                <!-- 模拟 markdown 文本行 -->
-                <span v-for="i in 30" :key="'e' + i" class="skeleton-line" :style="{ width: textWidth(i) }" />
+            <!-- CodeMirror 结构：左侧行号槽 + 右侧文本 -->
+            <div class="skeleton-editor-body">
+                <div class="skeleton-gutter">
+                    <span v-for="i in 38" :key="'g' + i" class="skeleton-lineno" />
+                </div>
+                <div class="skeleton-code">
+                    <span
+                        v-for="i in 38"
+                        :key="'e' + i"
+                        class="skeleton-line skeleton-line--mono"
+                        :style="{ width: textWidth(i) }"
+                    />
+                </div>
             </div>
         </div>
 
@@ -21,28 +37,55 @@
         <!-- 预览区骨架 -->
         <div class="skeleton-pane skeleton-preview">
             <div class="skeleton-header">
-                <span class="skeleton-line skeleton-line--stats" />
-                <span class="skeleton-line skeleton-line--saved" />
+                <!-- 文档统计：行数 / 字数 / 字符 -->
+                <div class="skeleton-stats">
+                    <span class="skeleton-pill skeleton-pill--stat" />
+                    <span class="skeleton-pill skeleton-pill--stat" />
+                    <span class="skeleton-pill skeleton-pill--stat" />
+                </div>
+                <span class="skeleton-pill skeleton-pill--saved" />
             </div>
-            <div class="skeleton-body">
-                <!-- 标题 -->
-                <span class="skeleton-line skeleton-line--heading" />
-                <!-- 段落行 -->
-                <span v-for="i in 8" :key="'p' + i" class="skeleton-line" :style="{ width: textWidth(i + 20) }" />
-                <!-- 代码块 -->
-                <span class="skeleton-code-block">
-                    <span
-                        v-for="i in 4"
-                        :key="'c' + i"
-                        class="skeleton-line skeleton-line--code"
-                        :style="{ width: codeWidth(i) }"
-                    />
-                </span>
-                <!-- 更多内容 -->
-                <span class="skeleton-line skeleton-line--subheading" />
-                <span v-for="i in 6" :key="'p2' + i" class="skeleton-line" :style="{ width: textWidth(i + 30) }" />
-                <span class="skeleton-line skeleton-line--image" />
-                <span v-for="i in 4" :key="'p3' + i" class="skeleton-line" :style="{ width: textWidth(i + 40) }" />
+
+            <div class="skeleton-preview-layout">
+                <!-- 渲染内容 -->
+                <div class="skeleton-body">
+                    <span class="skeleton-line skeleton-line--heading" />
+                    <span v-for="i in 6" :key="'p' + i" class="skeleton-line" :style="{ width: textWidth(i + 20) }" />
+
+                    <span class="skeleton-line skeleton-line--subheading" />
+                    <span v-for="i in 3" :key="'p1' + i" class="skeleton-line" :style="{ width: textWidth(i + 5) }" />
+
+                    <!-- 代码块 -->
+                    <span class="skeleton-code-block">
+                        <span
+                            v-for="i in 4"
+                            :key="'c' + i"
+                            class="skeleton-line skeleton-line--code"
+                            :style="{ width: codeWidth(i) }"
+                        />
+                    </span>
+
+                    <span v-for="i in 3" :key="'p2' + i" class="skeleton-line" :style="{ width: textWidth(i + 30) }" />
+                    <!-- 图片 -->
+                    <span class="skeleton-line skeleton-line--image" />
+                    <span v-for="i in 7" :key="'p3' + i" class="skeleton-line" :style="{ width: textWidth(i + 40) }" />
+                </div>
+
+                <!-- TOC 分割线 -->
+                <div class="skeleton-toc-divider" />
+
+                <!-- 目录骨架 -->
+                <div class="skeleton-toc">
+                    <span class="skeleton-toc-title" />
+                    <div class="skeleton-toc-list">
+                        <span
+                            v-for="i in 9"
+                            :key="'t' + i"
+                            class="skeleton-toc-item"
+                            :style="{ width: tocWidth(i), marginLeft: tocIndent(i) }"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -83,27 +126,19 @@ const textWidths = [
     '90%',
     '62%',
     '78%',
-    '46%',
-    '86%',
-    '64%',
-    '80%',
-    '52%',
-    '94%',
-    '68%',
-    '76%',
-    '42%',
-    '88%',
-    '56%',
-    '72%',
-    '48%',
-    '84%',
-    '60%'
+    '46%'
 ]
 
 const codeWidths = ['65%', '82%', '30%', '58%']
+const tocWidths = ['82%', '68%', '90%', '55%', '74%', '60%', '86%', '48%', '70%']
+// 目录层级缩进（模拟 h1/h2/h3）
+const tocIndents = [0, 12, 12, 24, 0, 12, 24, 12, 0]
 
-const textWidth = (i) => textWidths[(i - 1) % textWidths.length]
-const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
+const pick = (arr, i) => arr[(i - 1) % arr.length]
+const textWidth = (i) => pick(textWidths, i)
+const codeWidth = (i) => pick(codeWidths, i)
+const tocWidth = (i) => pick(tocWidths, i)
+const tocIndent = (i) => `${pick(tocIndents, i)}px`
 </script>
 
 <style scoped>
@@ -111,17 +146,27 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     display: flex;
     flex: 1;
     min-height: 0;
+    --toc-width: 220px;
 }
 
 .skeleton-pane {
     display: flex;
-    flex: 1;
     min-width: 0;
     overflow: hidden;
     background: var(--color-surface);
     flex-direction: column;
 }
 
+.skeleton-editor {
+    width: calc((100% - var(--toc-width) - 6px) / 2);
+    flex-shrink: 0;
+}
+
+.skeleton-preview {
+    flex: 1;
+}
+
+/* —— 头部（与 panel-header 对齐）—— */
 .skeleton-header {
     display: flex;
     align-items: center;
@@ -141,22 +186,79 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     flex-shrink: 0;
 }
 
+.skeleton-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+/* —— 编辑区正文：行号槽 + 代码 —— */
+.skeleton-editor-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--color-surface);
+}
+
+.skeleton-gutter {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 8px 16px 0;
+    width: 42px;
+    flex-shrink: 0;
+    align-items: flex-end;
+}
+
+.skeleton-lineno {
+    width: 16px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--color-surface-active);
+    opacity: 0.7;
+}
+
+.skeleton-code {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px 16px 12px;
+}
+
+.skeleton-line--mono {
+    height: 12px;
+}
+
+/* —— 预览区正文 —— */
+.skeleton-preview-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
 .skeleton-body {
     display: flex;
     flex: 1;
+    min-width: 0;
     flex-direction: column;
-    gap: 14px;
-    padding: 20px 22px;
+    gap: 13px;
+    padding: 20px 36px;
+    overflow: hidden;
     background: var(--color-surface);
 }
 
 .skeleton-divider {
-    width: 5px;
+    width: 6px;
     flex-shrink: 0;
     background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
 }
 
-/* 线条 */
+/* —— 骨架线条 —— */
 .skeleton-line {
     height: 13px;
     border-radius: 5px;
@@ -165,32 +267,17 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
-.skeleton-line--filename {
-    width: 150px;
-    height: 15px;
-}
-
-.skeleton-line--stats {
-    width: 200px;
-    height: 15px;
-}
-
-.skeleton-line--saved {
-    width: 64px;
-    height: 12px;
-}
-
 .skeleton-line--heading {
-    width: 42%;
-    height: 20px;
-    margin-bottom: 4px;
+    width: 46%;
+    height: 22px;
+    margin-bottom: 6px;
     border-radius: 6px;
 }
 
 .skeleton-line--subheading {
-    width: 28%;
-    height: 16px;
-    margin-top: 8px;
+    width: 30%;
+    height: 17px;
+    margin-top: 10px;
     margin-bottom: 2px;
     border-radius: 6px;
 }
@@ -200,27 +287,16 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     border-radius: 3px;
     background: linear-gradient(90deg, #e2e8f0 25%, #edf2f7 50%, #e2e8f0 75%);
     background-size: 200% 100%;
-}
-
-.skeleton-line--image {
-    width: 55%;
-    height: 80px;
-    margin: 4px 0;
-    border-radius: 8px;
-}
-
-/* 按钮占位 */
-.skeleton-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-    background-size: 200% 100%;
-    flex-shrink: 0;
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
-/* 代码块 */
+.skeleton-line--image {
+    width: 58%;
+    height: 84px;
+    margin: 6px 0;
+    border-radius: 8px;
+}
+
 .skeleton-code-block {
     display: flex;
     flex-direction: column;
@@ -228,11 +304,86 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     padding: 12px 14px;
     border-radius: 8px;
     background: #f1f5f9;
-    margin: 4px 0;
+    margin: 6px 0;
 }
 
-.skeleton-preview .skeleton-body {
+/* —— 头部占位块（药丸 / 按钮）—— */
+.skeleton-pill,
+.skeleton-btn {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.skeleton-pill--switcher {
+    width: 150px;
+    height: 22px;
+    border-radius: 6px;
+}
+
+.skeleton-pill--stat {
+    width: 56px;
+    height: 14px;
+    border-radius: 5px;
+}
+
+.skeleton-pill--saved {
+    width: 48px;
+    height: 12px;
+    border-radius: 5px;
+}
+
+.skeleton-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-md);
+}
+
+.skeleton-btn--wide {
+    width: 42px;
+}
+
+/* —— TOC 骨架 —— */
+.skeleton-toc-divider {
+    width: 6px;
+    flex-shrink: 0;
     background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+}
+
+.skeleton-toc {
+    width: var(--toc-width);
+    flex-shrink: 0;
+    padding: 14px 12px;
+    overflow: hidden;
+    background: var(--color-surface-soft);
+}
+
+.skeleton-toc-title {
+    display: block;
+    width: 40px;
+    height: 13px;
+    margin: 0 8px 12px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-toc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 8px;
+}
+
+.skeleton-toc-item {
+    height: 12px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes skeleton-shimmer {
@@ -244,28 +395,46 @@ const codeWidth = (i) => codeWidths[(i - 1) % codeWidths.length]
     }
 }
 
+@media (max-width: 900px) {
+    .skeleton-shell {
+        --toc-width: 0px;
+    }
+
+    .skeleton-toc,
+    .skeleton-toc-divider {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .skeleton-shell {
         flex-direction: column;
     }
 
-    .skeleton-pane {
-        flex: none;
+    .skeleton-editor {
+        width: 100%;
         height: 48%;
     }
 
     .skeleton-preview {
+        flex: none;
         height: 52%;
     }
 
     .skeleton-divider {
         width: 100%;
-        height: 5px;
+        height: 6px;
+        border-left: none;
+        border-top: 1px solid var(--color-border);
     }
 
     .skeleton-body {
-        padding: 12px 14px;
+        padding: 12px 20px;
         gap: 10px;
+    }
+
+    .skeleton-code {
+        padding: 12px 14px;
     }
 }
 </style>

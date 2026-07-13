@@ -5,11 +5,14 @@ import { createScrollMaster } from '../core/sync/scrollMaster.js'
 import { createEditorController } from '../editor/EditorController.js'
 import { createPreviewController } from '../preview/PreviewController.js'
 import { exportMarkdown, exportPdf } from '../services/exporter.js'
+import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
 import { createLayoutSession } from './layoutSession.js'
 import { createHeadingNavigation } from './headingNavigation.js'
 import { createOrchestrations } from './orchestrations.js'
+import { createToastSession } from './toastSession.js'
+import { createConfirmSession } from './confirmSession.js'
 
 const getElementTop = (container, element) => {
     const containerRect = container.getBoundingClientRect()
@@ -23,6 +26,8 @@ export const createWorkspace = () => {
     const documents = createDocumentSession()
     const search = createSearchSession({ files: documents.files, activeFileId: documents.activeFileId })
     const layout = createLayoutSession()
+    const toast = createToastSession()
+    const confirm = createConfirmSession()
 
     const rendered = computed(() => renderMarkdown(documents.content.value))
     const html = computed(() => rendered.value.html)
@@ -180,6 +185,7 @@ export const createWorkspace = () => {
         search,
         layout,
         headings,
+        confirm,
         getEditor,
         getPreview,
         getScrollMaster
@@ -265,10 +271,27 @@ export const createWorkspace = () => {
     const flushOnHidden = () => {
         if (document.visibilityState === 'hidden') documents.flush()
     }
+    // Ctrl/Cmd + S：拦截浏览器「保存网页」，立即落盘并提示（本应用本就自动保存到本地）。
+    const saveNow = async () => {
+        if (documents.saveStatus.value === SAVE_STATUS.MEMORY_ONLY) {
+            toast.show('浏览器未启用本地存储，内容仅保存在当前会话', { tone: 'warn', duration: 3000 })
+            return
+        }
+        await documents.flush()
+        toast.show(documents.saveStatus.value === SAVE_STATUS.FAILED ? '保存失败，请重试' : '已保存到本地', {
+            tone: documents.saveStatus.value === SAVE_STATUS.FAILED ? 'warn' : 'success'
+        })
+    }
+
     const handleKeydown = (event) => {
         if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'c') {
             event.preventDefault()
             orchestrations.clearContent()
+            return
+        }
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 's') {
+            event.preventDefault()
+            saveNow()
         }
     }
 
@@ -282,6 +305,8 @@ export const createWorkspace = () => {
 
     onBeforeUnmount(() => {
         releaseNavLock()
+        toast.dispose()
+        confirm.dispose()
         documents.dispose()
         headings.dispose()
         detachEditor()
@@ -299,6 +324,8 @@ export const createWorkspace = () => {
         search,
         layout,
         headings,
+        toast,
+        confirm,
         html,
         toc,
         exporting: {

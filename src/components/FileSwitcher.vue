@@ -48,7 +48,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import deleteFileIcon from '../assets/delete-file.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const { documents } = useWorkspace()
+const { documents, confirm } = useWorkspace()
 const files = documents.files
 const activeFileId = documents.activeFileId
 
@@ -67,8 +67,14 @@ const selectFile = (id) => {
     isOpen.value = false
 }
 
-const deleteFile = (file) => {
-    if (!confirm(`确定要删除「${file.name}」吗？`)) return
+const deleteFile = async (file) => {
+    const ok = await confirm.ask({
+        title: '删除文档',
+        message: `确定要删除「${file.name}」吗？删除后无法恢复。`,
+        confirmLabel: '删除',
+        tone: 'danger'
+    })
+    if (!ok) return
 
     documents.remove(file.id)
     isOpen.value = false

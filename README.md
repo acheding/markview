@@ -1,91 +1,104 @@
 # README
 
-一个基于 Vue 3 和 Vite 构建的本地 Markdown 实时预览工具。左侧编辑，右侧实时渲染；提供多文档管理、文件导入导出、PDF 导出、目录导航、跨文档搜索、滚动同步、编辑区折叠/展开等能力，适合用来快速编写或预览文档。所有数据保存在浏览器本地，无需后端。
+一个纯前端的本地 Markdown 实时预览工具：左侧 CodeMirror 6 编辑，右侧实时渲染，所有数据保存在浏览器 IndexedDB 中，无需任何后端。
 
-## 功能特性
+基于 Vue 3 + Vite 构建，核心逻辑与 UI 严格分层，纯逻辑层零 Vue、零 DOM，全部由 Vitest 直测覆盖。
 
-- **代码编辑器**：基于 CodeMirror 6，带行号、语法高亮、智能补全。
-- **实时预览**：左侧输入 Markdown，右侧即时渲染结果。
-- **智能补全**：输入链接 `](` 时补全工作区文档路径与当前文档的标题锚点；代码块内按语言（JavaScript / TypeScript / CSS / HTML / Python 等）补全。
-- **多文档工作区**：支持新建、切换、删除、导入多个本地文档，每个文档拥有独立的撤销历史。
-- **文件导入导出**：支持导入 `.md` / `.markdown` / 文本文件，可导出 Markdown 文档或 PDF。
-- **全文搜索**：按文件名和正文内容跨文档搜索，`Ctrl + K` 快速唤起，选中结果精确定位到行并双侧高亮。
-- **自动保存**：文档内容自动保存到浏览器 `IndexedDB`，增量写入并显示保存状态。
-- **智能命名**：根据文档标题或正文内容自动生成文件名，导入文件同样使用内容识别命名。
-- **目录导航**：根据标题自动生成目录，点击跳转，当前标题高亮自动跟随。
-- **标题锚点**：预览区标题带 `#` 锚点，hover 显示，点击复制带 hash 的完整链接到剪贴板；刷新或新标签打开可直达对应标题。
-- **滚动同步**：编辑区与预览区按源码行号联动滚动，双向同步。
-- **编辑区折叠**：支持折叠编辑区专注预览，折叠后文件名和操作按钮移至预览区头部。
-- **代码高亮**：预览区用 `highlight.js`；编辑区代码块按围栏语言（js/ts/css/html/python/json/xml 等）解析高亮。
-- **文档统计**：实时显示行数、字数和字符数。
-- **回到顶部**：预览区滚动较深时显示快捷返回按钮。
-- **可调布局**：编辑区、预览区、目录宽度均支持拖拽调整。
-- **响应式界面**：桌面端左右分栏，移动端上下布局，折叠状态自动适配。
+## 功能一览
+
+### 编辑与预览
+
+- **实时预览**：左侧输入 Markdown，右侧即时渲染；编辑区与预览区按源码行号双向滚动同步
+- **CodeMirror 6 编辑器**：行号、Markdown 语法高亮、围栏代码块按语言（JS / TS / CSS / HTML / Python / JSON / XML 等）嵌套高亮
+- **智能补全**：输入 `](` 时补全工作区文档路径与当前文档的标题锚点；代码块内提供对应语言的补全
+- **编辑区折叠**：一键折叠编辑区专注阅读，文件切换与操作按钮自动移入预览区头部
+- **可调布局**：编辑区 / 预览区分栏、目录宽度均可拖拽调整；移动端自动切换上下布局
+
+### 文档管理
+
+- **多文档工作区**：新建、切换、删除多个文档，每个文档拥有独立的撤销历史
+- **自动保存**：内容变更增量写入 IndexedDB，头部实时显示保存状态
+- **智能命名**：根据标题或正文自动生成文件名，导入文件同样按内容识别命名
+- **导入导出**：批量导入 `.md` / `.markdown` / 文本文件；导出 Markdown 或 PDF
+
+### 导航与搜索
+
+- **全局搜索**：`Ctrl + K`（macOS：`Cmd + K`）唤起，按文件名与正文跨文档检索，选中结果精确定位到行并在编辑区、预览区双侧高亮
+- **目录导航**：按标题自动生成目录，点击跳转，当前标题高亮自动跟随滚动
+- **标题锚点**：预览区标题 hover 显示 `#`，点击复制带 hash 的完整链接；刷新或新标签打开可直达对应标题
+- **回到顶部**：预览区滚动较深时右下角出现快捷返回按钮
+- **文档统计**：实时显示行数、字数、字符数
 
 ## 技术栈
 
-- [Vue 3](https://vuejs.org/)：组合式 API + `<script setup>`
-- [Vite](https://vitejs.dev/)：开发服务器与构建工具
-- [CodeMirror 6](https://codemirror.net/)：编辑器（语法高亮、补全、行号等）
-- [marked](https://marked.js.org/)：Markdown 解析
-- [highlight.js](https://highlightjs.org/)：预览区代码块语法高亮
-- [Vitest](https://vitest.dev/)：核心逻辑单元测试
+| 依赖                                                    | 用途                                 |
+| ------------------------------------------------------- | ------------------------------------ |
+| [Vue 3](https://vuejs.org/)                             | 组合式 API + `<script setup>`        |
+| [Vite](https://vitejs.dev/)                             | 开发服务器与构建                     |
+| [CodeMirror 6](https://codemirror.net/)                 | 编辑器（高亮、补全、行号、搜索高亮） |
+| [marked](https://marked.js.org/)                        | Markdown 解析与渲染                  |
+| [highlight.js](https://highlightjs.org/)                | 预览区代码块语法高亮                 |
+| [html2pdf.js](https://ekoopmans.github.io/html2pdf.js/) | PDF 导出                             |
+| [Vitest](https://vitest.dev/)                           | 核心逻辑单元测试                     |
 
 ## 快速开始
 
-请确保本地已安装 Node.js 和 pnpm。
+需要本地已安装 Node.js 与 pnpm。
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-开发服务器默认运行在：
+开发服务器默认运行在 `http://localhost:3001/`。
 
-```text
-http://localhost:3001/
-```
-
-## 使用提示
-
-- **文档切换**：点击编辑器标题栏左侧文件名下拉切换，折叠状态下预览区头部同样可切换。
-- **操作按钮**：标题栏右侧依次为新建、清空、导入、导出 Markdown（md）、导出 PDF、折叠/展开编辑区。
-- **导入**：支持一次选择多个 Markdown 或文本文件，文件名由内容自动生成。
-- **导出**：Markdown 导出下载 `.md` 文件；PDF 导出下载 `.pdf` 文件。
-- **搜索**：`Ctrl + K` 唤起搜索框，输入关键词跨文档检索，选中结果后精确定位到目标行。
-- **折叠编辑区**：点击 `<` 按钮折叠编辑区，专注预览；点击预览区头部 `>` 按钮恢复。
-- **调整布局**：拖拽分割条调整编辑区/预览区宽度；拖拽目录区左侧边缘调整目录宽度。
-- **回到顶部**：预览区滚动超过一定距离后右下角出现返回按钮；目录会随当前标题高亮自动滚动。
-
-## 常用命令
+### 常用命令
 
 ```bash
-pnpm dev      # 启动开发环境
-pnpm build    # 构建生产版本
-pnpm preview  # 本地预览生产构建
-pnpm test     # 运行单元测试（Vitest）
-pnpm lint     # ESLint 检查
-pnpm format   # Prettier 格式化
-pnpm check    # 一键校验：lint + 格式检查 + 测试 + 构建
+pnpm dev           # 启动开发环境
+pnpm build         # 构建生产版本（产物在 dist/）
+pnpm preview       # 本地预览生产构建
+pnpm test          # 运行单元测试（Vitest）
+pnpm lint          # ESLint 检查
+pnpm format        # Prettier 格式化
+pnpm format:check  # Prettier 格式检查
+pnpm check         # 一键校验：lint + 格式检查 + 测试 + 构建
 ```
 
-## 项目结构
+## 架构设计
 
-采用分层架构，依赖单向向下：组件只负责 UI（`inject` 工作区直接消费），业务状态与横切编排集中在 `workspace`，编辑器 / 预览的命令式能力封装为 controller，纯逻辑下沉到 `core`（不依赖 Vue、不直接操作 DOM，便于单元测试）。
+采用 CodeMirror-First 分层架构，依赖严格单向向下：
+
+```text
+components（哑组件，inject 工作区直接消费）
+    ↓
+workspace（响应式状态 + 横切编排）
+    ↓
+controllers（EditorController / PreviewController，命令式门面）
+    ↓
+core（纯逻辑领域层：零 Vue、零 DOM，Vitest 直测）
+```
+
+- **components** 只负责 UI，不含业务逻辑；通过 `provide/inject` 获取工作区
+- **workspace** 持有全部响应式状态（文档会话、搜索会话、布局会话），跨子系统流程（搜索定位、折叠编排等）集中在 `orchestrations`
+- **controllers** 封装 CodeMirror 与预览 DOM 的命令式能力，是组件之下操作编辑器 / 预览的唯一入口
+- **core** 是可独立测试的纯函数领域层：文档模型、持久化调度、Markdown 渲染与源行标注、跨文档搜索、滚动锚点表
+
+### 目录结构
 
 ```text
 src/
 ├── main.js / App.vue        # 入口 + 根布局（组装并 provide 工作区，渲染骨架屏 / 分栏）
 ├── styles/                  # 设计 token 与全局样式（tokens / base / markdown / highlights）
-├── core/                    # 纯逻辑领域层（零 Vue、零 DOM，Vitest 直测）
+├── core/                    # 纯逻辑领域层
 │   ├── documents/           # 文档模型、IndexedDB 存储、保存状态机
-│   ├── search/              # 跨文档搜索、匹配、摘要
 │   ├── markdown/            # marked 渲染、源行标注、代码高亮、slug 生成
+│   ├── search/              # 跨文档搜索、匹配、摘要
 │   ├── sync/                # 滚动锚点表与防回环
 │   └── text.js              # 通用文本工具
 ├── editor/                  # CodeMirror 6 封装（无 Vue）
 │   ├── EditorController.js  # 编辑器唯一门面（多文档独立 EditorState）
-│   └── extensions/          # 主题、语法高亮、行链接/代码补全、搜索高亮、代码语言等扩展
+│   └── extensions/          # 主题、语法高亮、链接/代码补全、搜索高亮、代码语言等扩展
 ├── preview/                 # 预览 DOM 门面（源行定位、搜索高亮）
 ├── workspace/               # 响应式状态 + 横切编排
 │   ├── createWorkspace.js   # 组装会话 / 控制器 / 生命周期，provide 下发
@@ -96,41 +109,55 @@ src/
 │   └── orchestrations.js    # 搜索定位、折叠展开等跨子系统流程
 ├── composables/             # 通用 UI 工具（拖拽、媒体查询、偏好持久化、过渡等待）
 ├── services/exporter.js     # Markdown / PDF 导出
-├── components/              # 哑组件（AppToolbar / EditorPane / PreviewPane / 工具栏等）
+├── components/              # 哑组件（工具栏、编辑面板、预览面板、目录、搜索框等）
 ├── constants/presets.js     # 预置文档
 └── assets/                  # SVG 图标资源
 ```
 
-## 部署说明
+测试文件（`*.test.js`）与被测模块同目录放置，`pnpm test` 一键运行。
 
-通过 `VITE_APP_PATH` 控制 Vite 的 `base` 路径：
+## 使用提示
+
+| 操作              | 方式                                                |
+| ----------------- | --------------------------------------------------- |
+| 切换文档          | 点击面板头部左侧的文件名下拉                        |
+| 新建 / 清空       | 编辑区头部按钮                                      |
+| 导入              | 头部导入按钮，支持一次选择多个文件                  |
+| 导出              | `md` 按钮下载 Markdown，`PDF` 按钮下载 PDF          |
+| 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行 |
+| 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复            |
+| 调整分栏          | 拖拽编辑区与预览区之间的分割条                      |
+| 调整目录宽度      | 拖拽目录左侧边缘                                    |
+| 复制标题链接      | hover 预览区标题，点击 `#` 锚点                     |
+
+## 部署
+
+通过环境变量 `VITE_APP_PATH` 控制 Vite 的 `base` 路径：
 
 - `.env.development`：本地开发默认 `/`
 - `.env.production`：生产构建默认 `/markview/`
 
-部署到 GitHub/Gitee Pages 时，如果仓库名不是 `markview`，修改 `.env.production`：
+部署到 GitHub / Gitee Pages 且仓库名不是 `markview` 时，修改 `.env.production`：
 
 ```env
 VITE_APP_PATH=/your-repo-name/
 ```
 
-部署到根域名或自定义域名：
+部署到根域名或自定义域名则改为：
 
 ```env
 VITE_APP_PATH=/
 ```
 
-然后执行：
+之后执行 `pnpm build`，将 `dist/` 目录发布即可。
 
-```bash
-pnpm build
-```
+## 数据存储说明
 
-构建产物生成在 `dist/` 目录。
+MarkView 完全运行在浏览器端，文档数据保存在当前站点的 IndexedDB 中。这意味着：
 
-## 数据存储
-
-MarkView 不依赖后端服务，所有文档数据保存在浏览器 `IndexedDB` 中。清理浏览器站点数据、更换浏览器或更换域名路径后，本地保存的内容可能无法继续读取。建议定期导出重要文档备份。
+- 清理浏览器站点数据会丢失所有文档
+- 更换浏览器、设备或部署路径后无法读取原有内容
+- 重要文档请定期通过导出功能备份
 
 ## Markdown 语法演示
 
@@ -204,8 +231,6 @@ print(list(fibonacci(10)))
 - `行内代码`
 
 ---
-
-试试在左侧编辑区修改内容，右侧会实时更新。
 
 ## 开源协议
 
