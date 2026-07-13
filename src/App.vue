@@ -25,6 +25,7 @@
 
         <AppToast />
         <AppConfirm />
+        <CommandPalette />
     </div>
 </template>
 
@@ -33,6 +34,7 @@ import { provide } from 'vue'
 import AppConfirm from './components/AppConfirm.vue'
 import AppToast from './components/AppToast.vue'
 import AppToolbar from './components/AppToolbar.vue'
+import CommandPalette from './components/CommandPalette.vue'
 import ContentViewSkeleton from './components/ContentViewSkeleton.vue'
 import EditorPane from './components/EditorPane.vue'
 import PreviewPane from './components/PreviewPane.vue'
