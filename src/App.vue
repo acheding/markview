@@ -37,6 +37,7 @@ import ContentViewSkeleton from './components/ContentViewSkeleton.vue'
 import EditorPane from './components/EditorPane.vue'
 import PreviewPane from './components/PreviewPane.vue'
 import ResizeDivider from './components/ResizeDivider.vue'
+import { useDocumentTitle } from './composables/useDocumentTitle.js'
 import { createWorkspace } from './workspace/createWorkspace.js'
 import { WORKSPACE_KEY } from './workspace/workspaceKey.js'
 
@@ -44,6 +45,8 @@ const workspace = createWorkspace()
 provide(WORKSPACE_KEY, workspace)
 
 const { documents, layout } = workspace
+
+useDocumentTitle({ activeFile: documents.activeFile, saveStatus: documents.saveStatus })
 
 const setMainPanel = (el) => {
     layout.containerRef.value = el
