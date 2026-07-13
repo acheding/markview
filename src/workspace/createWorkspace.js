@@ -36,6 +36,7 @@ export const createWorkspace = () => {
     // 渲染在 Web Worker 中进行，结果异步写回 html/toc。
     const html = ref('')
     const toc = ref([])
+    let latestRenderSequence = 0
     const markdownRenderer = createMarkdownRenderer({
         onResult: (result) => {
             html.value = result.html
@@ -44,9 +45,18 @@ export const createWorkspace = () => {
     })
     watch(
         () => documents.content.value,
-        (source) => markdownRenderer.render(source ?? ''),
+        (source) => {
+            latestRenderSequence = markdownRenderer.render(source ?? '')
+        },
         { immediate: true }
     )
+
+    const waitForPreviewReady = async () => {
+        const ready = await markdownRenderer.whenApplied(latestRenderSequence)
+        if (!ready) return false
+        await nextTick()
+        return true
+    }
 
     // —— 命令式控制器（挂载时创建） ——
     let editorController = null
@@ -205,7 +215,8 @@ export const createWorkspace = () => {
         confirm,
         getEditor,
         getPreview,
-        getScrollMaster
+        getScrollMaster,
+        waitForPreviewReady
     })
 
     // —— 导出 ——

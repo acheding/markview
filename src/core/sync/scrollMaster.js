@@ -70,6 +70,15 @@ export const createScrollMaster = ({ editor, preview, getAnchors, isEnabled = ()
         programmaticScroll('preview', interpolate(anchors, 'editor', 'preview', editorTarget))
     }
 
+    // 搜索等已知两侧精确位置的导航直接对齐，不再经过锚点插值。
+    const alignToScrollTops = (editorTop, previewTop) => {
+        if (!isEnabled() || !Number.isFinite(editorTop) || !Number.isFinite(previewTop)) return false
+
+        programmaticScroll('editor', editorTop)
+        programmaticScroll('preview', previewTop)
+        return true
+    }
+
     // 清空两侧期望值队列。用于导航锁释放时，丢弃跟随侧积累的未核销期望，避免后续误判。
     const reset = () => {
         expected.editor.length = 0
@@ -79,6 +88,7 @@ export const createScrollMaster = ({ editor, preview, getAnchors, isEnabled = ()
     return {
         handleScroll,
         alignToEditorTop,
+        alignToScrollTops,
         reset
     }
 }

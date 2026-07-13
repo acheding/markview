@@ -106,6 +106,21 @@ describe('createScrollMaster', () => {
         expect(preview.current()).toBe(380)
     })
 
+    it('aligns both panes to independently measured positions', () => {
+        const editor = createPane(2000, 400)
+        const preview = createPane(3000, 500)
+        const master = createScrollMaster({
+            editor: editor.adapter,
+            preview: preview.adapter,
+            getAnchors: () => linearAnchors
+        })
+
+        master.alignToScrollTops(1432.4, 2288.7)
+
+        expect(editor.current()).toBe(1432)
+        expect(preview.current()).toBe(2289)
+    })
+
     it('does not sync while disabled', () => {
         const editor = createPane()
         const preview = createPane()

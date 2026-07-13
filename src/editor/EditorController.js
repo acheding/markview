@@ -65,6 +65,31 @@ export const createEditorController = ({
         return match ? { from: line.from + match.from, to: line.from + match.to } : { from: line.from, to: line.to }
     }
 
+    const measureScrollTop = (position, viewportRatio, attempts = 2) =>
+        new Promise((resolve) => {
+            view.requestMeasure({
+                read(measuredView) {
+                    const coords = measuredView.coordsAtPos(position)
+                    if (!coords) return Number.NaN
+
+                    const scrollRect = measuredView.scrollDOM.getBoundingClientRect()
+                    return (
+                        measuredView.scrollDOM.scrollTop +
+                        coords.top -
+                        scrollRect.top -
+                        measuredView.scrollDOM.clientHeight * viewportRatio
+                    )
+                },
+                write(measuredTop) {
+                    if (Number.isFinite(measuredTop) || attempts <= 1) {
+                        resolve(Number.isFinite(measuredTop) ? measuredTop : view.scrollDOM.scrollTop)
+                    } else {
+                        measureScrollTop(position, viewportRatio, attempts - 1).then(resolve)
+                    }
+                }
+            })
+        })
+
     return {
         // 切换活动文档：先暂存当前文档状态，再恢复/新建目标文档状态并 setState。
         setActiveDocument(id, text = '') {
@@ -111,6 +136,20 @@ export const createEditorController = ({
 
             if (focus) view.contentDOM.focus({ preventScroll: !scroll })
             return true
+        },
+
+        // CodeMirror 先用原生滚动把远距离目标纳入真实视口，再在同一测量周期返回精确滚动位置。
+        async revealLineMeasured(lineNumber, { match, query, select = true, focus = true, viewportRatio = 0.3 } = {}) {
+            const range = resolveRange(lineNumber, { columns: match, query })
+            if (!range) return Number.NaN
+
+            view.dispatch({
+                selection: select ? { anchor: range.from } : undefined,
+                effects: EditorView.scrollIntoView(range.from, { y: 'center' })
+            })
+            if (focus) view.contentDOM.focus({ preventScroll: true })
+
+            return measureScrollTop(range.from, viewportRatio)
         },
 
         // 搜索高亮：match = { lineNumber, from, to } 或 null（清除）

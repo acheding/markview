@@ -36,13 +36,18 @@ export const createPreviewController = ({ contentEl }) => {
         return target
     }
 
-    const scrollToElement = (target, options = {}) => {
-        if (!target) return false
+    const scrollTopForElement = (target, options = {}) => {
+        if (!target) return Number.NaN
 
         const contentRect = contentEl.getBoundingClientRect()
         const targetRect = target.getBoundingClientRect()
         const viewportOffset = contentEl.clientHeight * (options.viewportRatio || 0)
-        const top = contentEl.scrollTop + targetRect.top - contentRect.top - viewportOffset - (options.offset || 0)
+        return contentEl.scrollTop + targetRect.top - contentRect.top - viewportOffset - (options.offset || 0)
+    }
+
+    const scrollToElement = (target, options = {}) => {
+        const top = scrollTopForElement(target, options)
+        if (!Number.isFinite(top)) return false
 
         contentEl.scrollTo({ top, behavior: options.behavior || 'smooth' })
         return true
@@ -57,6 +62,8 @@ export const createPreviewController = ({ contentEl }) => {
         blockForLine,
 
         scrollToSourceLine: (lineNumber, options) => scrollToElement(blockForLine(lineNumber), options),
+
+        scrollTopForSourceLine: (lineNumber, options) => scrollTopForElement(blockForLine(lineNumber), options),
 
         scrollToHeading: (id, options) => scrollToElement(contentEl.querySelector(`#${CSS.escape(id)}`), options),
 

@@ -17,43 +17,63 @@ export const createOrchestrations = ({
     confirm,
     getEditor,
     getPreview,
-    getScrollMaster
+    getScrollMaster,
+    waitForPreviewReady
 }) => {
     let collapseRunId = 0
+    let searchRunId = 0
 
     // 把当前搜索命中重新定位并高亮（展开编辑区后、或选中搜索结果时复用）。
-    const revealActiveLine = () => {
+    const revealActiveLine = async () => {
         const match = search.activeMatch.value
-        if (!match || !Number.isFinite(match.lineNumber)) return
+        if (!match || !Number.isFinite(match.lineNumber)) return false
 
         const editor = getEditor()
+        const preview = getPreview()
         const line = match.lineNumber
-
-        editor?.revealLine(line, {
+        const revealOptions = {
             match: { from: match.from, to: match.to },
             query: match.query,
             select: true,
-            focus: !layout.isEditorCollapsed.value,
-            scroll: false
-        })
+            focus: !layout.isEditorCollapsed.value
+        }
 
         if (layout.isEditorCollapsed.value) {
-            getPreview()?.scrollToSourceLine(line, { behavior: 'auto', viewportRatio: SEARCH_VIEWPORT_RATIO })
-        } else {
-            getScrollMaster()?.alignToEditorTop(editor?.lineTop(line), { viewportRatio: SEARCH_VIEWPORT_RATIO })
+            editor?.revealLine(line, { ...revealOptions, scroll: false })
+            preview?.scrollToSourceLine(line, { behavior: 'auto', viewportRatio: SEARCH_VIEWPORT_RATIO })
+            return true
         }
+
+        const editorTop = await editor?.revealLineMeasured(line, {
+            ...revealOptions,
+            viewportRatio: SEARCH_VIEWPORT_RATIO
+        })
+        if (search.activeMatch.value !== match) return false
+
+        const previewTop = preview?.scrollTopForSourceLine(line, { viewportRatio: SEARCH_VIEWPORT_RATIO })
+        const aligned = getScrollMaster()?.alignToScrollTops(editorTop, previewTop)
+        if (!aligned) {
+            preview?.scrollToSourceLine(line, { behavior: 'auto', viewportRatio: SEARCH_VIEWPORT_RATIO })
+        }
+        return true
     }
 
     // 选中全局搜索结果：切文档 → 定位 → 编辑/预览双侧高亮。
     const revealSearchResult = async (result) => {
+        const runId = ++searchRunId
         documents.select(result.fileId)
         await nextTick()
+        if (runId !== searchRunId) return
 
         if (result.kind === 'line' && Number.isFinite(result.lineNumber)) {
+            if (!(await waitForPreviewReady()) || runId !== searchRunId) return
+
             search.setActiveMatch(result)
             await nextTick()
+            if (runId !== searchRunId) return
 
-            revealActiveLine()
+            await revealActiveLine()
+            if (runId !== searchRunId) return
 
             if (layout.isEditorCollapsed.value) {
                 getPreview()?.focus()
@@ -89,7 +109,7 @@ export const createOrchestrations = ({
         if (runId !== collapseRunId || layout.isEditorCollapsed.value) return
 
         layout.setScrollSyncEnabled(true)
-        revealActiveLine()
+        await revealActiveLine()
         headings.updateActiveHeading()
     }
 
