@@ -1,6 +1,6 @@
-# README
+# MarkView
 
-一个纯前端的本地 Markdown 实时预览工具：左侧 CodeMirror 6 编辑，右侧实时渲染，所有数据保存在浏览器 IndexedDB 中，无需任何后端。
+一个纯前端的本地 Markdown 实时预览工具：左侧 CodeMirror 6 编辑，右侧实时渲染，所有数据保存在浏览器 IndexedDB 中，无需任何后端。支持暗色/浅色主题、命令面板、URL 分享，并作为 PWA 离线安装使用。
 
 基于 Vue 3 + Vite 构建，核心逻辑与 UI 严格分层，纯逻辑层零 Vue、零 DOM，全部由 Vitest 直测覆盖。
 
@@ -9,8 +9,12 @@
 ### 编辑与预览
 
 - **实时预览**：左侧输入 Markdown，右侧即时渲染；编辑区与预览区按源码行号双向滚动同步
+- **后台线程渲染**：Markdown 渲染跑在 Web Worker 里，主线程输入不卡顿；Worker 不可用时自动降级为主线程同步渲染
 - **CodeMirror 6 编辑器**：行号、Markdown 语法高亮、围栏代码块按语言（JS / TS / CSS / HTML / Python / JSON / XML 等）嵌套高亮
 - **智能补全**：输入 `](` 时补全工作区文档路径与当前文档的标题锚点；代码块内提供对应语言的补全
+- **数学公式**：KaTeX 渲染行内 `$…$` 与块级 `$$…$$` 公式
+- **Mermaid 图表**：标注 `mermaid` 的代码块异步渲染为 SVG，并跟随明暗主题切换配色
+- **暗色 / 浅色主题**：右上角一键切换，首次跟随系统偏好，之后记忆本地选择
 - **编辑区折叠**：一键折叠编辑区专注阅读，文件切换与操作按钮自动移入预览区头部
 - **可调布局**：编辑区 / 预览区分栏、目录宽度均可拖拽调整；移动端自动切换上下布局
 
@@ -20,10 +24,13 @@
 - **自动保存**：内容变更增量写入 IndexedDB，头部实时显示保存状态
 - **智能命名**：根据标题或正文自动生成文件名，导入文件同样按内容识别命名
 - **导入导出**：批量导入 `.md` / `.markdown` / 文本文件；导出 Markdown 或 PDF
+- **URL 分享**：一键把当前文档压缩进链接 hash，链接自包含、无需后端；打开分享链接即还原文档
+- **PWA 离线可用**：可安装到桌面 / 主屏，构建产物预缓存后断网也能使用
 
 ### 导航与搜索
 
 - **全局搜索**：`Ctrl + K`（macOS：`Cmd + K`）唤起，按文件名与正文跨文档检索，选中结果精确定位到行并在编辑区、预览区双侧高亮
+- **命令面板**：`Ctrl + P`（macOS：`Cmd + P`）唤起，模糊匹配执行新建 / 导出 / 分享 / 切换主题 / 折叠 / 切换文档等命令
 - **目录导航**：按标题自动生成目录，点击跳转，当前标题高亮自动跟随滚动
 - **标题锚点**：预览区标题 hover 显示 `#`，点击复制带 hash 的完整链接；刷新或新标签打开可直达对应标题
 - **回到顶部**：预览区滚动较深时右下角出现快捷返回按钮
@@ -35,9 +42,13 @@
 | ------------------------------------------------------- | ------------------------------------ |
 | [Vue 3](https://vuejs.org/)                             | 组合式 API + `<script setup>`        |
 | [Vite](https://vitejs.dev/)                             | 开发服务器与构建                     |
+| [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)    | PWA 清单与离线预缓存                 |
 | [CodeMirror 6](https://codemirror.net/)                 | 编辑器（高亮、补全、行号、搜索高亮） |
-| [marked](https://marked.js.org/)                        | Markdown 解析与渲染                  |
+| [marked](https://marked.js.org/)                        | Markdown 解析与渲染（Web Worker 内）  |
 | [highlight.js](https://highlightjs.org/)                | 预览区代码块语法高亮                 |
+| [KaTeX](https://katex.org/)                             | 数学公式渲染                         |
+| [Mermaid](https://mermaid.js.org/)                      | 流程图 / 时序图等图表渲染            |
+| [lz-string](https://github.com/pieroxy/lz-string)       | 分享链接的文档压缩编解码             |
 | [html2pdf.js](https://ekoopmans.github.io/html2pdf.js/) | PDF 导出                             |
 | [Vitest](https://vitest.dev/)                           | 核心逻辑单元测试                     |
 
@@ -82,7 +93,7 @@ core（纯逻辑领域层：零 Vue、零 DOM，Vitest 直测）
 - **components** 只负责 UI，不含业务逻辑；通过 `provide/inject` 获取工作区
 - **workspace** 持有全部响应式状态（文档会话、搜索会话、布局会话），跨子系统流程（搜索定位、折叠编排等）集中在 `orchestrations`
 - **controllers** 封装 CodeMirror 与预览 DOM 的命令式能力，是组件之下操作编辑器 / 预览的唯一入口
-- **core** 是可独立测试的纯函数领域层：文档模型、持久化调度、Markdown 渲染与源行标注、跨文档搜索、滚动锚点表
+- **core** 是可独立测试的纯函数领域层：文档模型、持久化调度、Markdown 渲染与源行标注、跨文档搜索、滚动锚点表、分享链接编解码
 
 ### 目录结构
 
@@ -92,24 +103,28 @@ src/
 ├── styles/                  # 设计 token 与全局样式（tokens / base / markdown / highlights）
 ├── core/                    # 纯逻辑领域层
 │   ├── documents/           # 文档模型、IndexedDB 存储、保存状态机
-│   ├── markdown/            # marked 渲染、源行标注、代码高亮、slug 生成
+│   ├── markdown/            # marked 渲染、源行标注、代码高亮、数学扩展、slug、渲染 Worker
 │   ├── search/              # 跨文档搜索、匹配、摘要
+│   ├── share/               # 分享链接（lz-string）编解码
 │   ├── sync/                # 滚动锚点表与防回环
 │   └── text.js              # 通用文本工具
 ├── editor/                  # CodeMirror 6 封装（无 Vue）
 │   ├── EditorController.js  # 编辑器唯一门面（多文档独立 EditorState）
 │   └── extensions/          # 主题、语法高亮、链接/代码补全、搜索高亮、代码语言等扩展
-├── preview/                 # 预览 DOM 门面（源行定位、搜索高亮）
+├── preview/                 # 预览 DOM 门面（源行定位、搜索高亮、mermaid 渲染）
 ├── workspace/               # 响应式状态 + 横切编排
 │   ├── createWorkspace.js   # 组装会话 / 控制器 / 生命周期，provide 下发
 │   ├── documentSession.js   # 多文档状态与持久化
 │   ├── searchSession.js     # 搜索查询与命中
 │   ├── layoutSession.js     # 分栏宽度 / 折叠 / 目录宽度
+│   ├── previewRenderSession.js # 预览渲染调度（Worker / 降级）
+│   ├── markdownRenderer.js  # Web Worker 渲染门面与降级
+│   ├── toastSession.js / confirmSession.js # 全局提示与确认弹窗
 │   ├── headingNavigation.js # 标题 hash 导航
 │   └── orchestrations.js    # 搜索定位、折叠展开等跨子系统流程
-├── composables/             # 通用 UI 工具（拖拽、媒体查询、偏好持久化、过渡等待）
+├── composables/             # 通用 UI 工具（主题、拖拽、媒体查询、偏好持久化、剪贴板等）
 ├── services/exporter.js     # Markdown / PDF 导出
-├── components/              # 哑组件（工具栏、编辑面板、预览面板、目录、搜索框等）
+├── components/              # 哑组件（工具栏、命令面板、主题切换、编辑/预览面板、目录、搜索、提示等）
 ├── constants/presets.js     # 预置文档
 └── assets/                  # SVG 图标资源
 ```
@@ -124,7 +139,10 @@ src/
 | 新建 / 清空       | 编辑区头部按钮                                      |
 | 导入              | 头部导入按钮，支持一次选择多个文件                  |
 | 导出              | `md` 按钮下载 Markdown，`PDF` 按钮下载 PDF          |
+| 分享文档          | 头部分享按钮复制自包含链接，或命令面板选「复制分享链接」 |
 | 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行 |
+| 命令面板          | `Ctrl + P` / `Cmd + P` 唤起，输入关键字模糊匹配命令 |
+| 切换主题          | 顶部工具栏右上角主题按钮，或命令面板切换            |
 | 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复            |
 | 调整分栏          | 拖拽编辑区与预览区之间的分割条                      |
 | 调整目录宽度      | 拖拽目录左侧边缘                                    |
@@ -157,7 +175,9 @@ MarkView 完全运行在浏览器端，文档数据保存在当前站点的 Inde
 
 - 清理浏览器站点数据会丢失所有文档
 - 更换浏览器、设备或部署路径后无法读取原有内容
-- 重要文档请定期通过导出功能备份
+- 重要文档请定期通过导出或分享链接备份
+
+作为 PWA 安装后，构建产物会被预缓存以支持离线使用，但文档数据仍只存于本地 IndexedDB，缓存与数据互不替代。
 
 ## Markdown 语法演示
 
