@@ -44,4 +44,28 @@ describe('renderMarkdown', () => {
     it('shows an empty hint for blank input', () => {
         expect(renderMarkdown('   ').html).toContain('empty-hint')
     })
+
+    it('keeps the checkbox inline with the text in a tight task list', () => {
+        const { html } = renderMarkdown('- [ ] 待办\n- [x] 完成')
+
+        // tight 列表项不应被包进块级 <p>（否则复选框会被挤到单独一行）。
+        expect(html).toContain('<li><input disabled="" type="checkbox"> 待办</li>')
+        expect(html).toContain('<li><input checked="" disabled="" type="checkbox"> 完成</li>')
+        expect(html).not.toContain('<li><input disabled="" type="checkbox"> <p>')
+    })
+
+    it('merges the checkbox into the first paragraph of a loose task list item', () => {
+        const { html } = renderMarkdown('- [ ] 待办\n\n- [x] 完成')
+
+        // loose 列表项保留 <p>，但复选框需并入首段内部以保持同行。
+        expect(html).toContain('<li><p><input disabled="" type="checkbox"> 待办</p>')
+        expect(html).toContain('<li><p><input checked="" disabled="" type="checkbox"> 完成</p>')
+    })
+
+    it('does not wrap tight plain list items in paragraphs', () => {
+        const { html } = renderMarkdown('- 甲\n- 乙')
+
+        expect(html).toContain('<li>甲</li>')
+        expect(html).toContain('<li>乙</li>')
+    })
 })

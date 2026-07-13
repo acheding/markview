@@ -79,6 +79,16 @@
     margin: 3px 0;
 }
 
+/* 任务列表项：以复选框代替项目符号，避免「圆点 + 复选框」并存（对齐 GitHub 观感）。 */
+.markdown-body li:has(> input[type='checkbox']) {
+    list-style: none;
+}
+
+.markdown-body li > input[type='checkbox'] {
+    margin: 0 6px 0 -20px;
+    vertical-align: middle;
+}
+
 .markdown-body blockquote {
     margin: 12px 0;
     padding: 10px 16px;

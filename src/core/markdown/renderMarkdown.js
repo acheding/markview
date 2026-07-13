@@ -122,12 +122,20 @@ export const renderMarkdown = (source) => {
                     const startAttr = token.ordered && token.start !== 1 ? ` start="${token.start}"` : ''
                     const body = token.items
                         .map((item) => {
-                            const checkbox = item.task
-                                ? `<input ${item.checked ? 'checked="" ' : ''}disabled="" type="checkbox"> `
-                                : ''
-                            const content = this.parser.parse(item.tokens)
+                            // 传 item.loose 作为 top：tight 列表项不再被包进块级 <p>，
+                            // 否则 <p> 会把任务列表的复选框挤到单独一行，并撑出多余的段落间距。
+                            let content = this.parser.parse(item.tokens, item.loose)
 
-                            return `<li>${checkbox}${content}</li>`
+                            if (item.task) {
+                                const checkbox = `<input ${item.checked ? 'checked="" ' : ''}disabled="" type="checkbox"> `
+                                // loose 列表项以块级 <p> 包裹，复选框需并入首段内部才能与文字同行。
+                                content =
+                                    item.loose && content.startsWith('<p>')
+                                        ? content.replace('<p>', `<p>${checkbox}`)
+                                        : checkbox + content
+                            }
+
+                            return `<li>${content}</li>`
                         })
                         .join('')
 
