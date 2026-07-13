@@ -1,5 +1,4 @@
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { renderMarkdown } from '../core/markdown/renderMarkdown.js'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { decodeShareHash, encodeSharePayload } from '../core/share/shareLink.js'
 import { buildAnchorTable } from '../core/sync/anchorMap.js'
 import { createScrollMaster } from '../core/sync/scrollMaster.js'
@@ -14,6 +13,7 @@ import { createHeadingNavigation } from './headingNavigation.js'
 import { createOrchestrations } from './orchestrations.js'
 import { createToastSession } from './toastSession.js'
 import { createConfirmSession } from './confirmSession.js'
+import { createMarkdownRenderer } from './markdownRenderer.js'
 import { useTheme } from '../composables/useTheme.js'
 import { copyText } from '../composables/clipboard.js'
 
@@ -33,9 +33,20 @@ export const createWorkspace = () => {
     const confirm = createConfirmSession()
     const { theme } = useTheme()
 
-    const rendered = computed(() => renderMarkdown(documents.content.value))
-    const html = computed(() => rendered.value.html)
-    const toc = computed(() => rendered.value.toc)
+    // 渲染在 Web Worker 中进行，结果异步写回 html/toc。
+    const html = ref('')
+    const toc = ref([])
+    const markdownRenderer = createMarkdownRenderer({
+        onResult: (result) => {
+            html.value = result.html
+            toc.value = result.toc
+        }
+    })
+    watch(
+        () => documents.content.value,
+        (source) => markdownRenderer.render(source ?? ''),
+        { immediate: true }
+    )
 
     // —— 命令式控制器（挂载时创建） ——
     let editorController = null
@@ -351,6 +362,7 @@ export const createWorkspace = () => {
         releaseNavLock()
         toast.dispose()
         confirm.dispose()
+        markdownRenderer.dispose()
         documents.dispose()
         headings.dispose()
         detachEditor()
