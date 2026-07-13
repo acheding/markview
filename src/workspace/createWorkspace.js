@@ -126,6 +126,7 @@ export const createWorkspace = () => {
     const releaseNavLock = () => {
         if (!syncOwner) return
         syncOwner = null
+        headings.endNavigation()
         scrollMaster?.reset()
         clearTimeout(navReleaseTimer)
         navReleaseTimer = null

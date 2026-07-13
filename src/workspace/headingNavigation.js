@@ -34,6 +34,10 @@ const isHeadingVisible = (scrollEl, element) => {
 // 标题导航：跟踪当前激活标题、hash 直达/重试、点击标题写 hash。
 export const createHeadingNavigation = ({ toc, getPreviewController }) => {
     const activeHeadingId = ref('')
+    // 导航目标：TOC/锚点点击后、平滑滚动落定前的目标标题。
+    // 期间不直接把 active 设为目标（否则会先跳到目标、再被滚动回弹到原处），
+    // 而是让 active 随滚动逐个标题「走」过去，目标以 pending（悬浮态）示意。
+    const navTargetId = ref('')
     let hashScrollRunId = 0
     let hashRetryTimer = null
 
@@ -44,7 +48,7 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
         history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
     }
 
-    const updateActiveHeading = (preferredId = '') => {
+    const updateActiveHeading = (preferredId = navTargetId.value) => {
         const preview = scrollEl()
         if (!preview || !toc.value.length) {
             activeHeadingId.value = ''
@@ -103,9 +107,17 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
         }, 250)
     }
 
-    const selectHeading = (id) => {
-        activeHeadingId.value = id
+    // 发起一次导航（TOC/锚点点击）：记录目标 + 写 hash，但不立刻改 active。
+    // active 交给随后的平滑滚动逐帧驱动，最终由 endNavigation 兜底落在目标上。
+    const beginNavigation = (id) => {
+        navTargetId.value = id
         setHashHeadingId(id)
+    }
+
+    // 平滑滚动结束（scrollend/兜底）时调用：把 active 锁定到目标，清空导航态。
+    const endNavigation = () => {
+        if (navTargetId.value) activeHeadingId.value = navTargetId.value
+        navTargetId.value = ''
     }
 
     const init = () => window.addEventListener('hashchange', scrollToHashHeading)
@@ -119,7 +131,8 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
         clearHash,
         updateActiveHeading,
         scrollToHashHeading,
-        selectHeading,
+        beginNavigation,
+        endNavigation,
         init,
         dispose
     }

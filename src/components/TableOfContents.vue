@@ -8,10 +8,10 @@
                 :key="item.id"
                 type="button"
                 class="toc__item"
-                :class="{ 'is-active': item.id === activeId }"
+                :class="{ 'is-active': item.id === activeId, 'is-pending': item.id === navigatingId && item.id !== activeId }"
                 :style="{ paddingLeft: `${(item.level - 1) * 12 + 10}px` }"
                 :title="item.title"
-                @click="$emit('select', item.id)"
+                @click="select(item.id)"
             >
                 {{ item.title }}
             </button>
@@ -39,9 +39,16 @@ const props = defineProps({
     }
 })
 
-defineEmits(['select'])
+const emit = defineEmits(['select'])
 
 const tocRef = ref(null)
+// 本组件发起的导航目标：点击后、activeId 抵达前，用它给目标「悬浮态」并抑制面板滚动。
+const navigatingId = ref('')
+
+const select = (id) => {
+    navigatingId.value = id
+    emit('select', id)
+}
 
 const scrollActiveItemIntoView = async () => {
     if (!props.activeId) return
@@ -65,7 +72,15 @@ const scrollActiveItemIntoView = async () => {
     }
 }
 
-watch(() => props.activeId, scrollActiveItemIntoView)
+// active 变化：抵达导航目标即结束导航；仅在非导航态跟随滚动。
+// 于是点击导航时面板保持不动、选中态在原位逐项挪向目标；抵达后若目标在视野外再兜底滚一次。
+watch(
+    () => props.activeId,
+    (id) => {
+        if (id === navigatingId.value) navigatingId.value = ''
+        if (!navigatingId.value) scrollActiveItemIntoView()
+    }
+)
 </script>
 
 <style scoped>
@@ -116,7 +131,8 @@ watch(() => props.activeId, scrollActiveItemIntoView)
         border-color var(--duration-fast) ease;
 }
 
-.toc__item:hover {
+.toc__item:hover,
+.toc__item.is-pending {
     color: var(--color-accent);
     background: var(--color-surface);
     border-color: var(--color-border-soft);

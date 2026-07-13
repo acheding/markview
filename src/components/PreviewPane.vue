@@ -109,7 +109,7 @@ const handlePreviewClick = async (event) => {
 
     workspace.beginPreviewNavigation()
     workspace.getPreview()?.scrollToHeading(id)
-    headings.selectHeading(id)
+    headings.beginNavigation(id)
 }
 
 const handleContentScroll = () => {
@@ -125,7 +125,7 @@ const scrollToTop = () => {
 const handleTocSelect = (id) => {
     workspace.beginPreviewNavigation()
     workspace.getPreview()?.scrollToHeading(id)
-    headings.selectHeading(id)
+    headings.beginNavigation(id)
 }
 
 onMounted(() => {
