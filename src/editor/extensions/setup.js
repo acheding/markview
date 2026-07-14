@@ -1,7 +1,16 @@
-import { autocompletion } from '@codemirror/autocomplete'
+import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { indentWithTab } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
-import { Compartment } from '@codemirror/state'
-import { EditorView, highlightActiveLine, highlightActiveLineGutter, lineNumbers, placeholder } from '@codemirror/view'
+import { bracketMatching } from '@codemirror/language'
+import { Compartment, Prec } from '@codemirror/state'
+import {
+    EditorView,
+    highlightActiveLine,
+    highlightActiveLineGutter,
+    keymap,
+    lineNumbers,
+    placeholder
+} from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
 import { markdownCodeLanguages } from './codeLanguages.js'
 import { editorTheme } from './theme.js'
@@ -30,6 +39,13 @@ export const createEditorExtensions = ({ onDocChanged, onUserIntent, onImageNoti
         markdownSupport.language.data.of({ autocomplete: markdownCompletionSource }),
         languageCompletionExtensions,
         autocompletion({ activateOnTyping: true, maxRenderedOptions: 40 }),
+        // 括号 / 引号 / 反引号自动配对与匹配高亮，便于写链接 []()、行内代码 `` 等。
+        closeBrackets(),
+        bracketMatching(),
+        // closeBrackets 的 Backspace（成对删除）需盖过 minimalSetup 的默认 Backspace，故提到高优先级。
+        Prec.high(keymap.of(closeBracketsKeymap)),
+        // Tab 缩进：优先级低于补全键位，补全弹出时 Tab 接受候选，否则缩进当前行 / 选区。
+        keymap.of([indentWithTab]),
         vitePressSyntaxHighlighting,
         EditorView.lineWrapping,
         placeholder(PLACEHOLDER_TEXT),
