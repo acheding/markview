@@ -9,7 +9,7 @@ import {
 } from '../core/documents/documentModel.js'
 import { isIndexedDbSupported, loadDocumentState, saveDocumentState } from '../core/documents/documentStore.js'
 import { SAVE_STATUS, createPersistenceScheduler } from '../core/documents/persistenceScheduler.js'
-import { countWords, stripImageData } from '../core/text.js'
+import { countImages, countWords, stripImageData } from '../core/text.js'
 import { PRESET_DOCUMENTS } from '../constants/presets.js'
 
 const NAME_DEBOUNCE_MS = 300
@@ -43,7 +43,8 @@ export const createDocumentSession = () => {
         return {
             lines: content.value ? content.value.split('\n').length : 0,
             words: countWords(readable),
-            chars: readable.length
+            chars: readable.length,
+            images: countImages(content.value)
         }
     })
 

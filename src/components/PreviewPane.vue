@@ -17,6 +17,9 @@
                     <span class="preview-stat"
                         >字符 <strong>{{ documents.stats.value.chars }}</strong></span
                     >
+                    <span v-if="documents.stats.value.images" class="preview-stat"
+                        >图片 <strong>{{ documents.stats.value.images }}</strong></span
+                    >
                 </div>
 
                 <span class="preview-save-status">{{ documents.saveStatusLabel.value }}</span>
@@ -231,7 +234,7 @@ onBeforeUnmount(() => {
     min-width: 24px;
     color: var(--color-text);
     font-weight: 650;
-    text-align: center;
+    text-align: left;
 }
 
 .preview-save-status {

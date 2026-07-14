@@ -23,3 +23,9 @@ export const countWords = (value = '') => {
 const IMAGE_DATA_URL_RE = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g
 
 export const stripImageData = (value = '') => String(value).replace(IMAGE_DATA_URL_RE, '')
+
+// 统计 Markdown 图片数量（![alt](url)），内联 base64 与普通链接图片都算。
+// base64 字符集不含 ')'，故 [^)]* 不会误吞后续内容。
+const IMAGE_SYNTAX_RE = /!\[[^\]]*\]\([^)]*\)/g
+
+export const countImages = (value = '') => (String(value).match(IMAGE_SYNTAX_RE) || []).length
