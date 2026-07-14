@@ -91,6 +91,8 @@ export const createPersistenceScheduler = ({
     return {
         schedule,
         flush,
+        // 是否存在尚未落盘的变更（多标签页协调时用于保护本页正在编辑的活动文档）。
+        hasPending: () => hasPendingSave,
         setEnabled(value) {
             enabled = Boolean(value)
         },

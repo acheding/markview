@@ -27,7 +27,14 @@ const getElementTop = (container, element) => {
 // 在 App 根部组装整个工作区：会话（响应式状态）+ 控制器（命令式门面）+ 编排 + 生命周期。
 // 通过 provide 下发，任何组件 useWorkspace() 直接消费。
 export const createWorkspace = () => {
-    const documents = createDocumentSession()
+    // 另一标签页写入被协调后：丢弃过期文档的编辑器缓存态，并把外部更新推回当前编辑视图。
+    const documents = createDocumentSession({
+        onExternalUpdate: ({ activeContent, forgetIds }) => {
+            forgetIds?.forEach((id) => editorController?.forgetDocument(id))
+            // setDoc 内容与内存态一致，其触发的 onDocChanged 会因内容相同而空转，不产生保存回环。
+            if (activeContent != null) editorController?.setDoc(activeContent)
+        }
+    })
     const search = createSearchSession({ files: documents.files, activeFileId: documents.activeFileId })
     const layout = createLayoutSession()
     const toast = createToastSession()
