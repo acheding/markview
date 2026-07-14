@@ -31,6 +31,14 @@ const blockMath = {
 }
 
 // 行内公式 $...$：不匹配 $$，内部不跨行、不含裸 $。
+// 采用 Pandoc/GitHub 的定界规则规避货币误判（如「买 $100 和 $200」不应被当公式）：
+//   1. 开 $ 右侧紧邻非空白        (?=\S)         —— 排除「$ 100」这类
+//   2. 闭 $ 左侧紧邻非空白        [^$\n\s] 结尾  —— 「$100 和 $」的闭 $ 前是空格，不成立
+//   3. 闭 $ 右侧不接数字          (?![$\d])      —— 「$5 到 $10」的 $10 不误开公式
+// 内容首尾均须非空白，故用「(?=\S) + …以非空白结尾」表达，避免 lookbehind（旧版 Safari 不支持）。
+// 转义 `\$` 无需在此处理：marked 内置的 escape tokenizer 会先消费它，落为字面 $。
+const INLINE_MATH_RE = /^\$(?!\$)(?=\S)([^$\n]*[^$\n\s])\$(?![$\d])/
+
 const inlineMath = {
     name: 'inlineMath',
     level: 'inline',
@@ -39,7 +47,7 @@ const inlineMath = {
         return index < 0 ? undefined : index
     },
     tokenizer(src) {
-        const match = /^\$(?!\$)([^$\n]+?)\$(?!\$)/.exec(src)
+        const match = INLINE_MATH_RE.exec(src)
         if (!match) return undefined
         return { type: 'inlineMath', raw: match[0], text: match[1] }
     },

@@ -79,6 +79,31 @@ describe('renderMarkdown', () => {
         expect(block).toContain('katex-display')
     })
 
+    it('does not treat currency amounts as inline math', () => {
+        // 闭 $ 左侧是空格、右侧接数字，均不满足行内公式定界规则，应原样保留。
+        const { html } = renderMarkdown('买 $100 和 $200 一共 $300')
+
+        expect(html).not.toContain('class="katex"')
+        expect(html).toContain('$100')
+        expect(html).toContain('$200')
+        expect(html).toContain('$300')
+    })
+
+    it('requires the opening $ to hug a non-space character', () => {
+        // 「$ x $」开定界符后是空格，不构成行内公式。
+        const { html } = renderMarkdown('区间 $ x $ 结束')
+
+        expect(html).not.toContain('class="katex"')
+    })
+
+    it('keeps an escaped dollar sign as a literal character', () => {
+        // marked 内置 escape 先消费 \$，不会开启行内公式。
+        const { html } = renderMarkdown('单价 \\$5 起')
+
+        expect(html).not.toContain('class="katex"')
+        expect(html).toContain('$5')
+    })
+
     it('emits a mermaid placeholder instead of highlighting mermaid code blocks', () => {
         const { html } = renderMarkdown('```mermaid\nflowchart TD\n  A --> B\n```')
 
