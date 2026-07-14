@@ -209,6 +209,7 @@ export const createWorkspace = () => {
             onDocChanged: (text) => documents.setContent(text),
             onUserIntent: () => search.clearActiveMatch(),
             onScroll: handleEditorScroll,
+            onImageNotify: (message) => toast.show(message, { tone: 'warn', duration: 3000 }),
             completion: {
                 getHeadings: () => toc.value,
                 getDocuments: () => documents.files.value

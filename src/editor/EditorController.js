@@ -28,9 +28,15 @@ export const createEditorController = ({
     onDocChanged,
     onUserIntent,
     onScroll,
+    onImageNotify,
     completion
 }) => {
-    const { extensions, themeCompartment } = createEditorExtensions({ onDocChanged, onUserIntent, completion })
+    const { extensions, themeCompartment } = createEditorExtensions({
+        onDocChanged,
+        onUserIntent,
+        onImageNotify,
+        completion
+    })
 
     const buildState = (text) => EditorState.create({ doc: text, extensions })
 
