@@ -77,6 +77,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
+import { copyText } from '../composables/clipboard.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import PanelToolbar from './PanelToolbar.vue'
 import ResizeDivider from './ResizeDivider.vue'
@@ -104,7 +105,29 @@ const updateReadingProgress = () => {
 // 内容变化（切文档 / 编辑）会改变可滚动高度，需重算进度；flush post 确保 DOM 已更新。
 watch(html, () => updateReadingProgress(), { flush: 'post' })
 
+// 复制代码块：取同块 <code> 的 textContent（还原后的纯源码，不含高亮标签）写入剪贴板。
+const handleCodeCopy = async (button) => {
+    const code = button.closest('.code-block')?.querySelector('pre code')
+    if (!code) return
+
+    const ok = await copyText(code.textContent || '')
+    button.textContent = ok ? '已复制' : '复制失败'
+    button.classList.toggle('is-copied', ok)
+    window.clearTimeout(button._copyTimer)
+    button._copyTimer = window.setTimeout(() => {
+        button.textContent = '复制'
+        button.classList.remove('is-copied')
+    }, 1200)
+}
+
 const handlePreviewClick = async (event) => {
+    const copyBtn = event.target.closest?.('.code-copy')
+    if (copyBtn) {
+        event.preventDefault()
+        handleCodeCopy(copyBtn)
+        return
+    }
+
     const anchor = event.target.closest?.('.heading-anchor')
     if (!anchor) return
 

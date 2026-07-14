@@ -128,8 +128,18 @@ export const renderMarkdown = (source) => {
                     }
 
                     const languageClass = language ? ` language-${escapeHtml(language)}` : ''
+                    const langBadge = language ? `<span class="code-block__lang">${escapeHtml(language)}</span>` : ''
 
-                    return `<pre${getSourceLineAttr(token)}><code class="hljs${languageClass}">${highlightCode(token.text, language)}</code></pre>`
+                    // 外层 .code-block 承载 data-source-line（块级容器），并为角标 / 复制按钮提供定位上下文。
+                    // 复制按钮无 data-*，点击时由预览层取同块 <code> 的 textContent（即还原后的源码）。
+                    return (
+                        `<div class="code-block"${getSourceLineAttr(token)}>` +
+                        `<div class="code-block__bar">${langBadge}` +
+                        `<button class="code-copy" type="button" title="复制代码" aria-label="复制代码">复制</button>` +
+                        `</div>` +
+                        `<pre><code class="hljs${languageClass}">${highlightCode(token.text, language)}</code></pre>` +
+                        `</div>`
+                    )
                 },
 
                 hr(token) {

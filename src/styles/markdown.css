@@ -131,6 +131,96 @@
     font-size: inherit;
 }
 
+/* 代码块容器：为语言角标 / 复制按钮提供定位上下文，外边距上移到此，pre 归零 */
+.markdown-body .code-block {
+    position: relative;
+    margin: 12px 0;
+}
+
+.markdown-body .code-block pre {
+    margin: 0;
+}
+
+/* 角标 / 复制按钮浮于右上角，grid 叠放同一格：默认显示语言角标，
+   hover / 键盘聚焦代码块时角标淡出、复制按钮在原位淡入。 */
+.markdown-body .code-block__bar {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 1;
+    display: grid;
+    justify-items: end;
+    align-items: center;
+}
+
+.markdown-body .code-block__bar > * {
+    grid-area: 1 / 1;
+    transition: opacity var(--duration-fast) ease;
+}
+
+.markdown-body .code-block__lang {
+    padding: 1px 8px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-pre-bg) 80%, transparent);
+    color: var(--color-pre-text);
+    font-family: var(--font-mono);
+    font-size: 0.72em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    pointer-events: none;
+    user-select: none;
+}
+
+.markdown-body .code-copy {
+    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--color-pre-text) 22%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-pre-bg) 92%, transparent);
+    color: var(--color-pre-text);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75em;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    backdrop-filter: blur(2px);
+    transition:
+        opacity var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease;
+}
+
+/* hover / 聚焦：角标淡出，复制按钮淡入并可点 */
+.markdown-body .code-block:hover .code-block__lang,
+.markdown-body .code-block:focus-within .code-block__lang {
+    opacity: 0;
+}
+
+.markdown-body .code-block:hover .code-copy,
+.markdown-body .code-block:focus-within .code-copy {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.markdown-body .code-copy:hover,
+.markdown-body .code-copy.is-copied {
+    border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    color: var(--color-accent);
+}
+
+/* 触屏无 hover：直接显示复制按钮、隐藏角标，保证可复制 */
+@media (hover: none) {
+    .markdown-body .code-block__lang {
+        opacity: 0;
+    }
+
+    .markdown-body .code-copy {
+        opacity: 0.85;
+        pointer-events: auto;
+    }
+}
+
 /* highlight.js —— 对齐 VitePress 默认浅色代码块的 GitHub Light / Shiki 配色 */
 .markdown-body .hljs-comment,
 .markdown-body .hljs-quote {
