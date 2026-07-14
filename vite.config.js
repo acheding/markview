@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd())
+    const base = env.VITE_APP_PATH || '/'
 
     return {
         plugins: [
@@ -22,7 +23,21 @@ export default defineConfig(({ mode }) => {
                     icons: [
                         { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
                         { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' }
-                    ]
+                    ],
+                    // 注册为 .md / .markdown 的系统文件处理器：安装后双击这类文件即用 MarkView 打开，
+                    // 应用侧由 launchQueue 消费者接收文件并导入为新文档（见 createWorkspace）。
+                    file_handlers: [
+                        {
+                            action: base,
+                            accept: {
+                                'text/markdown': ['.md', '.markdown']
+                            }
+                        }
+                    ],
+                    // 打开文件时优先复用已有窗口（走 launchQueue），而非每次新开一个实例。
+                    launch_handler: {
+                        client_mode: ['focus-existing', 'auto']
+                    }
                 },
                 workbox: {
                     // 预缓存构建产物，实现离线可用；html2pdf 等较大 chunk 需提高单文件上限。
@@ -32,7 +47,7 @@ export default defineConfig(({ mode }) => {
                 }
             })
         ],
-        base: env.VITE_APP_PATH || '/',
+        base,
         build: {
             assetsInlineLimit: 0
         },

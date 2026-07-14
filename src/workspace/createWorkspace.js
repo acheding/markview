@@ -402,8 +402,52 @@ export const createWorkspace = () => {
         }
     }
 
+    // —— PWA 文件处理（File Handling API）——
+    // 从系统双击 .md / .markdown 打开时，launchQueue 把文件句柄交给这里，逐个导入为新文档。
+    const consumeLaunchFiles = async (launchParams) => {
+        const files = launchParams?.files
+        if (!files?.length) return
+
+        // 等 hydrate 完成再导入，避免被随后的初始状态覆盖。
+        if (!documents.isReady.value) {
+            await new Promise((resolve) => {
+                const stop = watch(
+                    () => documents.isReady.value,
+                    (ready) => {
+                        if (ready) {
+                            stop()
+                            resolve()
+                        }
+                    }
+                )
+            })
+        }
+
+        let imported = 0
+        for (const handle of files) {
+            try {
+                const file = await handle.getFile()
+                const content = await file.text()
+                documents.importFile({ name: file.name, content })
+                imported += 1
+            } catch (error) {
+                console.warn('打开文件失败:', error)
+            }
+        }
+
+        if (imported) {
+            toast.show(imported > 1 ? `已打开 ${imported} 个文件` : '已打开文件', { tone: 'success' })
+        }
+    }
+
+    const setupFileHandling = () => {
+        if (typeof window === 'undefined' || !('launchQueue' in window)) return
+        window.launchQueue.setConsumer(consumeLaunchFiles)
+    }
+
     onMounted(() => {
         headings.init()
+        setupFileHandling()
         window.addEventListener('pagehide', flushOnLeave)
         window.addEventListener('beforeunload', flushOnLeave)
         document.addEventListener('visibilitychange', flushOnHidden)
