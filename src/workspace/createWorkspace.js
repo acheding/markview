@@ -37,6 +37,9 @@ export const createWorkspace = () => {
     // 渲染在 Web Worker 中进行，结果异步写回 html/toc。
     const html = ref('')
     const toc = ref([])
+    // 首屏 hydrate 完成（isReady）后编辑器立即出内容，但预览需等 Worker 渲染 + 后处理，
+    // 长文可达约 2s。用该标记让预览区在初次发布前保留骨架屏，避免右侧长时间空白。
+    const isPreviewReady = ref(false)
     let latestRenderSequence = 0
     let editorController = null
     let previewController = null
@@ -56,6 +59,7 @@ export const createWorkspace = () => {
         try {
             html.value = result.html
             toc.value = result.toc
+            isPreviewReady.value = true
             renderRevision += 1
             await nextTick()
 
@@ -414,6 +418,7 @@ export const createWorkspace = () => {
         confirm,
         html,
         toc,
+        isPreviewReady,
         exporting: {
             isExportingPdf,
             exportActiveFile,

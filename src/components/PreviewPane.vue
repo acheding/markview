@@ -43,6 +43,11 @@
                 @scroll="handleContentScroll"
             />
 
+            <!-- 首屏：编辑器已出内容但预览尚未完成首次渲染时，用骨架屏覆盖空白内容区 -->
+            <div v-if="!isPreviewReady" class="preview-skeleton-overlay">
+                <PreviewSkeleton />
+            </div>
+
             <button
                 v-show="isBackTopVisible"
                 class="preview-back-top"
@@ -80,11 +85,12 @@ import backToTopIcon from '../assets/back-to-top.svg'
 import { copyText } from '../composables/clipboard.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import PanelToolbar from './PanelToolbar.vue'
+import PreviewSkeleton from './PreviewSkeleton.vue'
 import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
 
 const workspace = useWorkspace()
-const { documents, search, layout, headings, html, toc } = workspace
+const { documents, search, layout, headings, html, toc, isPreviewReady } = workspace
 
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
@@ -198,6 +204,16 @@ onBeforeUnmount(() => {
     display: flex;
     flex: 1;
     min-height: 0;
+}
+
+/* 覆盖在真实内容之上：内容为空时挡住空白，首次渲染发布后由 v-if 移除 */
+.preview-skeleton-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-float);
+    display: flex;
+    background: var(--color-surface);
+    --toc-width: var(--preview-toc-width, 220px);
 }
 
 .preview-content {
