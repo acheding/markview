@@ -21,19 +21,9 @@
                 <span class="toolbar-action-icon" :style="iconStyle(exportHtmlIcon)" aria-hidden="true" />
                 导出 HTML
             </button>
-            <button
-                class="toolbar-menu__item"
-                type="button"
-                role="menuitem"
-                :disabled="exporting.isExportingPdf.value"
-                @click="run(exporting.exportPdf)"
-            >
-                <span class="toolbar-action-icon" :style="iconStyle(exportPdfIcon)" aria-hidden="true" />
-                {{ exporting.isExportingPdf.value ? '正在导出 PDF…' : '导出 PDF' }}
-            </button>
             <button class="toolbar-menu__item" type="button" role="menuitem" @click="run(exporting.print)">
                 <span class="toolbar-action-icon" :style="iconStyle(printIcon)" aria-hidden="true" />
-                打印 / 打印为 PDF
+                导出 PDF / 打印
             </button>
         </div>
     </div>
@@ -43,7 +33,6 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import exportFileIcon from '../assets/export-file.svg'
 import exportHtmlIcon from '../assets/export-html.svg'
-import exportPdfIcon from '../assets/export-pdf.svg'
 import printIcon from '../assets/print.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 

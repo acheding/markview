@@ -126,7 +126,7 @@ defineProps({
     }
 })
 
-const { documents, actions, share } = useWorkspace()
+const { documents, actions, share, toast } = useWorkspace()
 
 const fileInputRef = ref(null)
 
@@ -145,7 +145,7 @@ const importFiles = async (event) => {
         }
     } catch (error) {
         console.warn('Markdown import failed:', error)
-        alert('导入失败，请确认文件可读取。')
+        toast.show('导入失败，请确认文件可读取。', { tone: 'warn', duration: 3000 })
     } finally {
         event.target.value = ''
     }

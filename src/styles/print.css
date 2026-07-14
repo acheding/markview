@@ -1,10 +1,12 @@
 /* 打印版式：仅打印预览正文。撑开被裁剪的滚动容器、隐藏应用外壳与交互控件、避免块被分页切断。
    打印期间由 exporter.printDocument() 临时切浅色，故此处不再重复覆盖配色。 */
-@media print {
-    @page {
-        margin: 16mm;
-    }
+/* 页边距置 0：改由正文 padding 烘出边距，不受打印对话框「边距」下拉（默认/无/自定义）影响，
+   效果稳定且与旧的 html2pdf 导出一致。 */
+@page {
+    margin: 0;
+}
 
+@media print {
     html,
     body,
     #app {
@@ -31,11 +33,12 @@
         min-width: 0 !important;
     }
 
+    /* 页边距烘进正文 padding：上下 14mm、左右 12mm，各打印机 / 对话框设置下均一致 */
     .preview-content {
         display: block !important;
         height: auto !important;
         max-height: none !important;
-        padding: 0 !important;
+        padding: 14mm 12mm !important;
         overflow: visible !important;
         contain: none !important;
         background: #ffffff !important;

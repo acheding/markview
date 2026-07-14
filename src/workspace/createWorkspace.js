@@ -4,7 +4,7 @@ import { buildAnchorTable } from '../core/sync/anchorMap.js'
 import { createScrollMaster } from '../core/sync/scrollMaster.js'
 import { createEditorController } from '../editor/EditorController.js'
 import { createPreviewController } from '../preview/PreviewController.js'
-import { exportHtml, exportMarkdown, exportPdf, printDocument } from '../services/exporter.js'
+import { exportHtml, exportMarkdown, printDocument } from '../services/exporter.js'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
@@ -258,25 +258,14 @@ export const createWorkspace = () => {
     })
 
     // —— 导出 ——
-    const isExportingPdf = ref(false)
+    // PDF 走浏览器原生打印（printDocument）：原生支持 color-mix 等现代 CSS、文字可选、体积小，
+    // 取代了对 html2canvas 的依赖（其无法解析本项目的 color-mix，会渲染即抛错）。
     const exportActiveFile = () => exportMarkdown(documents.activeFile.value)
     const exportActiveHtml = () => {
         if (!previewController) return
         exportHtml(previewController.scrollDOM, documents.activeFile.value?.name, { theme: theme.value })
     }
     const printActiveDocument = () => printDocument()
-    const exportActivePdf = async () => {
-        if (isExportingPdf.value || !previewController) return
-        isExportingPdf.value = true
-        try {
-            await exportPdf(previewController.scrollDOM, documents.activeFile.value?.name)
-        } catch (error) {
-            console.warn('导出 PDF 失败:', error)
-            alert('导出 PDF 失败，请重试。')
-        } finally {
-            isExportingPdf.value = false
-        }
-    }
 
     // —— 响应式联动 ——
     // 切换文档：编辑器切到该文档的独立 EditorState（各自 undo 历史），再做副作用（清搜索命中、
@@ -449,11 +438,9 @@ export const createWorkspace = () => {
         toc,
         isPreviewReady,
         exporting: {
-            isExportingPdf,
             exportActiveFile,
             exportHtml: exportActiveHtml,
-            print: printActiveDocument,
-            exportPdf: exportActivePdf
+            print: printActiveDocument
         },
         actions: orchestrations,
         share: shareActiveDocument,
