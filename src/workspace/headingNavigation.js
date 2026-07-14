@@ -2,6 +2,9 @@ import { ref } from 'vue'
 import { waitForAnimationFrame } from '../composables/useTransitionSettled.js'
 
 const ACTIVE_HEADING_OFFSET = 4
+// hash 恢复重对齐的边界：帧数上限（约 3s 安全阀）与判定「版面稳定」的连续静止帧数。
+const MAX_RESTORE_FRAMES = 180
+const RESTORE_STABLE_FRAMES = 8
 
 const getHashHeadingId = () => {
     const hash = window.location.hash.replace(/^#/, '')
@@ -31,7 +34,7 @@ const isHeadingVisible = (scrollEl, element) => {
     return top >= 0 && top <= scrollEl.clientHeight
 }
 
-// 标题导航：跟踪当前激活标题、hash 直达/重试、点击标题写 hash。
+// 标题导航：跟踪当前激活标题、hash 直达/回流兜底、点击标题写 hash。
 export const createHeadingNavigation = ({ toc, getPreviewController }) => {
     const activeHeadingId = ref('')
     // 导航目标：TOC/锚点点击后、平滑滚动落定前的目标标题。
@@ -39,7 +42,8 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
     // 而是让 active 随滚动逐个标题「走」过去，目标以 pending（悬浮态）示意。
     const navTargetId = ref('')
     let hashScrollRunId = 0
-    let hashRetryTimer = null
+    // 恢复中：hash 定位正在把 active 钉在目标上，期间不让几何重算把它挤到上一个标题。
+    let restoring = false
 
     const scrollEl = () => getPreviewController()?.scrollDOM
 
@@ -49,6 +53,8 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
     }
 
     const updateActiveHeading = (preferredId = navTargetId.value) => {
+        // 恢复期间 active 由 scrollToHashHeading 钉在 hash 目标上，忽略滚动/回流触发的几何重算。
+        if (restoring) return
         const preview = scrollEl()
         if (!preview || !toc.value.length) {
             activeHeadingId.value = ''
@@ -89,27 +95,39 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
         }
 
         const runId = ++hashScrollRunId
-        clearTimeout(hashRetryTimer)
+        restoring = true
 
-        for (let index = 0; index < 6; index += 1) {
+        // 长文里图片/Mermaid 等异步内容会在首次对齐后继续回流，抬高目标上方的高度，
+        // 把锚点挤出顶部。这里逐帧持续重对齐、并把 active 钉在目标上，直到内容高度
+        // 连续多帧不再变化（版面稳定）或到达帧数上限，避免刷新后定位/高亮退回上一个标题。
+        let lastHeight = -1
+        let stableFrames = 0
+        for (let index = 0; index < MAX_RESTORE_FRAMES; index += 1) {
             await waitForAnimationFrame()
             if (runId !== hashScrollRunId) return
+            const preview = scrollEl()
+            if (!preview) continue
+
             if (getPreviewController()?.scrollToHeading(id, { behavior: 'auto' })) {
                 activeHeadingId.value = id
             }
+
+            // 高度连续多帧不变即认为异步回流结束；标题不存在（垃圾 hash）时高度本就稳定，同样会退出。
+            const height = preview.scrollHeight
+            stableFrames = height === lastHeight ? stableFrames + 1 : 0
+            lastHeight = height
+            if (stableFrames >= RESTORE_STABLE_FRAMES) break
         }
 
-        hashRetryTimer = setTimeout(() => {
-            if (runId !== hashScrollRunId) return
-            if (getPreviewController()?.scrollToHeading(id, { behavior: 'auto' })) {
-                activeHeadingId.value = id
-            }
-        }, 250)
+        if (runId === hashScrollRunId) restoring = false
     }
 
     // 发起一次导航（TOC/锚点点击）：记录目标 + 写 hash，但不立刻改 active。
     // active 交给随后的平滑滚动逐帧驱动，最终由 endNavigation 兜底落在目标上。
     const beginNavigation = (id) => {
+        // 用户主动导航：取消可能仍在进行的 hash 恢复重对齐，避免与新目标抢滚动。
+        hashScrollRunId += 1
+        restoring = false
         navTargetId.value = id
         setHashHeadingId(id)
     }
@@ -123,7 +141,8 @@ export const createHeadingNavigation = ({ toc, getPreviewController }) => {
     const init = () => window.addEventListener('hashchange', scrollToHashHeading)
     const dispose = () => {
         window.removeEventListener('hashchange', scrollToHashHeading)
-        clearTimeout(hashRetryTimer)
+        hashScrollRunId += 1
+        restoring = false
     }
 
     return {

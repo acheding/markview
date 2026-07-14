@@ -38,7 +38,7 @@ export const createWorkspace = () => {
     const html = ref('')
     const toc = ref([])
     // 首屏 hydrate 完成（isReady）后编辑器立即出内容，但预览需等 Worker 渲染 + 后处理，
-    // 长文可达约 2s。用该标记让预览区在初次发布前保留骨架屏，避免右侧长时间空白。
+    // 用该标记让预览区在初次发布前保留骨架屏，避免右侧长时间空白。
     const isPreviewReady = ref(false)
     let latestRenderSequence = 0
     let editorController = null
@@ -312,16 +312,16 @@ export const createWorkspace = () => {
     // 用最新 Worker 原始结果离屏重建主题对应的 Mermaid SVG，再原子发布。
     watch(theme, () => previewRenderer.refresh())
 
-    // 分享链接（#share=…）→ 解压为新文档导入，随后清 hash（避免刷新重复导入、干扰标题锚点）。
+    // 分享链接（#share=…）→ 解压为新文档导入，并清掉 share hash（避免刷新重复导入）。
+    // 不在此写回标题锚点：导入会切换活动文档、触发文档切换副作用（含 clearHash），
+    // 此刻写的锚点会被清掉。锚点由调用方在切换副作用结束后写回。返回解码结果（含 anchor）。
     const importSharedFromHash = () => {
         const shared = decodeShareHash(window.location.hash)
-        if (!shared) return false
+        if (!shared) return null
         documents.importFile({ name: shared.name, content: shared.content })
-        // 清掉 share hash；若带锚点则改写为标题 hash，供渲染后经 scrollToHashHeading 直达定位。
-        const base = window.location.pathname + window.location.search
-        history.replaceState(null, '', shared.anchor ? `${base}#${encodeURIComponent(shared.anchor)}` : base)
+        history.replaceState(null, '', window.location.pathname + window.location.search)
         toast.show('已打开分享的文档', { tone: 'success' })
-        return true
+        return shared
     }
 
     // 把当前文档压缩进 URL hash，复制到剪贴板。链接自包含、无需后端。
@@ -340,7 +340,7 @@ export const createWorkspace = () => {
             // 与聊天软件粘贴截断，故阈值放宽到 5 万，超出也只是温和提示、仍复制成功。
             const isLong = link.length > 50000
             const label = anchorId ? '定位分享链接' : '分享链接'
-            toast.show(isLong ? `${label}已复制（较长，用聊天软件发送可能被截断）` : `${label}已复制到剪贴板`, {
+            toast.show(isLong ? `${label}已复制（较长，可能被截断）` : `${label}已复制到剪贴板`, {
                 tone: 'success',
                 duration: isLong ? 3200 : 2200
             })
@@ -352,13 +352,22 @@ export const createWorkspace = () => {
         return false
     }
 
-    // 数据就绪后：先处理分享链接（含锚点者会改写为标题 hash），再统一按 hash 直达标题。
+    // 数据就绪后：先处理分享链接（导入新文档），待文档切换副作用跑完再写回锚点、等预览发布后定位。
     watch(
         () => documents.isReady.value,
         async (ready) => {
             if (!ready) return
             await nextTick()
-            importSharedFromHash()
+            const shared = importSharedFromHash()
+            // 等一拍让导入触发的文档切换副作用（含 clearHash、置顶）和重渲染跑完：
+            // 之后再写回锚点 hash（否则会被 clearHash 清掉），并等预览真正发布——
+            // 否则标题 DOM 尚不存在，定位会落空、或被随后到达的渲染把锚点挤偏一个标题。
+            await nextTick()
+            if (shared?.anchor) {
+                const base = window.location.pathname + window.location.search
+                history.replaceState(null, '', `${base}#${encodeURIComponent(shared.anchor)}`)
+            }
+            await waitForPreviewReady()
             headings.scrollToHashHeading()
         }
     )
