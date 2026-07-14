@@ -199,6 +199,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onGlobalKeydown))
     color: var(--color-subtle);
 }
 
+@media (max-width: 768px) {
+    /* 提到 16px，避免 iOS Safari 聚焦时自动放大页面 */
+    .cmd-input {
+        font-size: 16px;
+    }
+}
+
 .cmd-list {
     flex: 1;
     min-height: 0;

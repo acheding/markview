@@ -171,7 +171,8 @@
 
 @media (max-width: 768px) {
     :root {
-        --editor-font-size: 13px;
+        /* 移动端提到 16px：iOS Safari 聚焦 <16px 的输入会自动放大页面，16px 可完全避免 */
+        --editor-font-size: 16px;
         --editor-content-padding-y: 12px;
         --editor-line-padding-x: 12px;
     }

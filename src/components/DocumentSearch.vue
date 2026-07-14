@@ -258,6 +258,13 @@ onBeforeUnmount(() => {
     padding-right: 68px;
 }
 
+@media (max-width: 768px) {
+    /* 提到 16px，避免 iOS Safari 聚焦时自动放大页面 */
+    .document-search__input {
+        font-size: 16px;
+    }
+}
+
 .document-search__input::placeholder {
     color: var(--color-subtle);
 }
