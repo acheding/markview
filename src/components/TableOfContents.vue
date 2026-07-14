@@ -1,7 +1,5 @@
 <template>
     <aside ref="tocRef" class="toc" :style="{ width }" aria-label="文档目录">
-        <div class="toc__title">目录</div>
-
         <div v-if="items.length" class="toc__list">
             <button
                 v-for="item in items"
@@ -91,14 +89,6 @@ watch(
     overflow-y: auto;
     background: var(--color-surface-soft);
     color: var(--color-muted);
-}
-
-.toc__title {
-    padding: 0 10px 10px;
-    color: var(--color-subtle);
-    font-size: var(--font-size-sm);
-    font-weight: 700;
-    letter-spacing: 0;
 }
 
 .toc__list {

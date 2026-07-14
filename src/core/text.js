@@ -17,3 +17,9 @@ export const countWords = (value = '') => {
     const words = value.match(/[一-龥]|[a-zA-Z]+(?:['’][a-zA-Z]+)?/g)
     return words ? words.length : 0
 }
+
+// 内联图片的 base64 数据不是可读正文，统计字数 / 字符前应剔除，
+// 否则单张图能顶几百万字符，让统计彻底失真。仅去掉数据段，其余 Markdown 语法照常计入。
+const IMAGE_DATA_URL_RE = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g
+
+export const stripImageData = (value = '') => String(value).replace(IMAGE_DATA_URL_RE, '')

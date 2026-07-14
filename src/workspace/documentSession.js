@@ -9,7 +9,7 @@ import {
 } from '../core/documents/documentModel.js'
 import { isIndexedDbSupported, loadDocumentState, saveDocumentState } from '../core/documents/documentStore.js'
 import { SAVE_STATUS, createPersistenceScheduler } from '../core/documents/persistenceScheduler.js'
-import { countWords } from '../core/text.js'
+import { countWords, stripImageData } from '../core/text.js'
 import { PRESET_DOCUMENTS } from '../constants/presets.js'
 
 const NAME_DEBOUNCE_MS = 300
@@ -37,11 +37,15 @@ export const createDocumentSession = () => {
     const activeFile = computed(() => files.value.find((file) => file.id === activeFileId.value) || files.value[0])
     const content = computed(() => activeFile.value?.content || '')
     const saveStatusLabel = computed(() => SAVE_STATUS_LABEL[saveStatus.value] || saveStatus.value)
-    const stats = computed(() => ({
-        lines: content.value ? content.value.split('\n').length : 0,
-        words: countWords(content.value),
-        chars: content.value.length
-    }))
+    const stats = computed(() => {
+        // 行数按原文算（base64 是单行，剔除不影响行数）；字数 / 字符基于剔除图片数据后的可读文本。
+        const readable = stripImageData(content.value)
+        return {
+            lines: content.value ? content.value.split('\n').length : 0,
+            words: countWords(readable),
+            chars: readable.length
+        }
+    })
 
     const scheduler = createPersistenceScheduler({
         getSnapshot: () => snapshotState(state.value),

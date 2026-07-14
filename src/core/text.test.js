@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clamp, countWords, escapeHtml, stripHtml } from './text.js'
+import { clamp, countWords, escapeHtml, stripHtml, stripImageData } from './text.js'
 
 describe('text utilities', () => {
     it('clamps a value into range', () => {
@@ -17,5 +17,14 @@ describe('text utilities', () => {
     it('strips simple html and counts mixed Chinese and English words', () => {
         expect(stripHtml('<strong>MarkView</strong> 文档')).toBe('MarkView 文档')
         expect(countWords("MarkView 支持 Markdown previewer's flow")).toBe(6)
+    })
+
+    it('strips inline image base64 data so stats ignore it', () => {
+        const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+        const md = `前文 ![图](data:image/png;base64,${base64}) 后文`
+        const stripped = stripImageData(md)
+        // 整个 data URL（含前缀）都被剔除，只留 Markdown 图片语法骨架
+        expect(stripped).toBe('前文 ![图]() 后文')
+        expect(stripped).not.toContain(base64)
     })
 })
