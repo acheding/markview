@@ -72,7 +72,7 @@
                 @click="actions.setEditorCollapsed(true)"
             >
                 <span
-                    class="toolbar-action-icon"
+                    class="toolbar-action-icon panel-toolbar__collapse-icon"
                     :style="{ '--icon-url': `url(${collapseEditorIcon})` }"
                     aria-hidden="true"
                 />
@@ -88,7 +88,7 @@
                 @click="actions.setEditorCollapsed(false)"
             >
                 <span
-                    class="toolbar-action-icon"
+                    class="toolbar-action-icon panel-toolbar__collapse-icon"
                     :style="{ '--icon-url': `url(${expandEditorIcon})` }"
                     aria-hidden="true"
                 />
@@ -181,6 +181,11 @@ const importFiles = async (event) => {
 @media (max-width: 768px) {
     .panel-toolbar__switcher {
         flex: 1;
+    }
+
+    /* 移动端为上下布局，折叠/展开箭头旋转 90° 指向上下方向 */
+    .panel-toolbar__collapse-icon {
+        transform: rotate(90deg);
     }
 }
 </style>
