@@ -24,6 +24,11 @@
         </div>
 
         <div class="preview-layout" :style="{ '--preview-toc-width': layout.tocWidthStyle.value }">
+            <!-- 阅读进度条：随预览滚动从左向右填充，用 scaleX 走 GPU 合成，不触发重排 -->
+            <div v-show="hasOverflow" class="reading-progress" aria-hidden="true">
+                <div class="reading-progress__fill" :style="{ transform: `scaleX(${readingProgress})` }" />
+            </div>
+
             <div
                 ref="contentRef"
                 class="preview-content markdown-body"
@@ -67,7 +72,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import PanelToolbar from './PanelToolbar.vue'
@@ -79,8 +84,22 @@ const { documents, search, layout, headings, html, toc } = workspace
 
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
+const readingProgress = ref(0)
+const hasOverflow = ref(false)
 
 const normalizedWidth = computed(() => (layout.isEditorCollapsed.value ? '100%' : layout.previewWidth.value))
+
+// 由预览滚动位置算出阅读进度（0~1）。内容不足一屏时隐藏进度条。
+const updateReadingProgress = () => {
+    const el = contentRef.value
+    if (!el) return
+    const scrollable = el.scrollHeight - el.clientHeight
+    hasOverflow.value = scrollable > 1
+    readingProgress.value = hasOverflow.value ? Math.min(1, Math.max(0, el.scrollTop / scrollable)) : 0
+}
+
+// 内容变化（切文档 / 编辑）会改变可滚动高度，需重算进度；flush post 确保 DOM 已更新。
+watch(html, () => updateReadingProgress(), { flush: 'post' })
 
 const handlePreviewClick = async (event) => {
     const anchor = event.target.closest?.('.heading-anchor')
@@ -114,6 +133,7 @@ const handlePreviewClick = async (event) => {
 
 const handleContentScroll = () => {
     isBackTopVisible.value = (contentRef.value?.scrollTop || 0) > 240
+    updateReadingProgress()
     workspace.handlePreviewScroll()
 }
 
@@ -130,6 +150,7 @@ const handleTocSelect = (id) => {
 
 onMounted(() => {
     workspace.attachPreview(contentRef.value)
+    updateReadingProgress()
 })
 
 onBeforeUnmount(() => {
@@ -162,6 +183,26 @@ onBeforeUnmount(() => {
     background: var(--color-surface);
     scroll-behavior: auto;
     contain: layout;
+}
+
+.reading-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-float);
+    height: 3px;
+    background: transparent;
+    pointer-events: none;
+}
+
+.reading-progress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 80ms linear;
+    will-change: transform;
 }
 
 .preview-collapsed-toolbar {
