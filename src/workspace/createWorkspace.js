@@ -317,15 +317,20 @@ export const createWorkspace = () => {
         const shared = decodeShareHash(window.location.hash)
         if (!shared) return false
         documents.importFile({ name: shared.name, content: shared.content })
-        history.replaceState(null, '', window.location.pathname + window.location.search)
+        // 清掉 share hash；若带锚点则改写为标题 hash，供渲染后经 scrollToHashHeading 直达定位。
+        const base = window.location.pathname + window.location.search
+        history.replaceState(null, '', shared.anchor ? `${base}#${encodeURIComponent(shared.anchor)}` : base)
         toast.show('已打开分享的文档', { tone: 'success' })
         return true
     }
 
     // 把当前文档压缩进 URL hash，复制到剪贴板。链接自包含、无需后端。
-    const shareActiveDocument = async () => {
+    // 传入 anchor（标题 id）时生成「定位分享链接」：既含原文档、又直达该标题。
+    const shareActiveDocument = async (anchor) => {
+        // 通过 @click 直接绑定时首参会是 MouseEvent，仅接受字符串锚点。
+        const anchorId = typeof anchor === 'string' && anchor ? anchor : null
         const name = documents.activeFile.value?.name || '未命名文档.md'
-        const compressed = encodeSharePayload({ name, content: documents.content.value })
+        const compressed = encodeSharePayload({ name, content: documents.content.value, anchor: anchorId })
         const url = new URL(window.location.href)
         url.hash = `share=${compressed}`
         const link = url.toString()
@@ -334,24 +339,27 @@ export const createWorkspace = () => {
             // hash 不会发到服务器，故不受 8KB URL 限制；真正的上限是浏览器地址栏（Safari 约 8 万字符最保守）
             // 与聊天软件粘贴截断，故阈值放宽到 5 万，超出也只是温和提示、仍复制成功。
             const isLong = link.length > 50000
-            toast.show(isLong ? '分享链接已复制（较长，用聊天软件发送可能被截断）' : '分享链接已复制到剪贴板', {
+            const label = anchorId ? '定位分享链接' : '分享链接'
+            toast.show(isLong ? `${label}已复制（较长，用聊天软件发送可能被截断）` : `${label}已复制到剪贴板`, {
                 tone: 'success',
                 duration: isLong ? 3200 : 2200
             })
-        } else {
-            // 复制彻底失败：把链接写进地址栏，用户可手动复制。
-            window.location.hash = `share=${compressed}`
-            toast.show('已生成链接，请从地址栏手动复制', { tone: 'warn', duration: 3600 })
+            return true
         }
+        // 复制彻底失败：把链接写进地址栏，用户可手动复制。
+        window.location.hash = `share=${compressed}`
+        toast.show('已生成链接，请从地址栏手动复制', { tone: 'warn', duration: 3600 })
+        return false
     }
 
-    // 数据就绪后：优先处理分享链接，否则处理初始 hash 标题直达。
+    // 数据就绪后：先处理分享链接（含锚点者会改写为标题 hash），再统一按 hash 直达标题。
     watch(
         () => documents.isReady.value,
         async (ready) => {
             if (!ready) return
             await nextTick()
-            if (!importSharedFromHash()) headings.scrollToHashHeading()
+            importSharedFromHash()
+            headings.scrollToHashHeading()
         }
     )
 

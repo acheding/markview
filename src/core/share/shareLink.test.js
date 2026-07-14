@@ -8,6 +8,17 @@ describe('shareLink', () => {
         expect(decodeShareHash(hash)).toEqual(doc)
     })
 
+    it('round-trips an anchor for 定位分享链接', () => {
+        const doc = { name: '测试.md', content: '# 标题\n## 小节', anchor: '小节' }
+        const hash = `#share=${encodeSharePayload(doc)}`
+        expect(decodeShareHash(hash)).toEqual(doc)
+    })
+
+    it('omits the anchor field when not provided', () => {
+        const hash = `#share=${encodeSharePayload({ name: 'a.md', content: 'x' })}`
+        expect(decodeShareHash(hash)).not.toHaveProperty('anchor')
+    })
+
     it('returns null for non-share hashes', () => {
         expect(decodeShareHash('#某标题')).toBeNull()
         expect(decodeShareHash('')).toBeNull()

@@ -142,20 +142,14 @@ const handlePreviewClick = async (event) => {
 
     event.preventDefault()
 
-    // 复制带 hash 的完整链接到剪贴板
-    try {
-        const url = new URL(window.location)
-        url.hash = id
-        await navigator.clipboard.writeText(url.toString())
-
+    // 复制「定位分享链接」：与分享一致，链接自包含原文档，并携带锚点直达该标题。
+    if (await workspace.share(id)) {
         const textNode = anchor.childNodes[0]
         const originalText = textNode?.textContent
         if (textNode) textNode.textContent = '✓'
         setTimeout(() => {
             if (textNode) textNode.textContent = originalText
         }, 1000)
-    } catch {
-        window.location.hash = id
     }
 
     workspace.beginPreviewNavigation()

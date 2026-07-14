@@ -4,12 +4,18 @@ import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from
 const SHARE_PREFIX = 'share='
 
 // 文档 → 可安全放进 URL 的压缩串（lz-string 的 URI 变体，无需再 encodeURIComponent）。
-export const encodeSharePayload = ({ name, content }) => {
-    const payload = JSON.stringify({ n: name || '', c: content || '' })
+// anchor 可选：携带标题锚点 id，打开分享后可直达对应标题。
+export const encodeSharePayload = ({ name, content, anchor }) => {
+    const payload = JSON.stringify({
+        n: name || '',
+        c: content || '',
+        ...(anchor ? { a: anchor } : {})
+    })
     return compressToEncodedURIComponent(payload)
 }
 
 // location.hash → 分享文档；非分享 hash 或数据损坏则返回 null。
+// 含锚点时附带 anchor 字段（无锚点则不含该键，保持向后兼容）。
 export const decodeShareHash = (hash = '') => {
     const raw = hash.startsWith('#') ? hash.slice(1) : hash
     if (!raw.startsWith(SHARE_PREFIX)) return null
@@ -18,10 +24,12 @@ export const decodeShareHash = (hash = '') => {
         const json = decompressFromEncodedURIComponent(raw.slice(SHARE_PREFIX.length))
         if (!json) return null
         const data = JSON.parse(json)
-        return {
+        const result = {
             name: typeof data.n === 'string' && data.n ? data.n : '分享文档.md',
             content: typeof data.c === 'string' ? data.c : ''
         }
+        if (typeof data.a === 'string' && data.a) result.anchor = data.a
+        return result
     } catch {
         return null
     }
