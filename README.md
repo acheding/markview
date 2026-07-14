@@ -1,4 +1,4 @@
-# MarkView
+# README
 
 一个纯前端的本地 Markdown 实时预览工具：左侧 CodeMirror 6 编辑，右侧实时渲染，所有数据保存在浏览器 IndexedDB 中，无需任何后端。支持暗色/浅色主题、命令面板、URL 分享，并作为 PWA 离线安装使用。
 
@@ -11,7 +11,10 @@
 - **实时预览**：左侧输入 Markdown，右侧即时渲染；编辑区与预览区按源码行号双向滚动同步
 - **后台线程渲染**：Markdown 渲染跑在 Web Worker 里，主线程输入不卡顿；Worker 不可用时自动降级为主线程同步渲染
 - **CodeMirror 6 编辑器**：行号、Markdown 语法高亮、围栏代码块按语言（JS / TS / CSS / HTML / Python / JSON / XML 等）嵌套高亮
+- **编辑辅助**：括号 / 引号自动配对与匹配高亮、成对删除，`Tab` / `Shift + Tab` 缩进
 - **智能补全**：输入 `](` 时补全工作区文档路径与当前文档的标题锚点；代码块内提供对应语言的补全
+- **图片内联**：粘贴 / 拖拽图片自动压缩（大图缩放 + WebP 编码）为 base64 内联进文档；编辑区将超长 base64 折叠为「⋯ 图片数据 ⋯」占位，文档内容不受影响
+- **代码块增强**：预览区代码块显示语言角标，hover 一键复制
 - **数学公式**：KaTeX 渲染行内 `$…$` 与块级 `$$…$$` 公式
 - **Mermaid 图表**：标注 `mermaid` 的代码块异步渲染为 SVG，并跟随明暗主题切换配色
 - **暗色 / 浅色主题**：右上角一键切换，首次跟随系统偏好，之后记忆本地选择
@@ -22,10 +25,12 @@
 
 - **多文档工作区**：新建、切换、删除多个文档，每个文档拥有独立的撤销历史
 - **自动保存**：内容变更增量写入 IndexedDB，头部实时显示保存状态
+- **多标签页同步**：同一站点开多个标签页时，文档状态经 BroadcastChannel 实时同步，正在编辑的文档不会被其他标签页覆盖
 - **智能命名**：根据标题或正文自动生成文件名，导入文件同样按内容识别命名
-- **导入导出**：批量导入 `.md` / `.markdown` / 文本文件；导出 Markdown 或 PDF
+- **导入导出**：批量导入 `.md` / `.markdown` / 文本文件；「更多」菜单可导出 Markdown、自包含 HTML（内联样式、离线可读），或经浏览器原生打印导出 PDF
 - **URL 分享**：一键把当前文档压缩进链接 hash，链接自包含、无需后端；打开分享链接即还原文档
 - **PWA 离线可用**：可安装到桌面 / 主屏，构建产物预缓存后断网也能使用
+- **系统文件处理器**：PWA 安装后注册为 `.md` / `.markdown` 的文件处理器，双击本地文件即用 MarkView 打开并导入为新文档
 
 ### 导航与搜索
 
@@ -33,8 +38,9 @@
 - **命令面板**：`Ctrl + P`（macOS：`Cmd + P`）唤起，模糊匹配执行新建 / 导出 / 分享 / 切换主题 / 折叠 / 切换文档等命令
 - **目录导航**：按标题自动生成目录，点击跳转，当前标题高亮自动跟随滚动
 - **标题锚点**：预览区标题 hover 显示 `#`，点击复制带 hash 的完整链接；刷新或新标签打开可直达对应标题
+- **阅读进度条**：预览区顶部随滚动从左向右填充，内容不足一屏时自动隐藏
 - **回到顶部**：预览区滚动较深时右下角出现快捷返回按钮
-- **文档统计**：实时显示行数、字数、字符数
+- **文档统计**：实时显示行数、字数、字符数与图片数（字数统计自动剔除内联 base64 数据）
 
 ## 技术栈
 
@@ -44,13 +50,14 @@
 | [Vite](https://vitejs.dev/)                             | 开发服务器与构建                     |
 | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)    | PWA 清单与离线预缓存                 |
 | [CodeMirror 6](https://codemirror.net/)                 | 编辑器（高亮、补全、行号、搜索高亮） |
-| [marked](https://marked.js.org/)                        | Markdown 解析与渲染（Web Worker 内）  |
+| [marked](https://marked.js.org/)                        | Markdown 解析与渲染（Web Worker 内） |
 | [highlight.js](https://highlightjs.org/)                | 预览区代码块语法高亮                 |
 | [KaTeX](https://katex.org/)                             | 数学公式渲染                         |
 | [Mermaid](https://mermaid.js.org/)                      | 流程图 / 时序图等图表渲染            |
 | [lz-string](https://github.com/pieroxy/lz-string)       | 分享链接的文档压缩编解码             |
-| [html2pdf.js](https://ekoopmans.github.io/html2pdf.js/) | PDF 导出                             |
 | [Vitest](https://vitest.dev/)                           | 核心逻辑单元测试                     |
+
+PDF 导出不依赖第三方库，直接走浏览器原生打印（文字可选、体积小的矢量输出），版式由 `styles/print.css` 的 `@media print` 控制。
 
 ## 快速开始
 
@@ -100,9 +107,9 @@ core（纯逻辑领域层：零 Vue、零 DOM，Vitest 直测）
 ```text
 src/
 ├── main.js / App.vue        # 入口 + 根布局（组装并 provide 工作区，渲染骨架屏 / 分栏）
-├── styles/                  # 设计 token 与全局样式（tokens / base / markdown / highlights）
+├── styles/                  # 设计 token 与全局样式（tokens / base / markdown / highlights / print）
 ├── core/                    # 纯逻辑领域层
-│   ├── documents/           # 文档模型、IndexedDB 存储、保存状态机
+│   ├── documents/           # 文档模型、IndexedDB 存储、保存状态机、多标签同步协调
 │   ├── markdown/            # marked 渲染、源行标注、代码高亮、数学扩展、slug、渲染 Worker
 │   ├── search/              # 跨文档搜索、匹配、摘要
 │   ├── share/               # 分享链接（lz-string）编解码
@@ -110,7 +117,7 @@ src/
 │   └── text.js              # 通用文本工具
 ├── editor/                  # CodeMirror 6 封装（无 Vue）
 │   ├── EditorController.js  # 编辑器唯一门面（多文档独立 EditorState）
-│   └── extensions/          # 主题、语法高亮、链接/代码补全、搜索高亮、代码语言等扩展
+│   └── extensions/          # 主题、语法高亮、链接/代码补全、搜索高亮、图片粘贴/压缩/折叠、代码语言等扩展
 ├── preview/                 # 预览 DOM 门面（源行定位、搜索高亮、mermaid 渲染）
 ├── workspace/               # 响应式状态 + 横切编排
 │   ├── createWorkspace.js   # 组装会话 / 控制器 / 生命周期，provide 下发
@@ -123,7 +130,7 @@ src/
 │   ├── headingNavigation.js # 标题 hash 导航
 │   └── orchestrations.js    # 搜索定位、折叠展开等跨子系统流程
 ├── composables/             # 通用 UI 工具（主题、拖拽、媒体查询、偏好持久化、剪贴板等）
-├── services/exporter.js     # Markdown / PDF 导出
+├── services/exporter.js     # Markdown / HTML 导出与原生打印（PDF）
 ├── components/              # 哑组件（工具栏、命令面板、主题切换、编辑/预览面板、目录、搜索、提示等）
 ├── constants/presets.js     # 预置文档
 └── assets/                  # SVG 图标资源
@@ -133,20 +140,21 @@ src/
 
 ## 使用提示
 
-| 操作              | 方式                                                |
-| ----------------- | --------------------------------------------------- |
-| 切换文档          | 点击面板头部左侧的文件名下拉                        |
-| 新建 / 清空       | 编辑区头部按钮                                      |
-| 导入              | 头部导入按钮，支持一次选择多个文件                  |
-| 导出              | `md` 按钮下载 Markdown，`PDF` 按钮下载 PDF          |
+| 操作              | 方式                                                     |
+| ----------------- | -------------------------------------------------------- |
+| 切换文档          | 点击面板头部左侧的文件名下拉                             |
+| 新建 / 清空       | 编辑区头部按钮                                           |
+| 导入              | 头部导入按钮，支持一次选择多个文件                       |
+| 导出              | 头部 `⋯` 更多菜单：导出 Markdown / 导出 HTML / 导出 PDF（浏览器打印） |
+| 插入图片          | 直接粘贴或拖拽图片到编辑区，自动压缩并以 base64 内联     |
 | 分享文档          | 头部分享按钮复制自包含链接，或命令面板选「复制分享链接」 |
-| 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行 |
-| 命令面板          | `Ctrl + P` / `Cmd + P` 唤起，输入关键字模糊匹配命令 |
-| 切换主题          | 顶部工具栏右上角主题按钮，或命令面板切换            |
-| 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复            |
-| 调整分栏          | 拖拽编辑区与预览区之间的分割条                      |
-| 调整目录宽度      | 拖拽目录左侧边缘                                    |
-| 复制标题链接      | hover 预览区标题，点击 `#` 锚点                     |
+| 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行      |
+| 命令面板          | `Ctrl + P` / `Cmd + P` 唤起，输入关键字模糊匹配命令      |
+| 切换主题          | 顶部工具栏右上角主题按钮，或命令面板切换                 |
+| 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复                 |
+| 调整分栏          | 拖拽编辑区与预览区之间的分割条                           |
+| 调整目录宽度      | 拖拽目录左侧边缘                                         |
+| 复制标题链接      | hover 预览区标题，点击 `#` 锚点                          |
 
 ## 部署
 
@@ -154,6 +162,7 @@ src/
 
 - `.env.development`：本地开发默认 `/`
 - `.env.production`：生产构建默认 `/markview/`
+- `.env.vercel`：Vercel 等根路径平台部署用 `/`
 
 部署到 GitHub / Gitee Pages 且仓库名不是 `markview` 时，修改 `.env.production`：
 
