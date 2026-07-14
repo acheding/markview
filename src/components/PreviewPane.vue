@@ -221,6 +221,13 @@ onBeforeUnmount(() => {
     contain: layout;
 }
 
+/* 折叠编辑区时会编程式 focus 本容器（tabindex=-1，仅为让预览可键盘滚动），
+   移动端浏览器会画出默认蓝色焦点轮廓，顶边显示成进度条下的一条淡蓝线；
+   它不在 Tab 序列里，去掉轮廓不影响键盘可达性。 */
+.preview-content:focus {
+    outline: none;
+}
+
 .reading-progress {
     position: absolute;
     top: 0;
