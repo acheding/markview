@@ -7,7 +7,7 @@ import { usePointerResize } from '../composables/usePointerResize.js'
 const EDITOR_COLLAPSED_STORAGE_KEY = 'markview:editor-collapsed'
 const MIN_PANEL_WIDTH = 22
 const MAX_PANEL_WIDTH = 78
-const DIVIDER_WIDTH = 6
+const DIVIDER_WIDTH = 1
 const MIN_TOC_WIDTH = 160
 const MAX_TOC_WIDTH = 360
 const DEFAULT_TOC_WIDTH = 220
@@ -29,7 +29,9 @@ export const createLayoutSession = () => {
     // —— 分栏宽度 ——
     const editorWidth = ref(balancedEditorWidth())
     const previewWidth = computed(() =>
-        typeof editorWidth.value === 'number' ? `${100 - editorWidth.value}%` : balancedPreviewWidth()
+        typeof editorWidth.value === 'number'
+            ? `calc(${100 - editorWidth.value}% - ${DIVIDER_WIDTH}px)`
+            : balancedPreviewWidth()
     )
     const paneResize = usePointerResize({
         onMove: (event) => {

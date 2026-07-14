@@ -30,7 +30,7 @@ defineEmits(['resize-start'])
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 5px;
+    width: 1px;
     flex-shrink: 0;
     cursor: col-resize;
     background: transparent;
@@ -55,6 +55,18 @@ defineEmits(['resize-start'])
         box-shadow var(--duration-fast) ease;
 }
 
+/* 命中区向分割线两侧扩展，不参与 flex 布局。 */
+.divider::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 5px;
+    cursor: col-resize;
+    content: '';
+    transform: translateX(-50%);
+}
+
 .divider:hover,
 .divider.is-active {
     background: rgb(var(--color-accent-channel) / 5%);
@@ -68,7 +80,7 @@ defineEmits(['resize-start'])
 @media (max-width: 768px) {
     .divider {
         width: 100%;
-        height: 5px;
+        height: 1px;
         cursor: default;
     }
 
@@ -80,6 +92,17 @@ defineEmits(['resize-start'])
     .divider::before {
         width: 100%;
         height: 1px;
+    }
+
+    .divider::after {
+        top: 50%;
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        cursor: default;
+        transform: translateY(-50%);
     }
 }
 </style>
