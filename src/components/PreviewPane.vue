@@ -337,7 +337,8 @@ onBeforeUnmount(() => {
 
     .preview-back-top {
         right: 14px;
-        bottom: 14px;
+        /* 叠加安全区，避免被刘海屏 home 条 / 浏览器底部工具栏遮挡 */
+        bottom: calc(14px + env(safe-area-inset-bottom));
     }
 }
 

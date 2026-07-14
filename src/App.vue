@@ -58,7 +58,8 @@ const setMainPanel = (el) => {
 <style scoped>
 .app-shell {
     display: flex;
-    height: 100vh;
+    height: 100vh; /* 兜底：不支持 dvh 的旧浏览器 */
+    height: 100dvh; /* 跟随移动端工具栏收放的动态视口，避免底部被浏览器工具栏遮挡 */
     overflow: hidden;
     background: var(--color-bg);
     flex-direction: column;
