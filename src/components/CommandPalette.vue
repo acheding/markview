@@ -55,7 +55,9 @@ const commands = computed(() => {
         { id: 'new', title: '新建文档', hint: '', run: () => documents.create() },
         { id: 'clear', title: '清空当前内容', run: () => actions.clearContent() },
         { id: 'export-md', title: '导出 Markdown', run: () => exporting.exportActiveFile() },
+        { id: 'export-html', title: '导出 HTML', run: () => exporting.exportHtml() },
         { id: 'export-pdf', title: '导出 PDF', run: () => exporting.exportPdf() },
+        { id: 'print', title: '打印 / 打印为 PDF', hint: '可另存 PDF', run: () => exporting.print() },
         { id: 'share', title: '复制分享链接', run: () => share() },
         {
             id: 'theme',

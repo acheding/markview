@@ -4,7 +4,7 @@ import { buildAnchorTable } from '../core/sync/anchorMap.js'
 import { createScrollMaster } from '../core/sync/scrollMaster.js'
 import { createEditorController } from '../editor/EditorController.js'
 import { createPreviewController } from '../preview/PreviewController.js'
-import { exportMarkdown, exportPdf } from '../services/exporter.js'
+import { exportHtml, exportMarkdown, exportPdf, printDocument } from '../services/exporter.js'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
@@ -260,6 +260,11 @@ export const createWorkspace = () => {
     // —— 导出 ——
     const isExportingPdf = ref(false)
     const exportActiveFile = () => exportMarkdown(documents.activeFile.value)
+    const exportActiveHtml = () => {
+        if (!previewController) return
+        exportHtml(previewController.scrollDOM, documents.activeFile.value?.name, { theme: theme.value })
+    }
+    const printActiveDocument = () => printDocument()
     const exportActivePdf = async () => {
         if (isExportingPdf.value || !previewController) return
         isExportingPdf.value = true
@@ -446,6 +451,8 @@ export const createWorkspace = () => {
         exporting: {
             isExportingPdf,
             exportActiveFile,
+            exportHtml: exportActiveHtml,
+            print: printActiveDocument,
             exportPdf: exportActivePdf
         },
         actions: orchestrations,

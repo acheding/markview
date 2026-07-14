@@ -33,7 +33,7 @@
                 </button>
             </template>
 
-            <!-- 共用：导入、导出 md、导出 PDF -->
+            <!-- 共用：导入 -->
             <button
                 class="toolbar-action-button"
                 type="button"
@@ -47,37 +47,9 @@
                     aria-hidden="true"
                 />
             </button>
-            <button
-                class="toolbar-action-button toolbar-action-button--format"
-                type="button"
-                title="导出 Markdown"
-                aria-label="导出 Markdown"
-                @click="exporting.exportActiveFile()"
-            >
-                <span
-                    class="toolbar-action-icon"
-                    :style="{ '--icon-url': `url(${exportFileIcon})` }"
-                    aria-hidden="true"
-                />
-                <span class="toolbar-action-label">md</span>
-            </button>
-            <button
-                class="toolbar-action-button toolbar-action-button--format"
-                type="button"
-                :title="exporting.isExportingPdf.value ? '正在导出 PDF…' : '导出 PDF'"
-                :aria-label="exporting.isExportingPdf.value ? '正在导出 PDF' : '导出 PDF'"
-                :disabled="exporting.isExportingPdf.value"
-                @click="exporting.exportPdf()"
-            >
-                <span v-if="exporting.isExportingPdf.value" class="toolbar-action-spinner" aria-hidden="true" />
-                <span
-                    v-else
-                    class="toolbar-action-icon"
-                    :style="{ '--icon-url': `url(${exportPdfIcon})` }"
-                    aria-hidden="true"
-                />
-                <span class="toolbar-action-label">PDF</span>
-            </button>
+
+            <!-- 共用：导出 / 打印收进「更多」菜单，避免小屏挤压文件名 -->
+            <PanelToolbarMenu />
 
             <!-- 共用：复制分享链接（压缩进 URL，无需后端） -->
             <button
@@ -139,13 +111,12 @@ import { ref } from 'vue'
 import clearContentIcon from '../assets/clear-content.svg'
 import collapseEditorIcon from '../assets/collapse-editor.svg'
 import expandEditorIcon from '../assets/expand-editor.svg'
-import exportFileIcon from '../assets/export-file.svg'
-import exportPdfIcon from '../assets/export-pdf.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
 import shareIcon from '../assets/share.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import FileSwitcher from './FileSwitcher.vue'
+import PanelToolbarMenu from './PanelToolbarMenu.vue'
 
 defineProps({
     context: {
@@ -155,7 +126,7 @@ defineProps({
     }
 })
 
-const { documents, actions, exporting, share } = useWorkspace()
+const { documents, actions, share } = useWorkspace()
 
 const fileInputRef = ref(null)
 
@@ -201,93 +172,6 @@ const importFiles = async (event) => {
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-}
-
-.toolbar-action-button {
-    display: inline-grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    color: var(--color-muted);
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-    transition:
-        transform var(--duration-fast) ease,
-        background var(--duration-fast) ease,
-        border-color var(--duration-fast) ease,
-        color var(--duration-fast) ease,
-        box-shadow var(--duration-fast) ease;
-}
-
-.toolbar-action-button--format {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    min-width: 42px;
-    gap: 3px;
-    padding: 0 6px;
-}
-
-.toolbar-action-button:hover {
-    border-color: color-mix(in srgb, var(--color-accent) 38%, #ffffff);
-    background: var(--color-surface-active);
-    color: var(--color-accent);
-    box-shadow: 0 6px 14px rgb(var(--color-accent-channel) / 12%);
-    transform: translateY(-1px);
-}
-
-.toolbar-action-button:active {
-    transform: translateY(0);
-}
-
-.toolbar-action-button:disabled {
-    cursor: default;
-    color: var(--color-subtle);
-}
-
-.toolbar-action-button:disabled:hover {
-    border-color: var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-subtle);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-    transform: none;
-}
-
-.toolbar-action-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    background: currentColor;
-    mask: var(--icon-url) center / contain no-repeat;
-    -webkit-mask: var(--icon-url) center / contain no-repeat;
-}
-
-.toolbar-action-label {
-    color: currentColor;
-    font-size: var(--font-size-xs);
-    font-weight: 750;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.toolbar-action-spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
-    border-top-color: var(--color-accent);
-    border-radius: 50%;
-    animation: toolbar-action-spin 0.6s linear infinite;
-}
-
-@keyframes toolbar-action-spin {
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 .panel-toolbar__file-input {

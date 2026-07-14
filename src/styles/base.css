@@ -48,6 +48,61 @@ button:focus-visible {
     font-weight: 650;
 }
 
+/* 面板工具条按钮：编辑区 / 预览区头部与「更多」菜单触发器共用 */
+.toolbar-action-button {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-muted);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+    transition:
+        transform var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
+}
+
+.toolbar-action-button:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 38%, #ffffff);
+    background: var(--color-surface-active);
+    color: var(--color-accent);
+    box-shadow: 0 6px 14px rgb(var(--color-accent-channel) / 12%);
+    transform: translateY(-1px);
+}
+
+.toolbar-action-button:active {
+    transform: translateY(0);
+}
+
+.toolbar-action-button:disabled {
+    cursor: default;
+    color: var(--color-subtle);
+}
+
+.toolbar-action-button:disabled:hover {
+    border-color: var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-subtle);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+    transform: none;
+}
+
+.toolbar-action-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    background: currentColor;
+    mask: var(--icon-url) center / contain no-repeat;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

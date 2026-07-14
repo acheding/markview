@@ -1,0 +1,86 @@
+/* 打印版式：仅打印预览正文。撑开被裁剪的滚动容器、隐藏应用外壳与交互控件、避免块被分页切断。
+   打印期间由 exporter.printDocument() 临时切浅色，故此处不再重复覆盖配色。 */
+@media print {
+    @page {
+        margin: 16mm;
+    }
+
+    html,
+    body,
+    #app {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    /* 应用外壳与分栏容器逐层解除固定高度 / 裁剪，让正文自然跨页流动 */
+    .app-shell,
+    .main-panel,
+    .preview-panel,
+    .preview-layout {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .preview-content {
+        display: block !important;
+        height: auto !important;
+        max-height: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        contain: none !important;
+        background: #ffffff !important;
+    }
+
+    /* 非正文元素：工具栏、编辑区、目录、分割条、进度条、悬浮按钮、骨架屏、命令面板、正文里的复制/锚点 */
+    .toolbar,
+    .editor-panel,
+    .divider,
+    .toc-divider,
+    .toc,
+    .panel-header,
+    .reading-progress,
+    .preview-back-top,
+    .preview-skeleton-overlay,
+    .cmd-mask,
+    .code-copy,
+    .heading-anchor {
+        display: none !important;
+    }
+
+    /* 分页避断 */
+    pre,
+    table,
+    blockquote,
+    img,
+    .code-block,
+    .mermaid-block,
+    .katex-block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: underline;
+    }
+}

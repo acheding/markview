@@ -12,6 +12,7 @@
                     <span class="skeleton-btn" />
                     <span class="skeleton-btn skeleton-btn--wide" />
                     <span class="skeleton-btn skeleton-btn--wide" />
+                    <span class="skeleton-btn skeleton-btn--wide" />
                     <span class="skeleton-btn" />
                     <span class="skeleton-btn" />
                 </div>
