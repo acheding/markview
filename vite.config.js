@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
             vue(),
             VitePWA({
                 registerType: 'autoUpdate',
-                includeAssets: ['icon.svg'],
+                includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
                 manifest: {
                     name: 'MarkView',
                     short_name: 'MarkView',
@@ -20,9 +20,13 @@ export default defineConfig(({ mode }) => {
                     theme_color: '#5672cd',
                     background_color: '#ffffff',
                     display: 'standalone',
+                    // 桌面端 PWA 安装（Windows 快捷方式/任务栏）不会光栅化 SVG，必须提供 PNG，
+                    // 否则回退成应用名首字母的黑色占位图标。SVG 保留作矢量补充。
                     icons: [
-                        { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
-                        { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' }
+                        { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+                        { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+                        { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+                        { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
                     ],
                     // 注册为 .md / .markdown 的系统文件处理器：安装后双击这类文件即用 MarkView 打开，
                     // 应用侧由 launchQueue 消费者接收文件并导入为新文档（见 createWorkspace）。
