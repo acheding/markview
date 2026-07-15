@@ -1,7 +1,7 @@
 import { Marked } from 'marked'
 import { escapeHtml, stripHtml } from '../text.js'
-import { highlightCode } from './highlightCode.js'
-import { mathExtensions, mathRenderers } from './mathExtension.js'
+import { highlightCode, loadHighlighter } from './highlightCode.js'
+import { mathExtensions, mathRenderers, loadKatex } from './mathExtension.js'
 import { createSlugger } from './slugger.js'
 
 // 独立 Marked 实例承载 KaTeX 数学扩展（$…$ / $$…$$）。
@@ -10,6 +10,29 @@ const markdownParser = new Marked({ breaks: true, gfm: true })
 markdownParser.use({ extensions: mathExtensions })
 
 const getLanguage = (infoString = '') => infoString.trim().split(/\s+/)[0]
+
+// 递归遍历 token 树，判断本次渲染实际需要哪些重依赖：
+//   - 非 mermaid 的代码块 → highlight.js
+//   - 行内 / 块级公式        → KaTeX
+// 无对应内容时就不加载，避免首次预览白白下载 katex / hljs。
+const scanRenderNeeds = (tokens, needs = { hljs: false, katex: false }) => {
+    for (const token of tokens) {
+        if (needs.hljs && needs.katex) return needs
+
+        if (token.type === 'code') {
+            if (getLanguage(token.lang) !== 'mermaid') needs.hljs = true
+        } else if (token.type === 'inlineMath' || token.type === 'blockMath') {
+            needs.katex = true
+        }
+
+        // 子 token 分布在不同字段：inline/block 子节点、列表项、表头、表体单元格。
+        if (token.tokens) scanRenderNeeds(token.tokens, needs)
+        if (token.items) scanRenderNeeds(token.items, needs)
+        if (token.header) scanRenderNeeds(token.header, needs)
+        if (token.rows) token.rows.forEach((row) => scanRenderNeeds(row, needs))
+    }
+    return needs
+}
 const SOURCE_LINE_TYPES = new Set([
     'blockquote',
     'blockMath',
@@ -78,7 +101,7 @@ const annotateSourceLines = (tokens, source) => {
     })
 }
 
-export const renderMarkdown = (source) => {
+export const renderMarkdown = async (source) => {
     const toc = []
 
     if (!source.trim()) {
@@ -93,6 +116,11 @@ export const renderMarkdown = (source) => {
         // 不传 options：用实例配置（breaks/gfm + 数学扩展），否则会覆盖已注册的扩展。
         const tokens = markdownParser.lexer(source)
         annotateSourceLines(tokens, source)
+
+        // marked 的 renderer 必须同步返回字符串，无法在其中 await；
+        // 故在 parse 前先按 token 需求预加载重依赖，加载好后再走同步渲染。
+        const needs = scanRenderNeeds(tokens)
+        await Promise.all([needs.hljs ? loadHighlighter() : null, needs.katex ? loadKatex() : null])
 
         const extensions = {
             renderers: {

@@ -52,6 +52,11 @@ export default defineConfig(({ mode }) => {
             })
         ],
         base,
+        // 渲染 Worker 内部按需动态 import（katex / highlight.js），会产生代码分割，
+        // 默认的 iife worker 格式不支持分割，必须用 ES module 格式（运行时也已用 { type: 'module' } 创建）。
+        worker: {
+            format: 'es'
+        },
         build: {
             assetsInlineLimit: 0
         },

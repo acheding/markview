@@ -33,8 +33,9 @@ export const createMarkdownRenderer = ({
 
     const renderWithoutWorker = (request) => {
         loadRenderer()
-            .then(({ renderMarkdown }) => {
-                if (!disposed) apply(request.seq, renderMarkdown(request.source))
+            .then(({ renderMarkdown }) => renderMarkdown(request.source))
+            .then((result) => {
+                if (!disposed) apply(request.seq, result)
             })
             .catch(() => settleWaiters(false))
     }

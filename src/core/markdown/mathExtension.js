@@ -1,8 +1,26 @@
-import katex from 'katex'
 import { escapeHtml } from '../text.js'
+
+// KaTeX 按需异步加载：无公式的文档首次预览不必下载这部分体积。
+// 加载完成后缓存实例；调用方需在渲染前先 await loadKatex，renderKatex 本身保持同步。
+let katex = null
+let katexPromise = null
+
+export const loadKatex = () => {
+    if (katex) return Promise.resolve(katex)
+    if (!katexPromise) {
+        katexPromise = import('katex').then((mod) => {
+            katex = mod.default
+            return katex
+        })
+    }
+    return katexPromise
+}
 
 // 用 KaTeX 把 LaTeX 渲染为 HTML（同步、纯字符串输出，无 DOM 副作用）。
 const renderKatex = (tex, displayMode) => {
+    // 理论上渲染前已 await loadKatex；未就绪时退化为转义原文，避免抛错。
+    if (!katex) return escapeHtml(tex)
+
     try {
         return katex.renderToString(tex, { displayMode, throwOnError: false, output: 'html' })
     } catch (error) {
