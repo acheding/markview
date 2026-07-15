@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 63 410 410" role="img" aria-label="MarkView">
+    <defs>
+        <linearGradient id="mvMark" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6b83e0" />
+            <stop offset="1" stop-color="#3451b2" />
+        </linearGradient>
+        <linearGradient id="mvArrow" gradientUnits="userSpaceOnUse" x1="366" y1="144" x2="366" y2="288">
+            <stop offset="0" stop-color="#4fd8c4" />
+            <stop offset="1" stop-color="#2fd0bc" />
+        </linearGradient>
+    </defs>
+    <!-- 地址栏 favicon 专用：无正方形底板，透明背景，笔画改用品牌靛蓝以便明暗标签栏均可见 -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M120 288 L120 140 L190 206 L260 140 L260 288" stroke="url(#mvMark)" stroke-width="44" />
+        <path d="M366 144 L366 256" stroke="url(#mvArrow)" stroke-width="44" />
+        <path d="M330 226 L366 288 L402 226" stroke="url(#mvArrow)" stroke-width="44" />
+        <path d="M120 346 L372 346" stroke="#4560c8" stroke-width="36" />
+        <path d="M120 400 L300 400" stroke="#4560c8" stroke-width="36" />
+    </g>
+</svg>
