@@ -1,8 +1,9 @@
-import { preparePreviewHtml } from '../preview/preparePreviewHtml.js'
+import { MERMAID_MARKER, preparePreviewHtml } from '../preview/preparePreviewHtml.js'
 import { createMarkdownRenderer } from './markdownRenderer.js'
 
 export const createPreviewRenderSession = ({
     onResult,
+    onEarlyPaint = () => {},
     getTheme,
     prepareHtml = preparePreviewHtml,
     createRenderer = (handleResult) => createMarkdownRenderer({ onResult: handleResult })
@@ -26,6 +27,15 @@ export const createPreviewRenderSession = ({
 
     const prepareAndPublish = async (raw) => {
         const runId = ++prepareRunId
+
+        // 含 Mermaid 的原始 HTML 需按需加载庞大的 mermaid 库并异步渲染成 SVG，耗时可达数百毫秒。
+        // 首屏若整份等它，右侧会长时间停留在骨架屏。此处先把带占位块的原始 HTML 抢先交给调用方
+        // 绘制一次（仅撤骨架屏、让文本立即可读）。抢先绘制不推进 published，定位类消费方走
+        // whenPublished，仍等下方 SVG 就位后的最终发布，故定位精度不受影响。
+        if (!disposed && raw.sequence === latestRequested && String(raw.result.html || '').includes(MERMAID_MARKER)) {
+            onEarlyPaint(raw.result, raw.sequence)
+        }
+
         let preparedHtml
         try {
             preparedHtml = await prepareHtml(raw.result.html, getTheme())

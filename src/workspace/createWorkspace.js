@@ -83,8 +83,20 @@ export const createWorkspace = () => {
         }
     }
 
+    // 首屏抢先绘制：预览尚未首次发布（骨架屏仍在）时，先用带 Mermaid 占位块的原始 HTML
+    // 撤掉骨架屏、让文本立即可读；待 mermaid SVG 就位后由 publishPreview 原子替换整份 HTML。
+    // 仅在首次发布前触发（isPreviewReady 为 false），故不影响后续输入/切换/主题刷新的原子发布；
+    // 也不影响定位精度——所有定位消费方走 whenPublished，仍等 SVG 就位后的最终版面。
+    const paintPreview = (result) => {
+        if (isPreviewReady.value) return
+        html.value = result.html
+        toc.value = result.toc
+        isPreviewReady.value = true
+    }
+
     const previewRenderer = createPreviewRenderSession({
         onResult: publishPreview,
+        onEarlyPaint: paintPreview,
         getTheme: () => theme.value
     })
     watch(

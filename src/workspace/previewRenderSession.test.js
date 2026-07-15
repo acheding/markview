@@ -53,6 +53,53 @@ describe('createPreviewRenderSession', () => {
         })
     })
 
+    it('paints the raw mermaid HTML early, before the SVG is prepared', async () => {
+        const harness = createRendererHarness()
+        const prepared = deferred()
+        const onEarlyPaint = vi.fn()
+        const onResult = vi.fn()
+        const session = createPreviewRenderSession({
+            onResult,
+            onEarlyPaint,
+            getTheme: () => 'light',
+            prepareHtml: () => prepared.promise,
+            createRenderer: harness.createRenderer
+        })
+
+        const sequence = session.render('source')
+        harness.emit(sequence, '<div class="mermaid-block">source</div>')
+        await Promise.resolve()
+
+        // 抢先绘制发生在 prepare 完成之前，且不推进 published（onResult 尚未触发）。
+        expect(onEarlyPaint).toHaveBeenCalledWith(
+            { html: '<div class="mermaid-block">source</div>', toc: [] },
+            sequence
+        )
+        expect(onResult).not.toHaveBeenCalled()
+
+        prepared.resolve('<div class="mermaid-block"><svg /></div>')
+        await expect(session.whenPublished(sequence)).resolves.toBe(true)
+        expect(onResult).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not early-paint content without mermaid', async () => {
+        const harness = createRendererHarness()
+        const onEarlyPaint = vi.fn()
+        const session = createPreviewRenderSession({
+            onResult: vi.fn(),
+            onEarlyPaint,
+            getTheme: () => 'light',
+            prepareHtml: (html) => Promise.resolve(html),
+            createRenderer: harness.createRenderer
+        })
+
+        const sequence = session.render('source')
+        harness.emit(sequence, '<p>plain</p>')
+        await session.whenPublished(sequence)
+
+        expect(onEarlyPaint).not.toHaveBeenCalled()
+    })
+
     it('drops a prepared result when a newer source has been requested', async () => {
         const harness = createRendererHarness()
         const firstPrepared = deferred()

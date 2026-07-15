@@ -344,6 +344,21 @@
     height: auto;
 }
 
+/* 首屏抢先绘制期间：占位块尚无子元素（仅源码文本），显示轻量“渲染中”态并预留高度，
+   收起未渲染的源码、减小 SVG 就位时的布局位移。渲染完成（注入 SVG 或错误 pre）后自动恢复。 */
+.markdown-body .mermaid-block:not(:has(*)) {
+    align-items: center;
+    min-height: 120px;
+    font-size: 0;
+    user-select: none;
+}
+
+.markdown-body .mermaid-block:not(:has(*))::after {
+    content: '图表渲染中…';
+    color: var(--color-subtle);
+    font-size: 13px;
+}
+
 .markdown-body .mermaid-error {
     padding: 12px 14px;
     border-radius: var(--radius-lg);

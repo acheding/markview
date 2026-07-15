@@ -1,7 +1,7 @@
 import { escapeHtml } from '../core/text.js'
 import { renderMermaidSvg } from './mermaidRenderer.js'
 
-const MERMAID_MARKER = 'class="mermaid-block"'
+export const MERMAID_MARKER = 'class="mermaid-block"'
 const KATEX_MARKER = 'class="katex'
 
 const createTemplate = (html) => {
