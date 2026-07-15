@@ -16,6 +16,7 @@
                 <ResizeDivider
                     :active="layout.isResizing.value"
                     :collapsed="layout.isEditorCollapsed.value"
+                    :orientation="layout.isStacked.value ? 'horizontal' : 'vertical'"
                     @resize-start="layout.startResize"
                 />
 
@@ -108,17 +109,7 @@ const setMainPanel = (el) => {
     min-width: 0;
 }
 
-@media (max-width: 1120px) {
-    .main-panel {
-        --toc-width: 180px;
-    }
-}
-
-@media (max-width: 900px) {
-    .main-panel {
-        --toc-width: 0px;
-    }
-}
+/* --toc-width 由 layoutSession 内联注入并按容器实宽收缩（含 ≤900px 归零），此处不再用媒体查询覆盖 */
 
 @media (max-width: 768px) {
     .main-panel {

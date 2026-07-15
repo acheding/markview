@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { clamp } from '../core/text.js'
 import { useLocalStoragePreference } from '../composables/useLocalStoragePreference.js'
 import { useMediaQuery } from '../composables/useMediaQuery.js'
@@ -32,11 +32,35 @@ export const createLayoutSession = () => {
     // 预览布局元素 [内容 | 分隔线 | 目录] 的容器；目录拖拽据其实际宽度约束目录上限。由 PreviewPane 注入。
     const previewLayoutRef = ref(null)
 
+    // 主面板内容区实宽（content-box，不含 border/margin）；随窗口/DevTools 变化实时更新，
+    // 供目录宽度按可用空间收缩，从源头杜绝窄屏目录横向溢出。0 表示尚未测量。
+    const containerWidth = ref(0)
+    let containerObserver = null
+    watch(
+        containerRef,
+        (el) => {
+            containerObserver?.disconnect()
+            if (!el) {
+                containerWidth.value = 0
+                return
+            }
+            containerObserver = new ResizeObserver((entries) => {
+                containerWidth.value = entries[0].contentRect.width
+            })
+            containerObserver.observe(el)
+        },
+        { immediate: true }
+    )
+    onBeforeUnmount(() => containerObserver?.disconnect())
+
     const isEditorCollapsed = useLocalStoragePreference(EDITOR_COLLAPSED_STORAGE_KEY, false)
     const isScrollSyncEnabled = ref(!isEditorCollapsed.value)
 
     // TOC 是否可见（>900px）；分栏拖拽的可用宽度需扣除 TOC。此处先声明，供下方 onMove 引用。
     const isTocVisible = useMediaQuery('(min-width: 901px)', true)
+    // 窄屏（≤768px）纵向堆叠：编辑区/预览区固定分屏，横向分栏拖拽在此失效——
+    // 既无视觉效果（pane 宽度被 100% 覆盖），又会静默污染 editorWidth 并持久化，故守卫掉。
+    const isStacked = useMediaQuery('(max-width: 768px)', false)
 
     // —— 分栏宽度 ——
     // 编辑区宽度持久化到 localStorage：null=默认均分布局，number=编辑区像素宽度。
@@ -65,6 +89,10 @@ export const createLayoutSession = () => {
             editorWidth.value = clamp(event.clientX - rect.left, MIN_PANE_WIDTH, Math.max(MIN_PANE_WIDTH, maxEditor))
         }
     })
+    // 纵向堆叠时不启动横向拖拽（与 startTocResize 用 isTocVisible 守卫同理）。
+    const startResize = (event) => {
+        if (!isStacked.value) paneResize.start(event)
+    }
 
     // —— TOC 宽度 ——
     // 持久化到 localStorage；读回值 clamp 回合法区间，异常则回退默认。
@@ -72,7 +100,15 @@ export const createLayoutSession = () => {
     tocWidth.value = Number.isFinite(tocWidth.value)
         ? clamp(tocWidth.value, MIN_TOC_WIDTH, MAX_TOC_WIDTH)
         : DEFAULT_TOC_WIDTH
-    const tocWidthStyle = computed(() => (isTocVisible.value ? `${tocWidth.value}px` : '0px'))
+    // 目录显示宽 = min(存储值, 可用空间)。可用空间 = 容器实宽扣除 编辑区最小 + 预览内容最小 + 两条分隔线，
+    // 剩下才留给目录。宽屏时可用空间充裕→保留用户存储值；窗口收窄时目录随之收缩，preview-panel 外边界不再被撑破。
+    const tocWidthStyle = computed(() => {
+        if (!isTocVisible.value) return '0px'
+        const w = containerWidth.value
+        if (!w) return `${tocWidth.value}px` // 测量前回退存储值，避免首帧闪烁
+        const maxToc = w - MIN_PANE_WIDTH * 2 - DIVIDER_WIDTH * 2
+        return `${Math.max(0, Math.min(tocWidth.value, maxToc))}px`
+    })
     const tocResize = usePointerResize({
         onMove: (event) => {
             const el = previewLayoutRef.value
@@ -101,7 +137,8 @@ export const createLayoutSession = () => {
         previewWidth,
         minPaneWidth: MIN_PANE_WIDTH,
         isResizing: paneResize.isActive,
-        startResize: paneResize.start,
+        startResize,
+        isStacked,
 
         tocWidth,
         tocWidthStyle,

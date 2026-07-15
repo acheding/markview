@@ -2,7 +2,7 @@
     <div
         class="divider"
         role="separator"
-        aria-orientation="vertical"
+        :aria-orientation="orientation"
         :class="{ 'is-active': active, 'is-collapsed': collapsed }"
         @pointerdown="$emit('resize-start', $event)"
     ></div>
@@ -17,6 +17,11 @@ defineProps({
     collapsed: {
         type: Boolean,
         default: false
+    },
+    // 纵向堆叠布局下分隔线转为水平方向，语义随之变化。
+    orientation: {
+        type: String,
+        default: 'vertical'
     }
 })
 
@@ -82,6 +87,8 @@ defineEmits(['resize-start'])
         width: 100%;
         height: 1px;
         cursor: default;
+        /* 纵向堆叠为固定分屏，分隔线退化为静态分隔条：不再接管指针事件 */
+        pointer-events: none;
     }
 
     .divider.is-collapsed {
