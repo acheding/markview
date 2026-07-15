@@ -11,9 +11,9 @@ export default defineConfig(({ mode }) => {
             vue(),
             VitePWA({
                 registerType: 'autoUpdate',
-                includeAssets: ['favicon.ico', 'icon.svg'],
+                includeAssets: ['icon.svg'],
                 manifest: {
-                    name: 'MarkView · 本地 Markdown 实时预览',
+                    name: 'MarkView',
                     short_name: 'MarkView',
                     description: '纯前端的本地 Markdown 实时预览工具，数据保存在浏览器本地，离线可用。',
                     lang: 'zh-CN',

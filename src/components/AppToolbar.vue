@@ -1,7 +1,7 @@
 <template>
     <header class="toolbar">
         <div class="toolbar__brand">
-            <span class="toolbar__mark" aria-hidden="true">Md</span>
+            <img class="toolbar__mark" :src="iconUrl" alt="" aria-hidden="true" />
             <span class="toolbar__header">
                 <span class="toolbar__title">MarkView</span>
                 <span class="toolbar__subtitle">本地 Markdown 实时预览工具</span>
@@ -16,6 +16,9 @@
 <script setup>
 import DocumentSearch from './DocumentSearch.vue'
 import ThemeToggle from './ThemeToggle.vue'
+
+// 复用与站点 favicon / PWA 图标一致的 icon.svg，随 base 路径解析。
+const iconUrl = `${import.meta.env.BASE_URL}icon.svg`
 </script>
 
 <style scoped>
@@ -49,19 +52,11 @@ import ThemeToggle from './ThemeToggle.vue'
 }
 
 .toolbar__mark {
-    display: inline-grid;
-    place-items: center;
     width: 32px;
     height: 32px;
     flex-shrink: 0;
-    border: 1px solid transparent;
     border-radius: var(--radius-lg);
-    background: var(--color-accent-solid);
-    color: #ffffff;
     box-shadow: 0 3px 12px rgb(var(--color-accent-channel) / 18%);
-    font-size: var(--font-size-sm);
-    font-weight: 800;
-    letter-spacing: 0;
 }
 
 .toolbar__header {
