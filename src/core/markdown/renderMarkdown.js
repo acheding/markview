@@ -238,7 +238,7 @@ export const renderMarkdown = async (source) => {
                         })
                         .join('')
 
-                    return `<table${getSourceLineAttr(token)}><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`
+                    return `<div class="table-wrap"${getSourceLineAttr(token)}><table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table></div>`
                 }
             }
         }

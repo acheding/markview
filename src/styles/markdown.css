@@ -5,6 +5,9 @@
     color: var(--color-text);
     font-size: var(--font-size-lg);
     line-height: 1.8;
+    /* 段落 / 列表等正文：超长单词（URL、无空格路径）实在放不下时允许断词换行，
+       避免撑破预览区产生整站横向滚动条 */
+    overflow-wrap: break-word;
 }
 
 .markdown-body ::selection {
@@ -108,6 +111,8 @@
     color: var(--color-inline-code-text);
     font-family: var(--font-mono);
     font-size: 0.9em;
+    /* 行内代码常是无空格长路径/URL，主动在任意字符处断行，避免撑破预览区 */
+    overflow-wrap: anywhere;
 }
 
 .markdown-body pre {
@@ -264,9 +269,15 @@
     color: var(--color-syntax-meta);
 }
 
+/* 表格外层滚动容器：超宽表格横向滚动条落在表格内部，而非撑破预览区 */
+.markdown-body .table-wrap {
+    margin: 12px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .markdown-body table {
     width: 100%;
-    margin: 12px 0;
     border-collapse: collapse;
     font-size: var(--font-size-base);
 }
