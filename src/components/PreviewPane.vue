@@ -26,7 +26,11 @@
             </template>
         </div>
 
-        <div class="preview-layout" :style="{ '--preview-toc-width': layout.tocWidthStyle.value }">
+        <div
+            :ref="(el) => (layout.previewLayoutRef.value = el)"
+            class="preview-layout"
+            :style="{ '--preview-toc-width': layout.tocWidthStyle.value }"
+        >
             <!-- 阅读进度条：随预览滚动从左向右填充，用 scaleX 走 GPU 合成，不触发重排 -->
             <div v-show="hasOverflow" class="reading-progress" aria-hidden="true">
                 <div class="reading-progress__fill" :style="{ transform: `scaleX(${readingProgress})` }" />

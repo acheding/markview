@@ -29,6 +29,8 @@ export const createLayoutSession = () => {
     const containerRef = ref(null)
     // 编辑面板根元素（折叠过渡结束的等待目标）；由 EditorPane 注入。
     const editorPanelRef = ref(null)
+    // 预览布局元素 [内容 | 分隔线 | 目录] 的容器；目录拖拽据其实际宽度约束目录上限。由 PreviewPane 注入。
+    const previewLayoutRef = ref(null)
 
     const isEditorCollapsed = useLocalStoragePreference(EDITOR_COLLAPSED_STORAGE_KEY, false)
     const isScrollSyncEnabled = ref(!isEditorCollapsed.value)
@@ -73,7 +75,14 @@ export const createLayoutSession = () => {
     const tocWidthStyle = computed(() => (isTocVisible.value ? `${tocWidth.value}px` : '0px'))
     const tocResize = usePointerResize({
         onMove: (event) => {
-            tocWidth.value = clamp(window.innerWidth - event.clientX, MIN_TOC_WIDTH, MAX_TOC_WIDTH)
+            const el = previewLayoutRef.value
+            if (!el) return
+            const rect = el.getBoundingClientRect()
+            // 目录右缘贴预览区右侧（rect.right 已含 margin，比 window.innerWidth 更准）。
+            // 上限保证预览内容区（扣除分隔线）不小于最小宽度，使目录永远拖不到需要跨面板重排的程度——
+            // 预览面板外边界因此在拖拽中恒定，从源头消除窄屏抽搐。
+            const maxToc = Math.min(MAX_TOC_WIDTH, rect.width - DIVIDER_WIDTH - MIN_PANE_WIDTH)
+            tocWidth.value = clamp(rect.right - event.clientX, MIN_TOC_WIDTH, Math.max(MIN_TOC_WIDTH, maxToc))
         }
     })
     const startTocResize = (event) => {
@@ -83,6 +92,7 @@ export const createLayoutSession = () => {
     return {
         containerRef,
         editorPanelRef,
+        previewLayoutRef,
         isEditorCollapsed,
         isScrollSyncEnabled,
 
