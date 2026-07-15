@@ -170,8 +170,12 @@ const scrollToTop = () => {
 
 const handleTocSelect = (id) => {
     workspace.beginPreviewNavigation()
+    const willScroll = workspace.getPreview()?.willScrollToHeading(id)
     workspace.getPreview()?.scrollToHeading(id)
     headings.beginNavigation(id)
+    // 点击不产生滚动时（末尾同屏等）无 scroll/scrollend 驱动 active，直接同步落定，
+    // 不必干等导航锁的 1200ms 兜底；会真正滚动的场景交回原有滚动/ scrollend 流程。
+    if (!willScroll) headings.endNavigation()
 }
 
 onMounted(() => {

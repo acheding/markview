@@ -52,6 +52,17 @@ export const createPreviewController = ({ contentEl }) => {
         return true
     }
 
+    // 预测：把 target 定位到位是否会真正改变 scrollTop（目标 top 经 clamp 后与当前比较）。
+    // 与 scrollToElement 共用 scrollTopForElement，「预测」与「执行」的目标数学不会漂移。
+    const willScrollToElement = (target, options = {}) => {
+        const top = scrollTopForElement(target, options)
+        if (!Number.isFinite(top)) return false
+
+        const maxTop = Math.max(0, contentEl.scrollHeight - contentEl.clientHeight)
+        const clamped = Math.min(Math.max(top, 0), maxTop)
+        return Math.abs(clamped - contentEl.scrollTop) > 1
+    }
+
     const captureViewport = () => {
         const contentRect = contentEl.getBoundingClientRect()
         const blocks = sourceBlocks()
@@ -94,6 +105,10 @@ export const createPreviewController = ({ contentEl }) => {
         scrollTopForSourceLine: (lineNumber, options) => scrollTopForElement(blockForLine(lineNumber), options),
 
         scrollToHeading: (id, options) => scrollToElement(contentEl.querySelector(`#${CSS.escape(id)}`), options),
+
+        // 该标题点击后是否会真正滚动（末尾同屏等场景会被 clamp 成不滚动）。
+        willScrollToHeading: (id, options) =>
+            willScrollToElement(contentEl.querySelector(`#${CSS.escape(id)}`), options),
 
         scrollToTop: () => contentEl.scrollTo({ top: 0, behavior: 'smooth' }),
 
