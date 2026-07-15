@@ -24,11 +24,7 @@ const { layout } = workspace
 const panelRef = ref(null)
 const hostRef = ref(null)
 
-const normalizedWidth = computed(() => {
-    if (layout.isEditorCollapsed.value) return '0'
-    const width = layout.editorWidth.value
-    return typeof width === 'number' ? `${width}%` : width
-})
+const normalizedWidth = computed(() => (layout.isEditorCollapsed.value ? '0' : layout.editorWidthStyle.value))
 
 onMounted(() => {
     layout.editorPanelRef.value = panelRef.value
@@ -44,7 +40,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .editor-panel {
     display: flex;
-    min-width: 22%;
+    /* 编辑区与预览内容区共用像素最小宽度；max-width 兜底窗口变窄时不挤压预览区（预留 TOC + 两条分隔线 + 预览内容最小宽度）。 */
+    min-width: var(--min-pane-width, 300px);
+    max-width: calc(100% - var(--toc-width, 0px) - 2px - var(--min-pane-width, 300px));
     overflow: hidden;
     background: var(--color-surface);
     flex-direction: column;
@@ -71,6 +69,9 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
     .editor-panel {
         width: 100% !important;
+        /* 纵向堆叠：横向宽度约束不再适用 */
+        min-width: 0;
+        max-width: none;
         height: 48%;
         border-right: none;
         border-bottom: 1px solid var(--color-border-soft);

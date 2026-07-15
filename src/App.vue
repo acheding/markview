@@ -6,7 +6,7 @@
             :ref="setMainPanel"
             class="main-panel"
             :class="{ 'is-editor-collapsed': layout.isEditorCollapsed.value, 'is-resizing': layout.isResizing.value }"
-            :style="{ '--toc-width': layout.tocWidthStyle.value }"
+            :style="{ '--toc-width': layout.tocWidthStyle.value, '--min-pane-width': `${layout.minPaneWidth}px` }"
         >
             <ContentViewSkeleton v-if="!documents.isReady.value" />
 

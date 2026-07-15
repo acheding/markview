@@ -187,7 +187,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .preview-panel {
     display: flex;
-    min-width: 34%;
+    /* 最小宽度 = 目录实际宽度 + 目录分隔线 + 预览内容区最小宽度，与编辑区共用同一像素最小值。 */
+    min-width: calc(var(--toc-width, 0px) + 1px + var(--min-pane-width, 300px));
     overflow: hidden;
     background: var(--color-surface);
     flex-direction: column;
@@ -334,6 +335,8 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
     .preview-panel {
         width: 100% !important;
+        /* 纵向堆叠：横向最小宽度约束不再适用 */
+        min-width: 0;
         height: 52%;
     }
 
