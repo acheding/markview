@@ -6,7 +6,10 @@
                 :key="item.id"
                 type="button"
                 class="toc__item"
-                :class="{ 'is-active': item.id === activeId, 'is-pending': item.id === navigatingId && item.id !== activeId }"
+                :class="{
+                    'is-active': item.id === activeId,
+                    'is-pending': item.id === navigatingId && item.id !== activeId
+                }"
                 :style="{ paddingLeft: `${(item.level - 1) * 12 + 10}px` }"
                 :title="item.title"
                 @click="select(item.id)"

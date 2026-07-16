@@ -39,13 +39,11 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { modKey } from '../composables/shortcuts.js'
+import { matchesShortcut, shortcutLabel } from '../composables/shortcuts.js'
 import { useCommandUsage } from '../composables/useCommandUsage.js'
-import { useTheme } from '../composables/useTheme.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const { documents, actions, exporting, layout, share, openImportPicker } = useWorkspace()
-const { theme, toggleTheme } = useTheme()
+const { documents, commands: registry } = useWorkspace()
 const { recordUse, usageOf } = useCommandUsage()
 
 const isOpen = ref(false)
@@ -55,33 +53,17 @@ const inputRef = ref(null)
 const listRef = ref(null)
 
 const commands = computed(() => {
-    const base = [
-        { id: 'new', title: '新建文档', hint: '', keys: `${modKey}+Alt+N`, run: () => documents.create() },
-        {
-            id: 'import',
-            title: '导入文件',
-            hint: 'Markdown / 文本',
-            keys: `${modKey}+O`,
-            run: () => openImportPicker()
-        },
-        {
-            id: 'toggle-editor',
-            title: layout.isEditorCollapsed.value ? '展开编辑区' : '折叠编辑区',
-            keys: `${modKey}+\\`,
-            run: () => actions.setEditorCollapsed(!layout.isEditorCollapsed.value)
-        },
-        { id: 'share', title: '复制分享链接', keys: `${modKey}+Alt+C`, run: () => share() },
-        { id: 'clear', title: '清空当前内容', keys: `${modKey}+Alt+X`, run: () => actions.clearContent() },
-        {
-            id: 'theme',
-            title: theme.value === 'dark' ? '切换到浅色主题' : '切换到暗色主题',
-            keys: `${modKey}+Alt+L`,
-            run: () => toggleTheme()
-        },
-        { id: 'export-md', title: '导出 Markdown', run: () => exporting.exportActiveFile() },
-        { id: 'export-html', title: '导出 HTML', run: () => exporting.exportHtml() },
-        { id: 'print', title: '导出 PDF / 打印', hint: '浏览器打印，可另存 PDF', run: () => exporting.print() }
-    ]
+    // 注册表命令（与全局快捷键同源，见 workspace/commands.js）：
+    // 标题在此求值，折叠态 / 主题等动态标题的依赖由 computed 顺势收集。
+    const base = registry
+        .filter((cmd) => cmd.inPalette !== false)
+        .map((cmd) => ({
+            id: cmd.id,
+            title: cmd.title(),
+            hint: cmd.hint,
+            keys: shortcutLabel(cmd.id),
+            run: cmd.run
+        }))
 
     // 切换到其它文档
     const docs = documents.files.value
@@ -163,7 +145,7 @@ const onKeydown = (event) => {
 }
 
 const onGlobalKeydown = (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
+    if (matchesShortcut(event, 'palette')) {
         event.preventDefault()
         if (isOpen.value) close()
         else open()

@@ -83,7 +83,11 @@ export const createDocumentSession = ({ onExternalUpdate } = {}) => {
             const incoming = await loadDocumentState()
             if (!incoming) return // DB 被清空：保留本页内存，不覆盖
             const normalized = normalizeState(incoming, PRESET_DOCUMENTS)
-            const { state: nextState, activeContent, forgetIds } = reconcileDocumentState({
+            const {
+                state: nextState,
+                activeContent,
+                forgetIds
+            } = reconcileDocumentState({
                 current: state.value,
                 incoming: normalized,
                 hasLocalPending: scheduler.hasPending()

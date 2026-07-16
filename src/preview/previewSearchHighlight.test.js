@@ -91,9 +91,7 @@ describe('applyPreviewHighlight', () => {
     })
 
     it('命中落在 SVG 原生文本（<text>）：不注册 Highlight，改为整块 outline 降级', () => {
-        const target = makeTarget([
-            { text: '按需加载 mermaid', parentSelectors: ['svg'] }
-        ])
+        const target = makeTarget([{ text: '按需加载 mermaid', parentSelectors: ['svg'] }])
 
         applyPreviewHighlight(contentEl, target, 'mermaid')
 
@@ -104,9 +102,7 @@ describe('applyPreviewHighlight', () => {
 
     it('命中落在 mermaid 的 foreignObject（HTML 文本）：仍走 Highlight API 逐词高亮', () => {
         // foreignObject 内是真 HTML，Highlight API 能绘制，不应被当作 SVG 文本剔除。
-        const target = makeTarget([
-            { text: '按需加载 mermaid', parentSelectors: ['svg', 'foreignObject'] }
-        ])
+        const target = makeTarget([{ text: '按需加载 mermaid', parentSelectors: ['svg', 'foreignObject'] }])
 
         applyPreviewHighlight(contentEl, target, 'mermaid')
 

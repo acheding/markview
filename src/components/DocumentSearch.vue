@@ -8,7 +8,7 @@
                 v-model="query"
                 class="document-search__input"
                 type="search"
-                placeholder="Ctrl + K 搜索文档"
+                :placeholder="`${searchShortcut} 搜索文档`"
                 autocomplete="off"
                 aria-label="搜索文档"
                 :aria-expanded="isOpen"
@@ -73,8 +73,12 @@
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { matchesShortcut, shortcutLabel } from '../composables/shortcuts.js'
 import { splitMatchParts } from '../core/search/snippet.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
+
+// 占位文案里的快捷键与全局监听同源（见 composables/shortcuts.js）。
+const searchShortcut = shortcutLabel('search')
 
 const { search, documents, actions } = useWorkspace()
 const query = search.query
@@ -147,7 +151,7 @@ const closeOnOutsideClick = (event) => {
 }
 
 const focusFromShortcut = (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    if (matchesShortcut(event, 'search')) {
         event.preventDefault()
         inputRef.value?.focus()
         inputRef.value?.select()

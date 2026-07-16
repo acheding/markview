@@ -2,7 +2,7 @@
     <button
         class="theme-toggle"
         type="button"
-        v-tooltip="{ text: theme === 'dark' ? '切换到浅色' : '切换到暗色', keys: `${modKey}+Alt+L` }"
+        v-tooltip="{ text: theme === 'dark' ? '切换到浅色' : '切换到暗色', keys: shortcutLabel('theme') }"
         :aria-label="theme === 'dark' ? '切换到浅色模式' : '切换到暗色模式'"
         @click="toggleTheme"
     >
@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { modKey } from '../composables/shortcuts.js'
+import { shortcutLabel } from '../composables/shortcuts.js'
 import { useTheme } from '../composables/useTheme.js'
 
 const { theme, toggleTheme } = useTheme()

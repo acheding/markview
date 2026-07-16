@@ -7,6 +7,7 @@ import { createPreviewController } from '../preview/PreviewController.js'
 import { exportHtml, exportMarkdown, printDocument } from '../services/exporter.js'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { isImageFile, isImportableTextFile } from '../core/documents/importableFile.js'
+import { createCommands } from './commands.js'
 import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
 import { createLayoutSession } from './layoutSession.js'
@@ -15,6 +16,7 @@ import { createOrchestrations } from './orchestrations.js'
 import { createToastSession } from './toastSession.js'
 import { createConfirmSession } from './confirmSession.js'
 import { createPreviewRenderSession } from './previewRenderSession.js'
+import { matchesShortcut } from '../composables/shortcuts.js'
 import { useTheme } from '../composables/useTheme.js'
 import { copyText } from '../composables/clipboard.js'
 import { waitForAnimationFrame } from '../composables/useTransitionSettled.js'
@@ -273,12 +275,14 @@ export const createWorkspace = () => {
     // —— 导出 ——
     // PDF 走浏览器原生打印（printDocument）：原生支持 color-mix 等现代 CSS、文字可选、体积小，
     // 取代了对 html2canvas 的依赖（其无法解析本项目的 color-mix，会渲染即抛错）。
-    const exportActiveFile = () => exportMarkdown(documents.activeFile.value)
-    const exportActiveHtml = () => {
-        if (!previewController) return
-        exportHtml(previewController.scrollDOM, documents.activeFile.value?.name, { theme: theme.value })
+    const exporting = {
+        exportActiveFile: () => exportMarkdown(documents.activeFile.value),
+        exportHtml: () => {
+            if (!previewController) return
+            exportHtml(previewController.scrollDOM, documents.activeFile.value?.name, { theme: theme.value })
+        },
+        print: () => printDocument()
     }
-    const printActiveDocument = () => printDocument()
 
     // —— 响应式联动 ——
     // 切换文档：编辑器切到该文档的独立 EditorState（各自 undo 历史），再做副作用（清搜索命中、
@@ -403,44 +407,6 @@ export const createWorkspace = () => {
         })
     }
 
-    const handleKeydown = (event) => {
-        const mod = event.ctrlKey || event.metaKey
-        const key = event.key.toLowerCase()
-
-        // 应用自定义命令统一 Ctrl/Cmd+Alt+字母（单修饰的 Ctrl+N/C 等被浏览器或系统占用）。
-        if (mod && event.altKey && !event.shiftKey) {
-            if (key === 'n') {
-                event.preventDefault()
-                documents.create()
-            } else if (key === 'c') {
-                event.preventDefault()
-                // 不透传事件对象：shareActiveDocument 的入参是锚点。
-                shareActiveDocument()
-            } else if (key === 'x') {
-                event.preventDefault()
-                orchestrations.clearContent()
-            } else if (key === 'l') {
-                event.preventDefault()
-                toggleTheme()
-            }
-            return
-        }
-        // 标准语义沿用浏览器习惯的单修饰 Ctrl/Cmd+字母。
-        if (mod && !event.shiftKey && !event.altKey) {
-            if (key === 's') {
-                event.preventDefault()
-                saveNow()
-            } else if (key === 'o') {
-                // 覆盖浏览器「打开文件」，落到应用内导入。
-                event.preventDefault()
-                openImportPicker()
-            } else if (key === '\\') {
-                event.preventDefault()
-                orchestrations.setEditorCollapsed(!layout.isEditorCollapsed.value)
-            }
-        }
-    }
-
     // —— 批量导入（导入按钮 / 拖拽导入共用）——
     // 逐个把 File 读为文本、导入为新文档，返回成功/失败计数；不在此提示，交由调用方按场景合并。
     // 文档名由内容识别（见 documentSession.importFile），故此处不必依赖文件名。
@@ -531,6 +497,28 @@ export const createWorkspace = () => {
         return true
     }
 
+    // —— 命令注册表 + 全局快捷键 ——
+    // 命令的标题/行为见 workspace/commands.js，键位与展示文案见 composables/shortcuts.js：
+    // 命令面板与此处的全局监听消费同一份注册表，tooltip 文案与按键判定同源，改动不会漏其一。
+    const commands = createCommands({
+        documents,
+        layout,
+        actions: orchestrations,
+        exporting,
+        theme,
+        toggleTheme,
+        share: shareActiveDocument,
+        openImportPicker,
+        saveNow
+    })
+
+    const handleKeydown = (event) => {
+        const command = commands.find((cmd) => matchesShortcut(event, cmd.id))
+        if (!command) return
+        event.preventDefault()
+        command.run()
+    }
+
     // 等待首屏 hydrate 完成（isReady 置真）再继续，避免导入被随后到达的初始状态覆盖。
     const whenDocumentsReady = () => {
         if (documents.isReady.value) return Promise.resolve()
@@ -612,12 +600,9 @@ export const createWorkspace = () => {
         html,
         toc,
         isPreviewReady,
-        exporting: {
-            exportActiveFile,
-            exportHtml: exportActiveHtml,
-            print: printActiveDocument
-        },
+        exporting,
         actions: orchestrations,
+        commands,
         importFiles,
         openImportPicker,
         importDroppedFiles,

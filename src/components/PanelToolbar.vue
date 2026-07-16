@@ -8,7 +8,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    v-tooltip="{ text: '新建文档', keys: `${modKey}+Alt+N` }"
+                    v-tooltip="{ text: '新建文档', keys: shortcutLabel('new') }"
                     aria-label="新建文档"
                     @click="documents.create()"
                 >
@@ -21,7 +21,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    v-tooltip="{ text: '清空内容', keys: `${modKey}+Alt+X` }"
+                    v-tooltip="{ text: '清空内容', keys: shortcutLabel('clear') }"
                     aria-label="清空内容"
                     @click="actions.clearContent()"
                 >
@@ -37,7 +37,7 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                v-tooltip="{ text: '导入 Markdown', keys: `${modKey}+O` }"
+                v-tooltip="{ text: '导入 Markdown', keys: shortcutLabel('import') }"
                 aria-label="导入 Markdown"
                 @click="openImportPicker"
             >
@@ -55,7 +55,7 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                v-tooltip="{ text: '复制分享链接', keys: `${modKey}+Alt+C` }"
+                v-tooltip="{ text: '复制分享链接', keys: shortcutLabel('share') }"
                 aria-label="复制分享链接"
                 @click="share"
             >
@@ -67,7 +67,7 @@
                 v-if="context === 'editor'"
                 class="toolbar-action-button"
                 type="button"
-                v-tooltip="{ text: '折叠编辑区', keys: `${modKey}+\\` }"
+                v-tooltip="{ text: '折叠编辑区', keys: shortcutLabel('toggle-editor') }"
                 aria-label="折叠编辑区"
                 @click="actions.setEditorCollapsed(true)"
             >
@@ -83,7 +83,7 @@
                 v-if="context === 'preview'"
                 class="toolbar-action-button"
                 type="button"
-                v-tooltip="{ text: '展开编辑区', keys: `${modKey}+\\` }"
+                v-tooltip="{ text: '展开编辑区', keys: shortcutLabel('toggle-editor') }"
                 aria-label="展开编辑区"
                 @click="actions.setEditorCollapsed(false)"
             >
@@ -104,7 +104,7 @@ import expandEditorIcon from '../assets/expand-editor.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
 import shareIcon from '../assets/share.svg'
-import { modKey } from '../composables/shortcuts.js'
+import { shortcutLabel } from '../composables/shortcuts.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import FileSwitcher from './FileSwitcher.vue'
 import PanelToolbarMenu from './PanelToolbarMenu.vue'
