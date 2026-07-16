@@ -17,9 +17,15 @@ const prefersDark = () => typeof window !== 'undefined' && window.matchMedia?.('
 // 初始主题：优先本地记忆，其次跟随系统。
 const theme = ref(readStored() || (prefersDark() ? 'dark' : 'light'))
 
+// PWA 窗口标题栏颜色（meta theme-color）：与顶栏 --color-surface-glass 的实际底色对齐，
+// 浅色沿用 manifest 的 theme_color；index.html 内联脚本也用同一组色值。
+const THEME_COLORS = { light: '#dbe3f7', dark: '#1e1e21' }
+
 const applyTheme = (value) => {
     if (typeof document !== 'undefined') {
         document.documentElement.dataset.theme = value
+        const meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.content = THEME_COLORS[value] || THEME_COLORS.light
     }
 }
 
