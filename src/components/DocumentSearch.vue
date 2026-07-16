@@ -46,7 +46,7 @@
                 type="button"
                 role="option"
                 :aria-selected="index === activeIndex"
-                @mouseenter="activeIndex = index"
+                @mousemove="activeIndex = index"
                 @click="selectResult(result)"
             >
                 <span class="document-search__meta">
@@ -114,17 +114,18 @@ const scrollActiveIntoView = () => {
 }
 
 const handleKeydown = (event) => {
+    const count = results.value.length
     if (event.key === 'ArrowDown') {
         event.preventDefault()
         isOpen.value = true
-        activeIndex.value = Math.min(activeIndex.value + 1, Math.max(results.value.length - 1, 0))
+        if (count) activeIndex.value = (activeIndex.value + 1) % count
         scrollActiveIntoView()
         return
     }
 
     if (event.key === 'ArrowUp') {
         event.preventDefault()
-        activeIndex.value = Math.max(activeIndex.value - 1, 0)
+        if (count) activeIndex.value = (activeIndex.value - 1 + count) % count
         scrollActiveIntoView()
         return
     }

@@ -22,11 +22,12 @@
                         type="button"
                         role="option"
                         :aria-selected="i === activeIndex"
-                        @mouseenter="activeIndex = i"
+                        @mousemove="activeIndex = i"
                         @click="run(cmd)"
                     >
                         <span class="cmd-item__title">{{ cmd.title }}</span>
                         <span v-if="cmd.hint" class="cmd-item__hint">{{ cmd.hint }}</span>
+                        <span v-if="cmd.keys" class="cmd-item__keys">{{ cmd.keys }}</span>
                     </button>
 
                     <div v-if="!filtered.length" class="cmd-empty">没有匹配的命令</div>
@@ -149,13 +150,14 @@ const run = (cmd) => {
 }
 
 const onKeydown = (event) => {
+    const count = filtered.value.length
     if (event.key === 'ArrowDown') {
         event.preventDefault()
-        activeIndex.value = Math.min(activeIndex.value + 1, filtered.value.length - 1)
+        if (count) activeIndex.value = (activeIndex.value + 1) % count
         scrollActiveIntoView()
     } else if (event.key === 'ArrowUp') {
         event.preventDefault()
-        activeIndex.value = Math.max(activeIndex.value - 1, 0)
+        if (count) activeIndex.value = (activeIndex.value - 1 + count) % count
         scrollActiveIntoView()
     } else if (event.key === 'Enter') {
         event.preventDefault()
