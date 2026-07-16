@@ -7,7 +7,7 @@
                     v-model="query"
                     class="cmd-input"
                     type="text"
-                    placeholder="输入命令…（新建 / 导入 / 导出 / 切换主题 / 分享）"
+                    placeholder="输入命令或文档名…（新建 / 导入 / 导出 / 分享 / 切换文档）"
                     aria-label="命令面板"
                     aria-controls="cmd-list"
                     @keydown="onKeydown"
@@ -191,7 +191,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onGlobalKeydown))
     display: flex;
     flex-direction: column;
     width: min(560px, 92vw);
-    max-height: 70vh;
+    /* 450px ≈ 输入框 50px + 列表 10 行（38px/条），对齐命令面板 8~12 行的通行密度；小屏退到 70vh */
+    max-height: min(450px, 70vh);
     overflow: hidden;
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-lg);

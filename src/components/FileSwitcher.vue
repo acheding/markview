@@ -148,7 +148,8 @@ onBeforeUnmount(() => {
     z-index: var(--z-file-menu);
     width: max-content;
     max-width: 100%;
-    max-height: 280px;
+    /* 280px ≈ 8.75 行，露半行暗示可滚动；calc 兜底防手机横屏等矮视口溢出（120px ≈ 工具栏 + 触发器 + 边距） */
+    max-height: min(280px, calc(100vh - 120px));
     overflow-y: auto;
     padding: 6px;
     border: 1px solid var(--color-border);
