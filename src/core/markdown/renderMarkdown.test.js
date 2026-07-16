@@ -36,7 +36,7 @@ describe('renderMarkdown', () => {
 
         expect(html).not.toContain('javascript:')
         expect(html).toContain('<p data-source-line="1">bad</p>')
-        expect(html).toContain('<a href="https://example.com">ok</a>')
+        expect(html).toContain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">ok</a>')
         expect(html).toContain('<p data-source-line="5">bad</p>')
         expect(html).toContain('<img src="data:image/png;base64,aGVsbG8=" alt="ok">')
     })

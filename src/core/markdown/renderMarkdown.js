@@ -204,7 +204,10 @@ export const renderMarkdown = async (source) => {
                     const text = this.parser.parseInline(token.tokens)
                     if (!href) return text
 
-                    return `<a href="${href}"${createTitleAttr(token.title)}>${text}</a>`
+                    // 绝对 http(s) 链接在新标签打开，避免离开当前正在编辑的文档；锚点/相对链接保持同页。
+                    const isExternal = /^https?:\/\//i.test(String(token.href || '').trim())
+                    const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
+                    return `<a href="${href}"${createTitleAttr(token.title)}${targetAttr}>${text}</a>`
                 },
 
                 image(token) {
