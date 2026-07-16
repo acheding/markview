@@ -21,7 +21,8 @@ const { toast } = useWorkspace()
 
 const ICONS = {
     success: '✓',
-    warn: '!',
+    warning: '!',
+    error: '!',
     info: 'i'
 }
 
@@ -68,8 +69,13 @@ const icon = computed(() => ICONS[toast.tone.value] || ICONS.info)
     background: var(--color-accent-solid);
 }
 
-.app-toast--warn .app-toast__icon {
+/* error：错误（红）；warning：警告 / 部分成功等需提醒但非错误的情况（橙黄） */
+.app-toast--error .app-toast__icon {
     background: var(--color-danger);
+}
+
+.app-toast--warning .app-toast__icon {
+    background: var(--color-warning);
 }
 
 .app-toast--info .app-toast__icon {

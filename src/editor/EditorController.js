@@ -4,6 +4,7 @@ import { findTextMatch } from '../core/search/match.js'
 import { createEditorExtensions } from './extensions/setup.js'
 import { editorTheme } from './extensions/theme.js'
 import { setSearchHighlight } from './extensions/searchHighlight.js'
+import { compressImagesToMarkdown } from './extensions/imagePaste.js'
 
 /**
  * 编辑器唯一门面：Vue 组件只提供挂载点，所有编辑命令/查询都经由这里，
@@ -122,6 +123,19 @@ export const createEditorController = ({
 
         getDoc: () => view.state.doc.toString(),
         docLength: () => view.state.doc.length,
+
+        // 在当前光标处插入图片（压缩为内联 base64）。供全局拖拽导入把图片插入活动文档，
+        // 与粘贴共用同一压缩逻辑；超限/失败提示走 onImageNotify。
+        async insertImages(files) {
+            const insert = await compressImagesToMarkdown(files, { onNotify: onImageNotify })
+            if (!insert) return
+            const pos = Math.min(view.state.selection.main.to, view.state.doc.length)
+            view.dispatch({
+                changes: { from: pos, to: pos, insert },
+                selection: { anchor: pos + insert.length }
+            })
+            view.focus()
+        },
 
         // 指定行的像素顶部偏移（供锚点表 / 滚动定位使用）
         lineTop(lineNumber) {

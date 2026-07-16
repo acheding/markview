@@ -101,7 +101,7 @@
             type="file"
             accept=".md,.markdown,text/markdown,text/plain"
             multiple
-            @change="importFiles"
+            @change="handleFileInput"
         />
     </div>
 </template>
@@ -126,7 +126,7 @@ defineProps({
     }
 })
 
-const { documents, actions, share, toast } = useWorkspace()
+const { documents, actions, share, importFiles } = useWorkspace()
 
 const fileInputRef = ref(null)
 
@@ -134,19 +134,11 @@ const triggerImport = () => {
     fileInputRef.value?.click()
 }
 
-const importFiles = async (event) => {
-    const selectedFiles = Array.from(event.target.files || [])
-    if (!selectedFiles.length) return
-
+const handleFileInput = async (event) => {
     try {
-        for (const file of selectedFiles) {
-            const content = await file.text()
-            documents.importFile({ name: file.name, content })
-        }
-    } catch (error) {
-        console.warn('Markdown import failed:', error)
-        toast.show('导入失败，请确认文件可读取。', { tone: 'warn', duration: 3000 })
+        await importFiles(event.target.files)
     } finally {
+        // 允许再次选择同一文件触发 change。
         event.target.value = ''
     }
 }

@@ -27,33 +27,43 @@
         <AppToast />
         <AppConfirm />
         <CommandPalette />
+        <FileDropOverlay :visible="showDropOverlay" />
     </div>
 </template>
 
 <script setup>
-import { provide } from 'vue'
+import { computed, provide } from 'vue'
 import AppConfirm from './components/AppConfirm.vue'
 import AppToast from './components/AppToast.vue'
 import AppToolbar from './components/AppToolbar.vue'
 import CommandPalette from './components/CommandPalette.vue'
 import ContentViewSkeleton from './components/ContentViewSkeleton.vue'
 import EditorPane from './components/EditorPane.vue'
+import FileDropOverlay from './components/FileDropOverlay.vue'
 import PreviewPane from './components/PreviewPane.vue'
 import ResizeDivider from './components/ResizeDivider.vue'
 import { useDocumentTitle } from './composables/useDocumentTitle.js'
+import { useFileDrop } from './composables/useFileDrop.js'
+import { dragHasNonImageFile } from './core/documents/importableFile.js'
 import { createWorkspace } from './workspace/createWorkspace.js'
 import { WORKSPACE_KEY } from './workspace/workspaceKey.js'
 
 const workspace = createWorkspace()
 provide(WORKSPACE_KEY, workspace)
 
-const { documents, layout } = workspace
+const { documents, layout, importDroppedFiles } = workspace
 
 useDocumentTitle({ activeFile: documents.activeFile, saveStatus: documents.saveStatus })
 
 const setMainPanel = (el) => {
     layout.containerRef.value = el
 }
+
+// 全局拖拽导入：拖放的 DOM 语义由 useFileDrop 处理，可导入与否的业务判断在 importDroppedFiles。
+const { isDragging, dragTypes } = useFileDrop({ onDrop: importDroppedFiles })
+
+// 放置蒙层在拖入非图片文件时展示；拖入图片直接插入当前文档、不显示蒙层。
+const showDropOverlay = computed(() => isDragging.value && dragHasNonImageFile(dragTypes.value))
 </script>
 
 <style scoped>

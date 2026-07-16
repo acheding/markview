@@ -6,6 +6,7 @@ import { createEditorController } from '../editor/EditorController.js'
 import { createPreviewController } from '../preview/PreviewController.js'
 import { exportHtml, exportMarkdown, printDocument } from '../services/exporter.js'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
+import { isImageFile, isImportableTextFile } from '../core/documents/importableFile.js'
 import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
 import { createLayoutSession } from './layoutSession.js'
@@ -232,7 +233,7 @@ export const createWorkspace = () => {
             onDocChanged: (text) => documents.setContent(text),
             onUserIntent: () => search.clearActiveMatch(),
             onScroll: handleEditorScroll,
-            onImageNotify: (message) => toast.show(message, { tone: 'warn', duration: 3000 }),
+            onImageNotify: (message) => toast.show(message, { tone: 'warning', duration: 3000 }),
             completion: {
                 getHeadings: () => toc.value,
                 getDocuments: () => documents.files.value
@@ -361,7 +362,7 @@ export const createWorkspace = () => {
         }
         // 复制彻底失败：把链接写进地址栏，用户可手动复制。
         window.location.hash = `share=${compressed}`
-        toast.show('已生成链接，请从地址栏手动复制', { tone: 'warn', duration: 3600 })
+        toast.show('已生成链接，请从地址栏手动复制', { tone: 'warning', duration: 3600 })
         return false
     }
 
@@ -393,12 +394,12 @@ export const createWorkspace = () => {
     // Ctrl/Cmd + S：拦截浏览器「保存网页」，立即落盘并提示（本应用本就自动保存到本地）。
     const saveNow = async () => {
         if (documents.saveStatus.value === SAVE_STATUS.MEMORY_ONLY) {
-            toast.show('浏览器未启用本地存储，内容仅保存在当前会话', { tone: 'warn', duration: 3000 })
+            toast.show('浏览器未启用本地存储，内容仅保存在当前会话', { tone: 'warning', duration: 3000 })
             return
         }
         await documents.flush()
         toast.show(documents.saveStatus.value === SAVE_STATUS.FAILED ? '保存失败，请重试' : '已保存到本地', {
-            tone: documents.saveStatus.value === SAVE_STATUS.FAILED ? 'warn' : 'success'
+            tone: documents.saveStatus.value === SAVE_STATUS.FAILED ? 'error' : 'success'
         })
     }
 
@@ -414,39 +415,118 @@ export const createWorkspace = () => {
         }
     }
 
-    // —— PWA 文件处理（File Handling API）——
-    // 从系统双击 .md / .markdown 打开时，launchQueue 把文件句柄交给这里，逐个导入为新文档。
-    const consumeLaunchFiles = async (launchParams) => {
-        const files = launchParams?.files
-        if (!files?.length) return
-
-        // 等 hydrate 完成再导入，避免被随后的初始状态覆盖。
-        if (!documents.isReady.value) {
-            await new Promise((resolve) => {
-                const stop = watch(
-                    () => documents.isReady.value,
-                    (ready) => {
-                        if (ready) {
-                            stop()
-                            resolve()
-                        }
-                    }
-                )
-            })
-        }
-
+    // —— 批量导入（导入按钮 / 拖拽导入共用）——
+    // 逐个把 File 读为文本、导入为新文档，返回成功/失败计数；不在此提示，交由调用方按场景合并。
+    // 文档名由内容识别（见 documentSession.importFile），故此处不必依赖文件名。
+    const runImport = async (files) => {
         let imported = 0
-        for (const handle of files) {
+        let failed = 0
+        for (const file of files) {
             try {
-                const file = await handle.getFile()
                 const content = await file.text()
                 documents.importFile({ name: file.name, content })
                 imported += 1
+            } catch (error) {
+                console.warn('导入文件失败:', error)
+                failed += 1
+            }
+        }
+        return { imported, failed }
+    }
+
+    // 导入结果提示：单条 toast 会互相覆盖，故成功与失败合并为一条精确提示。
+    // failed 汇总「读取失败」与「格式不支持」两类，统一按失败数呈现。
+    const notifyImport = ({ imported, failed }) => {
+        if (imported && failed) {
+            // 部分成功：橙黄提醒而非红色报错。
+            toast.show(`已导入 ${imported} 个文件，${failed} 个失败`, { tone: 'warning', duration: 3000 })
+        } else if (failed) {
+            toast.show(`${failed} 个文件导入失败`, { tone: 'error', duration: 3000 })
+        } else if (imported) {
+            toast.show(`已导入 ${imported} 个文件`, { tone: 'success' })
+        }
+    }
+
+    // 「格式不支持」提示：导入按钮与拖拽导入共用，保证文案一致。
+    const notifyUnsupported = () =>
+        toast.show('不支持的文件格式，仅支持 .md / .markdown / 文本文件', { tone: 'warning', duration: 3000 })
+
+    // 导入按钮 / 文件选择：过滤出可导入的文本文件，其余按「不支持」计入失败并提示。
+    const importFiles = async (fileList) => {
+        const files = Array.from(fileList || [])
+        if (!files.length) return
+
+        const textFiles = files.filter(isImportableTextFile)
+        const unsupported = files.length - textFiles.length
+
+        if (!textFiles.length) {
+            notifyUnsupported()
+            return
+        }
+        const { imported, failed } = await runImport(textFiles)
+        notifyImport({ imported, failed: failed + unsupported })
+    }
+
+    // 拖拽导入统一入口（页面任意位置）：文本文件导入为新文档；图片插入当前文档；其余格式提示不支持。
+    // 有文件即返回 true 以消费 drop（拦截浏览器默认打开与编辑器默认拖放）；空拖拽返回 false 放行。
+    const importDroppedFiles = (fileList) => {
+        const files = Array.from(fileList || [])
+        if (!files.length) return false
+
+        const textFiles = files.filter(isImportableTextFile)
+        const imageFiles = files.filter(isImageFile)
+        // 既非文本、又非图片的即「格式不支持」。
+        const unsupported = files.length - textFiles.length - imageFiles.length
+
+        // 图片插入活动文档（拖到编辑区内外均可）；超限/失败提示由编辑器 onImageNotify 负责。
+        if (imageFiles.length) getEditor()?.insertImages(imageFiles)
+
+        if (textFiles.length) {
+            // 异步导入，完成后连同不支持数量一并提示。
+            runImport(textFiles).then(({ imported, failed }) => notifyImport({ imported, failed: failed + unsupported }))
+        } else if (unsupported && !imageFiles.length) {
+            // 纯不支持格式（无图片可插）：明确提示。
+            notifyUnsupported()
+        }
+
+        return true
+    }
+
+    // 等待首屏 hydrate 完成（isReady 置真）再继续，避免导入被随后到达的初始状态覆盖。
+    const whenDocumentsReady = () => {
+        if (documents.isReady.value) return Promise.resolve()
+        return new Promise((resolve) => {
+            const stop = watch(
+                () => documents.isReady.value,
+                (ready) => {
+                    if (ready) {
+                        stop()
+                        resolve()
+                    }
+                }
+            )
+        })
+    }
+
+    // —— PWA 文件处理（File Handling API）——
+    // 从系统双击 .md / .markdown 打开时，launchQueue 把文件句柄交给这里，逐个导入为新文档。
+    const consumeLaunchFiles = async (launchParams) => {
+        const handles = launchParams?.files
+        if (!handles?.length) return
+
+        await whenDocumentsReady()
+
+        // 句柄先解析为 File，再复用统一导入逻辑；提示用「已打开」以贴合系统双击打开的语义。
+        const files = []
+        for (const handle of handles) {
+            try {
+                files.push(await handle.getFile())
             } catch (error) {
                 console.warn('打开文件失败:', error)
             }
         }
 
+        const { imported } = await runImport(files)
         if (imported) {
             toast.show(imported > 1 ? `已打开 ${imported} 个文件` : '已打开文件', { tone: 'success' })
         }
@@ -499,6 +579,8 @@ export const createWorkspace = () => {
             print: printActiveDocument
         },
         actions: orchestrations,
+        importFiles,
+        importDroppedFiles,
         share: shareActiveDocument,
         attachEditor,
         detachEditor,
