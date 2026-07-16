@@ -8,7 +8,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    title="新建文档"
+                    :title="`新建文档（${modKey}+Alt+N）`"
                     aria-label="新建文档"
                     @click="documents.create()"
                 >
@@ -21,7 +21,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    title="清空内容"
+                    :title="`清空内容（${modKey}+Alt+X）`"
                     aria-label="清空内容"
                     @click="actions.clearContent()"
                 >
@@ -37,9 +37,9 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                title="导入 Markdown"
+                :title="`导入 Markdown（${modKey}+O）`"
                 aria-label="导入 Markdown"
-                @click="triggerImport"
+                @click="openImportPicker"
             >
                 <span
                     class="toolbar-action-icon"
@@ -55,7 +55,7 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                title="复制分享链接"
+                :title="`复制分享链接（${modKey}+Alt+C）`"
                 aria-label="复制分享链接"
                 @click="share"
             >
@@ -67,7 +67,7 @@
                 v-if="context === 'editor'"
                 class="toolbar-action-button"
                 type="button"
-                title="折叠编辑区"
+                :title="`折叠编辑区（${modKey}+\\）`"
                 aria-label="折叠编辑区"
                 @click="actions.setEditorCollapsed(true)"
             >
@@ -83,7 +83,7 @@
                 v-if="context === 'preview'"
                 class="toolbar-action-button"
                 type="button"
-                title="展开编辑区"
+                :title="`展开编辑区（${modKey}+\\）`"
                 aria-label="展开编辑区"
                 @click="actions.setEditorCollapsed(false)"
             >
@@ -94,26 +94,17 @@
                 />
             </button>
         </div>
-
-        <input
-            ref="fileInputRef"
-            class="panel-toolbar__file-input"
-            type="file"
-            accept=".md,.markdown,text/markdown,text/plain"
-            multiple
-            @change="handleFileInput"
-        />
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import clearContentIcon from '../assets/clear-content.svg'
 import collapseEditorIcon from '../assets/collapse-editor.svg'
 import expandEditorIcon from '../assets/expand-editor.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
 import shareIcon from '../assets/share.svg'
+import { modKey } from '../composables/shortcuts.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import FileSwitcher from './FileSwitcher.vue'
 import PanelToolbarMenu from './PanelToolbarMenu.vue'
@@ -126,22 +117,7 @@ defineProps({
     }
 })
 
-const { documents, actions, share, importFiles } = useWorkspace()
-
-const fileInputRef = ref(null)
-
-const triggerImport = () => {
-    fileInputRef.value?.click()
-}
-
-const handleFileInput = async (event) => {
-    try {
-        await importFiles(event.target.files)
-    } finally {
-        // 允许再次选择同一文件触发 change。
-        event.target.value = ''
-    }
-}
+const { documents, actions, share, openImportPicker } = useWorkspace()
 </script>
 
 <style scoped>
@@ -164,10 +140,6 @@ const handleFileInput = async (event) => {
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-}
-
-.panel-toolbar__file-input {
-    display: none;
 }
 
 @media (max-width: 768px) {

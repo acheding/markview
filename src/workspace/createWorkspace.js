@@ -40,7 +40,7 @@ export const createWorkspace = () => {
     const layout = createLayoutSession()
     const toast = createToastSession()
     const confirm = createConfirmSession()
-    const { theme } = useTheme()
+    const { theme, toggleTheme } = useTheme()
 
     // 渲染在 Web Worker 中进行，结果异步写回 html/toc。
     const html = ref('')
@@ -404,14 +404,40 @@ export const createWorkspace = () => {
     }
 
     const handleKeydown = (event) => {
-        if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'c') {
-            event.preventDefault()
-            orchestrations.clearContent()
+        const mod = event.ctrlKey || event.metaKey
+        const key = event.key.toLowerCase()
+
+        // 应用自定义命令统一 Ctrl/Cmd+Alt+字母（单修饰的 Ctrl+N/C 等被浏览器或系统占用）。
+        if (mod && event.altKey && !event.shiftKey) {
+            if (key === 'n') {
+                event.preventDefault()
+                documents.create()
+            } else if (key === 'c') {
+                event.preventDefault()
+                // 不透传事件对象：shareActiveDocument 的入参是锚点。
+                shareActiveDocument()
+            } else if (key === 'x') {
+                event.preventDefault()
+                orchestrations.clearContent()
+            } else if (key === 'l') {
+                event.preventDefault()
+                toggleTheme()
+            }
             return
         }
-        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 's') {
-            event.preventDefault()
-            saveNow()
+        // 标准语义沿用浏览器习惯的单修饰 Ctrl/Cmd+字母。
+        if (mod && !event.shiftKey && !event.altKey) {
+            if (key === 's') {
+                event.preventDefault()
+                saveNow()
+            } else if (key === 'o') {
+                // 覆盖浏览器「打开文件」，落到应用内导入。
+                event.preventDefault()
+                openImportPicker()
+            } else if (key === '\\') {
+                event.preventDefault()
+                orchestrations.setEditorCollapsed(!layout.isEditorCollapsed.value)
+            }
         }
     }
 
@@ -465,6 +491,17 @@ export const createWorkspace = () => {
         }
         const { imported, failed } = await runImport(textFiles)
         notifyImport({ imported, failed: failed + unsupported })
+    }
+
+    // 快捷键（Ctrl+O）/ 命令面板 / 工具栏共用的导入入口：动态建 input 唤起系统文件选择器，
+    // 免去各组件重复维护隐藏 input；每次新建实例，重复选择同一文件也能触发 change。
+    const openImportPicker = () => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = '.md,.markdown,text/markdown,text/plain'
+        input.multiple = true
+        input.addEventListener('change', () => importFiles(input.files), { once: true })
+        input.click()
     }
 
     // 拖拽导入统一入口（页面任意位置）：文本文件导入为新文档；图片插入当前文档；其余格式提示不支持。
@@ -582,6 +619,7 @@ export const createWorkspace = () => {
         },
         actions: orchestrations,
         importFiles,
+        openImportPicker,
         importDroppedFiles,
         share: shareActiveDocument,
         attachEditor,

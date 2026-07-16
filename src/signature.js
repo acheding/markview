@@ -9,6 +9,9 @@ export function printSignature() {
     const author = 'padding:2px 8px;border-radius:0 3px 3px 0;background:#22252e;color:#aebdf0'
     const dim = 'color:#8a93a5;font-size:11px;line-height:2'
 
+    // 彩蛋即输出本身，豁免 no-console。
+    /* eslint-disable no-console */
     console.log('%cMarkView%cCrafted by acheding', badge, author)
     console.log('%cSide project · Pair-programmed with Claude Opus 4.8', dim)
+    /* eslint-enable no-console */
 }

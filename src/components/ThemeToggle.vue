@@ -2,7 +2,7 @@
     <button
         class="theme-toggle"
         type="button"
-        :title="theme === 'dark' ? '切换到浅色' : '切换到暗色'"
+        :title="`${theme === 'dark' ? '切换到浅色' : '切换到暗色'}（${modKey}+Alt+L）`"
         :aria-label="theme === 'dark' ? '切换到浅色模式' : '切换到暗色模式'"
         @click="toggleTheme"
     >
@@ -40,6 +40,7 @@
 </template>
 
 <script setup>
+import { modKey } from '../composables/shortcuts.js'
 import { useTheme } from '../composables/useTheme.js'
 
 const { theme, toggleTheme } = useTheme()
