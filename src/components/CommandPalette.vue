@@ -40,11 +40,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { modKey } from '../composables/shortcuts.js'
+import { useCommandUsage } from '../composables/useCommandUsage.js'
 import { useTheme } from '../composables/useTheme.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 
 const { documents, actions, exporting, layout, share, openImportPicker } = useWorkspace()
 const { theme, toggleTheme } = useTheme()
+const { recordUse, usageOf } = useCommandUsage()
 
 const isOpen = ref(false)
 const query = ref('')
@@ -91,7 +93,8 @@ const commands = computed(() => {
             run: () => documents.select(file.id)
         }))
 
-    return [...base, ...docs]
+    // 按使用次数降序贴合用户习惯；次数相同时 sort 稳定，保持预设顺序。
+    return [...base, ...docs].sort((a, b) => usageOf(b.id) - usageOf(a.id))
 })
 
 // 子序列模糊匹配：输入的每个字符按序出现在标题中即命中（大小写不敏感）。
@@ -134,6 +137,7 @@ const close = () => {
 
 const run = (cmd) => {
     close()
+    recordUse(cmd.id)
     // 关闭面板后再执行，避免命令弹出的确认框/焦点被面板抢占。
     nextTick(() => cmd.run())
 }
