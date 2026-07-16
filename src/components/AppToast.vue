@@ -7,7 +7,9 @@
             role="status"
             aria-live="polite"
         >
-            <span class="app-toast__icon" aria-hidden="true">{{ icon }}</span>
+            <span class="app-toast__icon" aria-hidden="true">
+                <span class="app-toast__glyph" :style="{ '--icon-url': `url(${iconUrl})` }" />
+            </span>
             <span class="app-toast__text">{{ toast.message.value }}</span>
         </div>
     </Transition>
@@ -16,17 +18,21 @@
 <script setup>
 import { computed } from 'vue'
 import { useWorkspace } from '../workspace/workspaceKey.js'
+import successIcon from '../assets/toast-success.svg'
+import warningIcon from '../assets/toast-warning.svg'
+import infoIcon from '../assets/toast-info.svg'
 
 const { toast } = useWorkspace()
 
-const ICONS = {
-    success: '✓',
-    warning: '!',
-    error: '!',
-    info: 'i'
+// error 复用 warning 的感叹号，仅圆底配色不同
+const ICON_URLS = {
+    success: successIcon,
+    warning: warningIcon,
+    error: warningIcon,
+    info: infoIcon
 }
 
-const icon = computed(() => ICONS[toast.tone.value] || ICONS.info)
+const iconUrl = computed(() => ICON_URLS[toast.tone.value] || infoIcon)
 </script>
 
 <style scoped>
@@ -60,9 +66,15 @@ const icon = computed(() => ICONS[toast.tone.value] || ICONS.info)
     flex-shrink: 0;
     border-radius: var(--radius-full);
     color: #ffffff;
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    line-height: 1;
+}
+
+/* 与 .toolbar-action-icon 一致的单色遮罩管线：形状来自 SVG，颜色取自 currentColor */
+.app-toast__glyph {
+    width: 12px;
+    height: 12px;
+    background: currentColor;
+    mask: var(--icon-url) center / contain no-repeat;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
 .app-toast--success .app-toast__icon {
@@ -80,7 +92,6 @@ const icon = computed(() => ICONS[toast.tone.value] || ICONS.info)
 
 .app-toast--info .app-toast__icon {
     background: var(--color-subtle);
-    font-style: italic;
 }
 
 .app-toast__text {
