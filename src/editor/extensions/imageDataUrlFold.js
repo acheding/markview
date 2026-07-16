@@ -1,9 +1,13 @@
-import { RangeSetBuilder } from '@codemirror/state'
-import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view'
+import { RangeSetBuilder, StateField } from '@codemirror/state'
+import { Decoration, EditorView, WidgetType } from '@codemirror/view'
 
 // 把内联图片的 base64 数据在编辑器里折叠成简短占位（⋯ 图片数据 12KB ⋯），改善阅读体验。
 // 仅显示层折叠：文档实际内容不变，预览 / 导出 / 复制拿到的仍是完整 base64。
 // base64 不可读且极长，故【始终折叠、不随光标展开】——展开成超长单行会触发编辑器渲染空白。
+//
+// 用 StateField（而非 ViewPlugin）提供 decoration：StateField 随事务在状态层原子更新，
+// 插入的当帧就参与布局；ViewPlugin 的 decoration 在视图更新阶段计算、比文本插入慢一拍，
+// 会导致刚粘贴的超长 base64 行以未折叠高度渲染、撑出大片空白，需再一次交互/滚动才收敛。
 const DATA_URL_RE = /data:image\/[a-zA-Z0-9.+-]+;base64,([A-Za-z0-9+/=]+)/g
 const FOLD_THRESHOLD = 48
 
@@ -36,12 +40,12 @@ class DataUrlWidget extends WidgetType {
     }
 }
 
-const buildDecorations = (view) => {
+const buildDecorations = (state) => {
     const builder = new RangeSetBuilder()
 
     // 扫描整个文档而非仅可视区：base64 超长会跨多个视口，按视口切片会匹配不到完整 data url，
     // 导致滚动到中段时折叠失效、露出原始字符。整文档匹配保证折叠始终完整。
-    const text = view.state.doc.toString()
+    const text = state.doc.toString()
     DATA_URL_RE.lastIndex = 0
     let match
     while ((match = DATA_URL_RE.exec(text))) {
@@ -57,25 +61,16 @@ const buildDecorations = (view) => {
     return builder.finish()
 }
 
-export const imageDataUrlFold = ViewPlugin.fromClass(
-    class {
-        constructor(view) {
-            this.decorations = buildDecorations(view)
-        }
-
-        update(update) {
-            // decoration 覆盖整文档、与光标无关，只需在文档变化时重建。
-            if (update.docChanged) {
-                this.decorations = buildDecorations(update.view)
-            }
-        }
-    },
-    {
-        decorations: (plugin) => plugin.decorations,
+export const imageDataUrlFold = StateField.define({
+    create: (state) => buildDecorations(state),
+    // decoration 覆盖整文档、与光标无关，只需在文档变化时重建。
+    update: (value, tr) => (tr.docChanged ? buildDecorations(tr.state) : value),
+    provide: (field) => [
+        EditorView.decorations.from(field),
         // 折叠段作为原子区间：光标跳过、退格 / 选择按整体处理。
-        provide: (plugin) => EditorView.atomicRanges.of((view) => view.plugin(plugin)?.decorations || Decoration.none)
-    }
-)
+        EditorView.atomicRanges.of((view) => view.state.field(field, false) || Decoration.none)
+    ]
+})
 
 export const imageDataUrlFoldTheme = EditorView.baseTheme({
     '.cm-data-url-fold': {
