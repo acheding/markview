@@ -55,7 +55,7 @@ export const editorTheme = EditorView.theme({
         maxHeight: '280px',
         padding: 'var(--space-3)'
     },
-    '.cm-tooltip.cm-tooltip-autocomplete > ul > li:not(.cm-completionSection)': {
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li': {
         display: 'flex',
         alignItems: 'center',
         minHeight: '34px',
@@ -64,7 +64,7 @@ export const editorTheme = EditorView.theme({
         borderRadius: 'var(--radius-md)',
         lineHeight: '20px'
     },
-    '.cm-tooltip.cm-tooltip-autocomplete > ul > li:not(.cm-completionSection) + li:not(.cm-completionSection)': {
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li + li': {
         marginTop: 'var(--space-1)'
     },
     '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {

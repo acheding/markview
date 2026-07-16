@@ -1,15 +1,13 @@
 const LINK_DESTINATION_PATTERN = /\]\(([^)\s]*)$/
 const ANCHOR_VALID_FOR = /^#[^)\s]*$/
-const DOCUMENT_VALID_FOR = /^(?:\.\/)?[^)\s]*$/
-
-const anchorSection = { name: '当前文档锚点', rank: 0 }
+// 不允许以 # 开头：一旦输入 #，需让文档补全结果失效并重新查询，切换到锚点补全
+const DOCUMENT_VALID_FOR = /^(?:\.\/)?(?!#)[^)\s]*$/
 
 const anchorOptions = (headings) =>
     headings.map((heading) => ({
         label: `#${heading.id}`,
         detail: `H${heading.level} · ${heading.title}`,
-        type: 'text',
-        section: anchorSection
+        type: 'text'
     }))
 
 const documentOptions = (documents) =>
