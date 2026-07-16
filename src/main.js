@@ -1,8 +1,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import { tooltip } from './directives/tooltip.js'
 import { printSignature } from './signature.js'
 import './styles/index.css'
 
-createApp(App).mount('#app')
+createApp(App).directive('tooltip', tooltip).mount('#app')
 
 printSignature()

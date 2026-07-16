@@ -5,7 +5,7 @@
             type="button"
             :aria-expanded="isOpen"
             aria-haspopup="menu"
-            title="导出"
+            v-tooltip="'导出'"
             aria-label="导出"
             @click="isOpen = !isOpen"
         >

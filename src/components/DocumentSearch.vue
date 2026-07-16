@@ -21,8 +21,8 @@
                 v-if="query"
                 class="document-search__clear"
                 type="button"
+                v-tooltip="'清空搜索'"
                 aria-label="清空搜索"
-                title="清空搜索"
                 @mousedown.prevent
                 @click="clearSearch"
             ></button>

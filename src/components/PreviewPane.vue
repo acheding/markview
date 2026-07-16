@@ -56,7 +56,7 @@
                 v-show="isBackTopVisible"
                 class="preview-back-top"
                 type="button"
-                title="回到顶部"
+                v-tooltip="'回到顶部'"
                 aria-label="回到顶部"
                 @click="scrollToTop"
             >

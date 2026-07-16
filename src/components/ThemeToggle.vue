@@ -2,7 +2,7 @@
     <button
         class="theme-toggle"
         type="button"
-        :title="`${theme === 'dark' ? '切换到浅色' : '切换到暗色'}（${modKey}+Alt+L）`"
+        v-tooltip="{ text: theme === 'dark' ? '切换到浅色' : '切换到暗色', keys: `${modKey}+Alt+L` }"
         :aria-label="theme === 'dark' ? '切换到浅色模式' : '切换到暗色模式'"
         @click="toggleTheme"
     >

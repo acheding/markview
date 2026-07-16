@@ -5,7 +5,7 @@
             type="button"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
-            title="切换文档"
+            v-tooltip="'切换文档'"
             @click="isOpen = !isOpen"
         >
             <span class="file-switcher__name">{{ activeFile?.name || '未命名.md' }}</span>
@@ -28,7 +28,7 @@
                 <button
                     class="file-switcher__delete"
                     type="button"
-                    title="删除文档"
+                    v-tooltip="'删除文档'"
                     aria-label="删除文档"
                     @click.stop="deleteFile(file)"
                 >

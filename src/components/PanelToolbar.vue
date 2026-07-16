@@ -8,7 +8,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    :title="`新建文档（${modKey}+Alt+N）`"
+                    v-tooltip="{ text: '新建文档', keys: `${modKey}+Alt+N` }"
                     aria-label="新建文档"
                     @click="documents.create()"
                 >
@@ -21,7 +21,7 @@
                 <button
                     class="toolbar-action-button"
                     type="button"
-                    :title="`清空内容（${modKey}+Alt+X）`"
+                    v-tooltip="{ text: '清空内容', keys: `${modKey}+Alt+X` }"
                     aria-label="清空内容"
                     @click="actions.clearContent()"
                 >
@@ -37,7 +37,7 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                :title="`导入 Markdown（${modKey}+O）`"
+                v-tooltip="{ text: '导入 Markdown', keys: `${modKey}+O` }"
                 aria-label="导入 Markdown"
                 @click="openImportPicker"
             >
@@ -55,7 +55,7 @@
             <button
                 class="toolbar-action-button"
                 type="button"
-                :title="`复制分享链接（${modKey}+Alt+C）`"
+                v-tooltip="{ text: '复制分享链接', keys: `${modKey}+Alt+C` }"
                 aria-label="复制分享链接"
                 @click="share"
             >
@@ -67,7 +67,7 @@
                 v-if="context === 'editor'"
                 class="toolbar-action-button"
                 type="button"
-                :title="`折叠编辑区（${modKey}+\\）`"
+                v-tooltip="{ text: '折叠编辑区', keys: `${modKey}+\\` }"
                 aria-label="折叠编辑区"
                 @click="actions.setEditorCollapsed(true)"
             >
@@ -83,7 +83,7 @@
                 v-if="context === 'preview'"
                 class="toolbar-action-button"
                 type="button"
-                :title="`展开编辑区（${modKey}+\\）`"
+                v-tooltip="{ text: '展开编辑区', keys: `${modKey}+\\` }"
                 aria-label="展开编辑区"
                 @click="actions.setEditorCollapsed(false)"
             >
