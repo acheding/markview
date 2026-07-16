@@ -483,7 +483,9 @@ export const createWorkspace = () => {
 
         if (textFiles.length) {
             // 异步导入，完成后连同不支持数量一并提示。
-            runImport(textFiles).then(({ imported, failed }) => notifyImport({ imported, failed: failed + unsupported }))
+            runImport(textFiles).then(({ imported, failed }) =>
+                notifyImport({ imported, failed: failed + unsupported })
+            )
         } else if (unsupported && !imageFiles.length) {
             // 纯不支持格式（无图片可插）：明确提示。
             notifyUnsupported()

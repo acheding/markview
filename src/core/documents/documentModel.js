@@ -5,6 +5,11 @@ export const DEFAULT_DOCUMENT_NAME = '新文档.md'
 
 const createId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
+// 统一行尾为 LF：预设（README 磁盘文件）/导入文件可能带 CRLF，而 marked 在词法分析时
+// 会把 token.raw 归一化成 LF，源行标注（data-source-line）以 indexOf(token.raw) 回定位，
+// 若 content 仍是 CRLF 则跨行 token 匹配失败，滚动同步与搜索定位全部错位。故入库即归一化。
+const normalizeLineEndings = (content) => String(content || '').replace(/\r\n?/g, '\n')
+
 const stripMarkdownTitle = (value) =>
     value
         .replace(/[`*_~[\]()#]/g, '')
@@ -83,12 +88,16 @@ export const deriveDocumentName = (content) => {
     return DEFAULT_DOCUMENT_NAME
 }
 
-export const createDocument = (content = '', name = '') => ({
-    id: createId(),
-    name: name || deriveDocumentName(content),
-    content,
-    updatedAt: Date.now()
-})
+export const createDocument = (content = '', name = '') => {
+    const normalized = normalizeLineEndings(content)
+
+    return {
+        id: createId(),
+        name: name || deriveDocumentName(normalized),
+        content: normalized,
+        updatedAt: Date.now()
+    }
+}
 
 export const createUniqueName = (files, baseName) => {
     const names = new Set(files.map((file) => file.name))
@@ -136,7 +145,7 @@ export const normalizeState = (state, presets = []) => {
     state.files
         .filter((file) => file && typeof file.id === 'string')
         .forEach((file) => {
-            const content = String(file.content || '')
+            const content = normalizeLineEndings(file.content)
             files.push({
                 id: file.id,
                 name: createUniqueName(files, normalizeImportedFileName(file.name, content)),
