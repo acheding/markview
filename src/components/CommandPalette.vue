@@ -7,7 +7,7 @@
                     v-model="query"
                     class="cmd-input"
                     type="text"
-                    placeholder="输入命令…（新建 / 导出 / 切换主题 / 分享）"
+                    placeholder="输入命令…（新建 / 导入 / 导出 / 切换主题 / 分享）"
                     aria-label="命令面板"
                     aria-controls="cmd-list"
                     @keydown="onKeydown"
@@ -34,6 +34,16 @@
             </div>
         </div>
     </Transition>
+
+    <!-- 放在 v-if 之外：命令在面板关闭后才执行，须保证 input 始终挂载 -->
+    <input
+        ref="fileInputRef"
+        class="cmd-file-input"
+        type="file"
+        accept=".md,.markdown,text/markdown,text/plain"
+        multiple
+        @change="handleFileInput"
+    />
 </template>
 
 <script setup>
@@ -41,7 +51,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const { documents, actions, exporting, layout, share } = useWorkspace()
+const { documents, actions, exporting, layout, share, importFiles } = useWorkspace()
 const { theme, toggleTheme } = useTheme()
 
 const isOpen = ref(false)
@@ -49,24 +59,35 @@ const query = ref('')
 const activeIndex = ref(0)
 const inputRef = ref(null)
 const listRef = ref(null)
+const fileInputRef = ref(null)
+
+const handleFileInput = async (event) => {
+    try {
+        await importFiles(event.target.files)
+    } finally {
+        // 允许再次选择同一文件触发 change。
+        event.target.value = ''
+    }
+}
 
 const commands = computed(() => {
     const base = [
         { id: 'new', title: '新建文档', hint: '', run: () => documents.create() },
-        { id: 'clear', title: '清空当前内容', run: () => actions.clearContent() },
-        { id: 'export-md', title: '导出 Markdown', run: () => exporting.exportActiveFile() },
-        { id: 'export-html', title: '导出 HTML', run: () => exporting.exportHtml() },
-        { id: 'print', title: '导出 PDF / 打印', hint: '浏览器打印，可另存 PDF', run: () => exporting.print() },
-        { id: 'share', title: '复制分享链接', run: () => share() },
-        {
-            id: 'theme',
-            title: theme.value === 'dark' ? '切换到浅色主题' : '切换到暗色主题',
-            run: () => toggleTheme()
-        },
+        { id: 'import', title: '导入文件', hint: 'Markdown / 文本', run: () => fileInputRef.value?.click() },
         {
             id: 'toggle-editor',
             title: layout.isEditorCollapsed.value ? '展开编辑区' : '折叠编辑区',
             run: () => actions.setEditorCollapsed(!layout.isEditorCollapsed.value)
+        },
+        { id: 'share', title: '复制分享链接', run: () => share() },
+        { id: 'clear', title: '清空当前内容', run: () => actions.clearContent() },
+        { id: 'export-md', title: '导出 Markdown', run: () => exporting.exportActiveFile() },
+        { id: 'export-html', title: '导出 HTML', run: () => exporting.exportHtml() },
+        { id: 'print', title: '导出 PDF / 打印', hint: '浏览器打印，可另存 PDF', run: () => exporting.print() },
+        {
+            id: 'theme',
+            title: theme.value === 'dark' ? '切换到浅色主题' : '切换到暗色主题',
+            run: () => toggleTheme()
         }
     ]
 
@@ -159,6 +180,10 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onGlobalKeydown))
 </script>
 
 <style scoped>
+.cmd-file-input {
+    display: none;
+}
+
 .cmd-mask {
     position: fixed;
     inset: 0;
