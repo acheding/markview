@@ -44,18 +44,18 @@
 
 ## 技术栈
 
-| 依赖                                                    | 用途                                 |
-| ------------------------------------------------------- | ------------------------------------ |
-| [Vue 3](https://vuejs.org/)                             | 组合式 API + `<script setup>`        |
-| [Vite](https://vitejs.dev/)                             | 开发服务器与构建                     |
-| [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)    | PWA 清单与离线预缓存                 |
-| [CodeMirror 6](https://codemirror.net/)                 | 编辑器（高亮、补全、行号、搜索高亮） |
-| [marked](https://marked.js.org/)                        | Markdown 解析与渲染（Web Worker 内） |
-| [highlight.js](https://highlightjs.org/)                | 预览区代码块语法高亮                 |
-| [KaTeX](https://katex.org/)                             | 数学公式渲染                         |
-| [Mermaid](https://mermaid.js.org/)                      | 流程图 / 时序图等图表渲染            |
-| [lz-string](https://github.com/pieroxy/lz-string)       | 分享链接的文档压缩编解码             |
-| [Vitest](https://vitest.dev/)                           | 核心逻辑单元测试                     |
+| 依赖                                                 | 用途                                 |
+| ---------------------------------------------------- | ------------------------------------ |
+| [Vue 3](https://vuejs.org/)                          | 组合式 API + `<script setup>`        |
+| [Vite](https://vitejs.dev/)                          | 开发服务器与构建                     |
+| [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) | PWA 清单与离线预缓存                 |
+| [CodeMirror 6](https://codemirror.net/)              | 编辑器（高亮、补全、行号、搜索高亮） |
+| [marked](https://marked.js.org/)                     | Markdown 解析与渲染（Web Worker 内） |
+| [highlight.js](https://highlightjs.org/)             | 预览区代码块语法高亮                 |
+| [KaTeX](https://katex.org/)                          | 数学公式渲染                         |
+| [Mermaid](https://mermaid.js.org/)                   | 流程图 / 时序图等图表渲染            |
+| [lz-string](https://github.com/pieroxy/lz-string)    | 分享链接的文档压缩编解码             |
+| [Vitest](https://vitest.dev/)                        | 核心逻辑单元测试                     |
 
 PDF 导出不依赖第三方库，直接走浏览器原生打印（文字可选、体积小的矢量输出），版式由 `styles/print.css` 的 `@media print` 控制。
 
@@ -140,21 +140,21 @@ src/
 
 ## 使用提示
 
-| 操作              | 方式                                                     |
-| ----------------- | -------------------------------------------------------- |
-| 切换文档          | 点击面板头部左侧的文件名下拉                             |
-| 新建 / 清空       | 编辑区头部按钮                                           |
-| 导入              | 头部导入按钮，支持一次选择多个文件                       |
+| 操作              | 方式                                                                  |
+| ----------------- | --------------------------------------------------------------------- |
+| 切换文档          | 点击面板头部左侧的文件名下拉                                          |
+| 新建 / 清空       | 编辑区头部按钮                                                        |
+| 导入              | 头部导入按钮，支持一次选择多个文件                                    |
 | 导出              | 头部 `⋯` 更多菜单：导出 Markdown / 导出 HTML / 导出 PDF（浏览器打印） |
-| 插入图片          | 直接粘贴或拖拽图片到编辑区，自动压缩并以 base64 内联     |
-| 分享文档          | 头部分享按钮复制自包含链接，或命令面板选「复制分享链接」 |
-| 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行      |
-| 命令面板          | `Ctrl + P` / `Cmd + P` 唤起，输入关键字模糊匹配命令      |
-| 切换主题          | 顶部工具栏右上角主题按钮，或命令面板切换                 |
-| 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复                 |
-| 调整分栏          | 拖拽编辑区与预览区之间的分割条                           |
-| 调整目录宽度      | 拖拽目录左侧边缘                                         |
-| 复制标题链接      | hover 预览区标题，点击 `#` 锚点                          |
+| 插入图片          | 直接粘贴或拖拽图片到编辑区，自动压缩并以 base64 内联                  |
+| 分享文档          | 头部分享按钮复制自包含链接，或命令面板选「复制分享链接」              |
+| 全局搜索          | `Ctrl + K` / `Cmd + K` 唤起，回车或点击结果定位到行                   |
+| 命令面板          | `Ctrl + P` / `Cmd + P` 唤起，输入关键字模糊匹配命令                   |
+| 切换主题          | 顶部工具栏右上角主题按钮，或命令面板切换                              |
+| 折叠 / 展开编辑区 | 编辑区头部 `<` 折叠；预览区头部 `>` 恢复                              |
+| 调整分栏          | 拖拽编辑区与预览区之间的分割条                                        |
+| 调整目录宽度      | 拖拽目录左侧边缘                                                      |
+| 复制标题链接      | hover 预览区标题，点击 `#` 锚点                                       |
 
 ## 部署
 
@@ -286,7 +286,3 @@ $$
 $$
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 $$
-
-## 开源协议
-
-本项目基于 MIT License 开源，详见 [LICENSE](https://markview.art/#share=N4IgdiBcIDIJIGECiA5AykgdAWwCYgBoQBjKEAWTgBUACGAS2IFMwBnJgHQCcOxveEAewAOATy70A5gAsALjQAUxAJQ0ATAAY1ANhrkAhlwDWANXpMA7jWKCwsiQCMArrMFdW-PjzAAFJl2x6VlZ6Wxogmml-JgdRGkkufTsmXAIaADMuJiYaQXTraUNJJjTXGiS44X9WMMEHWX16MCbJcusRUU88mllpCJr02QtDHKTccuDBYnp9WRSaXCmnbBYG2VCwDPoAGyZWRV6cjhA0PKGR4+VSwQWmfW3PJp6omlPB4ayaC3pewRcaLKseyMda2NJNYjbJy4FpfH7SP7ybb0QJrDbPHISGSyDzeMpOdhpGxiNLYQQw9KiUn+YppYROBzI1jSNIwoGOFwlGisBnI5hsLljAD0bm5TG2D28xPM+26h1eZw+grA4zKVQCPxo6pqbB6NwsCOwGIV7xG4VxvHSTi4zWZ8zKi25gjSPIcACsmMR5GV5elBBLBN8wK0bCqfhtWJBPJ4qC99A5BAA3HLE8RSOQ0MCCdbMcoq54RdWBYLorM5nLM+7bGgOHIQqG4eZPKueaV7XJcbkMoFJdb3LVuUG6uUvN7nLKYaPeKgACSQrwA8gAxKgAdQAggAledwNA0HybhcmOAAESQJ5ox3Xe93xzSq+oM4XAFVaBvN5v1ygqABNGjLmgvz-ABpOAUBPNIkAADQPJA0D3BdN08OByB8eBzzSMCEBgZ8TzAgBxGgACFXxoFAF1oeBKCoc8aCoBc6LnGh30-b84Dg-8lz0JBNwQGcvyodciLgeBfwITwl2oFA4L3JdEMA-ctyoRBnxgLd92fTcfAXDBAPAsiFxQMCl03AikHIVAqEwGgwIMmgkBMSzXn4mAYEYpBPHXV8n03BDNxoBAFx8H9TPwmdaCfGAz184j53gISYHnOT-KAgK1JQtIT3Xch13wjj5IouckO8eLhNEn97znWceJslA9MAhBlMMziAsMqhP0atJ6M3WgCuqzcHwwNIt13AiaBMhdyHE7wX16rj5NswKUGkxq4Gah9Z3cxcV3fed5Oqmhn10vqipoM913gFB8JvOrqs8NBlzXLcsE8EAAF8gA)。
