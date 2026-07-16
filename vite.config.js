@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
                     short_name: 'MarkView',
                     description: '纯前端的本地 Markdown 实时预览工具，数据保存在浏览器本地，离线可用。',
                     lang: 'zh-CN',
-                    theme_color: '#5672cd',
+                    theme_color: '#dbe3f7',
                     background_color: '#ffffff',
                     display: 'standalone',
                     // 桌面端 PWA 安装（Windows 快捷方式/任务栏）不会光栅化 SVG，必须提供 PNG，
