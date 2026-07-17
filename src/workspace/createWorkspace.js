@@ -389,11 +389,18 @@ export const createWorkspace = () => {
         return disk.saveActiveAs()
     }
 
+    // 新建文档后光标直接落进编辑区，即刻可输入；等一帧让编辑器先切到新文档的 EditorState。
+    // 编辑区折叠时保持折叠，不聚焦不可见区域。
+    const createNewDocument = async () => {
+        documents.create()
+        await nextTick()
+        if (!layout.isEditorCollapsed.value) editorController?.focus()
+    }
+
     // —— 命令注册表 + 全局快捷键 ——
     // 命令的标题/行为见 workspace/commands.js，键位与展示文案见 composables/shortcuts.js：
     // 命令面板与此处的全局监听消费同一份注册表，tooltip 文案与按键判定同源，改动不会漏其一。
     const commands = createCommands({
-        documents,
         layout,
         actions: orchestrations,
         exporting,
@@ -401,6 +408,7 @@ export const createWorkspace = () => {
         toggleTheme,
         share: shareActiveDocument,
         openImportPicker,
+        createNewDocument,
         saveNow,
         saveAs,
         disk
@@ -459,6 +467,7 @@ export const createWorkspace = () => {
         commands,
         importFiles,
         openImportPicker,
+        createNewDocument,
         importDroppedFiles,
         share: shareActiveDocument,
         attachEditor,

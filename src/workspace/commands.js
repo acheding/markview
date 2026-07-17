@@ -4,7 +4,6 @@
 // 标题写成函数：折叠态 / 主题等动态标题在展示时求值，命令面板的 computed 顺势收集依赖。
 // inPalette 亦可为函数：按能力（如 File System Access 支持与否）动态决定是否进面板。
 export const createCommands = ({
-    documents,
     layout,
     actions,
     exporting,
@@ -12,11 +11,13 @@ export const createCommands = ({
     toggleTheme,
     share,
     openImportPicker,
+    createNewDocument,
     saveNow,
     saveAs,
     disk
 }) => [
-    { id: 'new', title: () => '新建文档', run: () => documents.create() },
+    // createNewDocument 而非 documents.create：新建后顺带把光标聚焦进编辑区（见 createWorkspace）。
+    { id: 'new', title: () => '新建文档', run: () => createNewDocument() },
     // 「打开」与「导入」是两个并存的入口，不做二选一：
     // 打开 = 保留句柄、Ctrl+S 写回原文件，仅支持 File System Access 时存在（不支持的浏览器
     //        无按钮、不进面板、Ctrl+O 键位归还「导入」，见 shortcuts.js）；

@@ -10,7 +10,7 @@
                     type="button"
                     v-tooltip="{ text: '新建文档', keys: shortcutLabel('new') }"
                     aria-label="新建文档"
-                    @click="documents.create()"
+                    @click="createNewDocument"
                 >
                     <span
                         class="toolbar-action-icon"
@@ -133,7 +133,7 @@ defineProps({
     }
 })
 
-const { documents, disk, actions, share, openImportPicker } = useWorkspace()
+const { disk, actions, share, openImportPicker, createNewDocument } = useWorkspace()
 </script>
 
 <style scoped>
