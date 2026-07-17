@@ -58,11 +58,11 @@ export const createCommands = ({
         inPalette: false,
         run: () => saveNow()
     },
-    // 另存为本地文件并保持关联（Ctrl+Shift+S）；不支持 File System Access 时快捷键降级为下载导出、不进面板。
+    // 另存为本地文件并打开（Ctrl+Shift+S）；不支持 File System Access 时快捷键降级为下载导出、不进面板。
     {
         id: 'save-as',
         title: () => '另存为本地文件',
-        hint: '写入本地文件并保持关联',
+        hint: '写入本地文件并打开',
         inPalette: () => disk.isSupported,
         run: () => saveAs()
     },
