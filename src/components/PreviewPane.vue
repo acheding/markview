@@ -366,7 +366,8 @@ onBeforeUnmount(() => {
 
 /* 待授权态：标签是可点击按钮，用强调色提示需要用户动作 */
 .preview-save-status--action {
-    padding: 2px 8px;
+    justify-content: center;
+    padding: 4px 9px;
     border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--color-accent) 10%, transparent);
@@ -375,6 +376,9 @@ onBeforeUnmount(() => {
     font: inherit;
     font-size: var(--font-size-sm);
     font-weight: 600;
+    /* font 简写会把 line-height 重置为 normal（约 1.4），中文字形在高行盒内偏上，
+       视觉上不居中；压回 1 让字形盒贴紧内容区，配合对称 padding 实现视觉居中 */
+    line-height: 1;
     transition:
         background var(--duration-fast) ease,
         border-color var(--duration-fast) ease;
