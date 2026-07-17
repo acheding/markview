@@ -22,7 +22,12 @@
                     >
                 </div>
 
-                <span class="preview-save-status">{{ documents.saveStatusLabel.value }}</span>
+                <Transition name="save-status" mode="out-in">
+                    <span :key="documents.saveStatusLabel.value" class="preview-save-status">
+                        <span v-if="isSaving" class="preview-save-status__dot" aria-hidden="true" />
+                        {{ documents.saveStatusLabel.value }}
+                    </span>
+                </Transition>
             </template>
         </div>
 
@@ -88,6 +93,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
+import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { copyText } from '../composables/clipboard.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import PanelToolbar from './PanelToolbar.vue'
@@ -104,6 +110,8 @@ const readingProgress = ref(0)
 const hasOverflow = ref(false)
 
 const normalizedWidth = computed(() => (layout.isEditorCollapsed.value ? '100%' : layout.previewWidth.value))
+
+const isSaving = computed(() => documents.saveStatus.value === SAVE_STATUS.SAVING)
 
 // 由预览滚动位置算出阅读进度（0~1）。内容不足一屏时隐藏进度条。
 const updateReadingProgress = () => {
@@ -291,12 +299,45 @@ onBeforeUnmount(() => {
 }
 
 .preview-save-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     flex-shrink: 0;
     color: var(--color-subtle);
     font-size: var(--font-size-sm);
     font-weight: 600;
     line-height: 1.2;
     white-space: nowrap;
+}
+
+/* 「保存中」的呼吸圆点：明暗与缩放同步起伏，提示写入正在进行 */
+.preview-save-status__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-accent);
+    animation: save-dot-breathe 1.1s ease-in-out infinite;
+}
+
+@keyframes save-dot-breathe {
+    50% {
+        opacity: 0.35;
+        transform: scale(0.72);
+    }
+}
+
+/* 状态文字切换（保存中 → 已自动保存等）：出快进慢的轻微淡入淡出 */
+.save-status-enter-active {
+    transition: opacity var(--duration-fast) ease;
+}
+
+.save-status-leave-active {
+    transition: opacity 0.08s ease;
+}
+
+.save-status-enter-from,
+.save-status-leave-to {
+    opacity: 0;
 }
 
 .preview-back-top {
