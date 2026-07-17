@@ -3,7 +3,9 @@ import { isImageFile, isImportableTextFile } from '../core/documents/importableF
 
 // 文件导入会话：导入按钮 / 拖拽 / PWA 双击打开三条入口共用的读取、分类与结果提示。
 // 文本文件导入为新文档，图片插入当前文档，其余格式统一提示不支持；提示按场景合并为单条 toast。
-export const createImportSession = ({ documents, toast, getEditor }) => {
+// 「导入」始终是拷贝副本进工作区、与磁盘断开——与「打开」（fileSession，保留句柄可写回）并存而非二选一。
+// disk（可选）仅用于 PWA 双击打开：支持写回时保留 launchQueue 句柄交给 disk，否则解析为 File 导入副本。
+export const createImportSession = ({ documents, toast, getEditor, disk }) => {
     // 逐个把 File 读为文本、导入为新文档，返回成功/失败计数；不在此提示，交由调用方按场景合并。
     // 文档名由内容识别（见 documentSession.importFile），故此处不必依赖文件名。
     const runImport = async (files) => {
@@ -55,7 +57,7 @@ export const createImportSession = ({ documents, toast, getEditor }) => {
         notifyImport({ imported, failed: failed + unsupported })
     }
 
-    // 快捷键（Ctrl+O）/ 命令面板 / 工具栏共用的导入入口：动态建 input 唤起系统文件选择器，
+    // 命令面板 / 工具栏「导入文件」入口：动态建 input 唤起系统文件选择器导入副本，
     // 免去各组件重复维护隐藏 input；每次新建实例，重复选择同一文件也能触发 change。
     const openImportPicker = () => {
         const input = document.createElement('input')
@@ -110,14 +112,19 @@ export const createImportSession = ({ documents, toast, getEditor }) => {
     }
 
     // —— PWA 文件处理（File Handling API）——
-    // 从系统双击 .md / .markdown 打开时，launchQueue 把文件句柄交给这里，逐个导入为新文档。
+    // 从系统双击 .md / .markdown 打开时，launchQueue 把文件句柄交给这里。
+    // 支持写回时保留句柄交给 disk（同文件去重 + 建立关联）；否则解析为 File 导入副本。
     const consumeLaunchFiles = async (launchParams) => {
         const handles = launchParams?.files
         if (!handles?.length) return
 
         await whenDocumentsReady()
 
-        // 句柄先解析为 File，再复用统一导入逻辑；提示用「已打开」以贴合系统双击打开的语义。
+        if (disk?.isSupported) {
+            await disk.openViaHandles(handles)
+            return
+        }
+
         const files = []
         for (const handle of handles) {
             try {

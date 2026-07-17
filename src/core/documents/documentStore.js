@@ -1,9 +1,12 @@
 // IndexedDB 文档存储：支持更大的文档集合。
 // 每个文档单独一条记录，配合增量写入，避免每次保存都序列化整个集合。
+// v2：新增 fileHandles 表，持久化文档关联的 FileSystemFileHandle（结构化克隆存储），
+// 与文档主表分离——句柄无法参与内容签名比较，不能混进增量写入的 documents 表。
 const DB_NAME = 'markview-db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const DOC_STORE = 'documents'
 const META_STORE = 'meta'
+const HANDLE_STORE = 'fileHandles'
 const ACTIVE_ID_KEY = 'activeId'
 const ORDER_KEY = 'order'
 
@@ -25,6 +28,9 @@ const openDb = () => {
             }
             if (!db.objectStoreNames.contains(META_STORE)) {
                 db.createObjectStore(META_STORE, { keyPath: 'key' })
+            }
+            if (!db.objectStoreNames.contains(HANDLE_STORE)) {
+                db.createObjectStore(HANDLE_STORE, { keyPath: 'docId' })
             }
         }
 
@@ -153,4 +159,30 @@ export const saveDocumentState = async ({ activeId, files }) => {
 
     await txDone(transaction)
     lastPersisted = nextPersisted
+}
+
+// —— 文件句柄持久化 ——
+// FileSystemFileHandle 可结构化克隆，直接整体存取；跨会话恢复后权限需重新请求（见 fileSession）。
+
+export const loadFileHandles = async () => {
+    const db = await openDb()
+    const store = db.transaction(HANDLE_STORE, 'readonly').objectStore(HANDLE_STORE)
+    const records = await requestToPromise(store.getAll())
+    return new Map(records.map((record) => [record.docId, record.handle]))
+}
+
+export const saveFileHandle = async (docId, handle) => {
+    const db = await openDb()
+    const transaction = db.transaction(HANDLE_STORE, 'readwrite')
+    transaction.objectStore(HANDLE_STORE).put({ docId, handle })
+    await txDone(transaction)
+}
+
+export const deleteFileHandles = async (docIds) => {
+    if (!docIds?.length) return
+    const db = await openDb()
+    const transaction = db.transaction(HANDLE_STORE, 'readwrite')
+    const store = transaction.objectStore(HANDLE_STORE)
+    docIds.forEach((docId) => store.delete(docId))
+    await txDone(transaction)
 }

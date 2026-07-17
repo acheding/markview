@@ -1,6 +1,8 @@
 <template>
     <Transition name="confirm">
-        <div v-if="confirmDialog.visible.value" class="confirm-mask" @pointerdown.self="confirmDialog.cancel()">
+        <!-- Esc / 点遮罩是「未做选择」（dismiss），与显式点击取消按钮区分：
+             取消按钮可能承载具体动作（如丢失文件弹窗里的「取消关联」），不可被逃逸键误触 -->
+        <div v-if="confirmDialog.visible.value" class="confirm-mask" @pointerdown.self="confirmDialog.dismiss()">
             <div
                 class="confirm-dialog"
                 :class="`confirm-dialog--${options.tone}`"
@@ -43,7 +45,7 @@ const options = computed(() => confirmDialog.options.value)
 const handleKeydown = (event) => {
     if (event.key === 'Escape') {
         event.preventDefault()
-        confirmDialog.cancel()
+        confirmDialog.dismiss()
     } else if (event.key === 'Enter') {
         event.preventDefault()
         confirmDialog.confirm()

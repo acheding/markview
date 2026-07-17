@@ -50,4 +50,17 @@ describe('normalizeState', () => {
         expect(state.activeId).toBe('x')
         expect(state.files[0].name).toBe('x.md')
     })
+
+    // 关联本地文件的文档名与磁盘一致、允许与普通文档重名：入库数据恢复时只清洗、不强制去重，
+    // 否则刷新一次就会把关联文档改成「xxx 2.md」，与磁盘文件名脱钩。
+    it('preserves duplicate names on restore (linked docs may share names with plain docs)', () => {
+        const state = normalizeState({
+            activeId: 'a',
+            files: [
+                { id: 'a', name: '笔记.md', content: 'a', updatedAt: 1 },
+                { id: 'b', name: '笔记.md', content: 'b', updatedAt: 2 }
+            ]
+        })
+        expect(state.files.map((file) => file.name)).toEqual(['笔记.md', '笔记.md'])
+    })
 })

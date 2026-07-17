@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { createImportSession } from './importSession.js'
 
@@ -14,11 +14,11 @@ const brokenFile = (name) => ({
     }
 })
 
-const makeSession = () => {
+const makeSession = ({ disk } = {}) => {
     const documents = { importFile: vi.fn(), isReady: ref(true) }
     const toast = { show: vi.fn() }
     const editor = { insertImages: vi.fn() }
-    const session = createImportSession({ documents, toast, getEditor: () => editor })
+    const session = createImportSession({ documents, toast, getEditor: () => editor, disk })
     return { session, documents, toast, editor }
 }
 
@@ -93,5 +93,48 @@ describe('importDroppedFiles', () => {
             '已导入 1 个文件，1 个失败',
             expect.objectContaining({ tone: 'warning' })
         )
+    })
+})
+
+describe('句柄化入口（File System Access 支持时）', () => {
+    // 捕获 launchQueue consumer，模拟系统双击 .md 文件把句柄交给应用。
+    const stubLaunchQueue = () => {
+        let consumer = null
+        vi.stubGlobal('window', {
+            launchQueue: { setConsumer: (fn) => (consumer = fn) }
+        })
+        return () => consumer
+    }
+
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
+    it('launchQueue：支持写回时句柄整体交给 disk（保留句柄，可写回原文件）', async () => {
+        const getConsumer = stubLaunchQueue()
+        const disk = { isSupported: true, openFilePicker: vi.fn(), openViaHandles: vi.fn(async () => {}) }
+        const { session, documents } = makeSession({ disk })
+
+        session.setupFileHandling()
+        const handles = [{ kind: 'file', name: 'a.md' }]
+        await getConsumer()({ files: handles })
+
+        expect(disk.openViaHandles).toHaveBeenCalledWith(handles)
+        expect(documents.importFile).not.toHaveBeenCalled()
+    })
+
+    it('launchQueue：不支持写回时降级为解析 File 导入副本', async () => {
+        const getConsumer = stubLaunchQueue()
+        const disk = { isSupported: false, openFilePicker: vi.fn(), openViaHandles: vi.fn() }
+        const { session, documents, toast } = makeSession({ disk })
+
+        session.setupFileHandling()
+        await getConsumer()({
+            files: [{ kind: 'file', getFile: async () => textFile('a.md') }]
+        })
+
+        expect(disk.openViaHandles).not.toHaveBeenCalled()
+        expect(documents.importFile).toHaveBeenCalledTimes(1)
+        expect(toast.show).toHaveBeenCalledWith('已打开文件', { tone: 'success' })
     })
 })

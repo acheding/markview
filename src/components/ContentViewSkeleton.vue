@@ -16,6 +16,7 @@
                     <span class="skeleton-btn skeleton-btn--wide" /> -->
                     <span class="skeleton-btn" />
                     <span class="skeleton-btn" />
+                    <span class="skeleton-btn" />
                 </div>
             </div>
             <!-- CodeMirror 结构：左侧行号槽 + 右侧文本 -->

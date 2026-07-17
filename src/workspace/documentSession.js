@@ -4,6 +4,8 @@ import {
     createInitialState,
     createUniqueName,
     deriveDocumentName,
+    normalizeImportedFileName,
+    normalizeLineEndings,
     normalizeState,
     snapshotState
 } from '../core/documents/documentModel.js'
@@ -32,7 +34,8 @@ const SAVE_STATUS_LABEL = {
 // 文档响应式会话：多文档 CRUD、活动文档、自动派生文件名、持久化编排。
 // 纯逻辑（模型/存储/调度）已下沉到 core，这里只做响应式状态与时序编排。
 // onExternalUpdate：另一标签页写入被本页协调后回调，让上层把变更推回编辑器。
-export const createDocumentSession = ({ onExternalUpdate } = {}) => {
+// isNameLocked：文档名是否被上层锁定（关联本地文件的文档跟随磁盘文件名，不参与内容派生改名）。
+export const createDocumentSession = ({ onExternalUpdate, isNameLocked } = {}) => {
     let canPersist = isIndexedDbSupported()
     const state = ref({ activeId: '', files: [] })
     const isReady = ref(false)
@@ -131,7 +134,7 @@ export const createDocumentSession = ({ onExternalUpdate } = {}) => {
     // —— 文件名派生 ——
     const applyDerivedName = (fileId) => {
         const file = files.value.find((item) => item.id === fileId)
-        if (!file) return false
+        if (!file || isNameLocked?.(fileId)) return false
 
         const nextName = createUniqueName(
             files.value.filter((item) => item.id !== file.id),
@@ -191,6 +194,7 @@ export const createDocumentSession = ({ onExternalUpdate } = {}) => {
         state.value.files.unshift(file) // 新建文档排在最前
         state.value.activeId = file.id
         scheduler.schedule({ delay: 0 })
+        return file.id
     }
 
     const importFile = ({ content: fileContent = '' } = {}) => {
@@ -200,6 +204,46 @@ export const createDocumentSession = ({ onExternalUpdate } = {}) => {
         file.name = createUniqueName(files.value, file.name)
         state.value.files.unshift(file)
         state.value.activeId = file.id
+        scheduler.schedule({ delay: 0 })
+        return file.id
+    }
+
+    // 以磁盘文件名等外部名称显式命名文档；配合 isNameLocked 阻断后续内容派生改名。
+    // 名字被锁定（关联本地文件）的文档与磁盘文件名保持一致：只清洗、不去重，
+    // 允许与普通文档重名（重复打开同一文件已由句柄 isSameEntry 去重兜底）；
+    // 普通文档沿用老一套：清洗后与全部现存名字去重加序号。
+    const setDocumentName = (fileId, rawName) => {
+        const file = files.value.find((item) => item.id === fileId)
+        if (!file) return
+
+        clearTimeout(nameTimer)
+        nameTimer = null
+
+        const cleanName = normalizeImportedFileName(rawName, file.content)
+        const nextName = isNameLocked?.(fileId)
+            ? cleanName
+            : createUniqueName(
+                  files.value.filter((item) => item.id !== file.id),
+                  cleanName
+              )
+        if (file.name === nextName) return
+
+        file.name = nextName
+        file.updatedAt = Date.now()
+        scheduler.schedule({ delay: 0 })
+    }
+
+    // 用磁盘上的最新内容整体替换文档（外部修改重载）；编辑器视图的刷新由调用方负责。
+    const replaceContent = (fileId, nextContent) => {
+        const file = files.value.find((item) => item.id === fileId)
+        if (!file) return
+
+        const normalized = normalizeLineEndings(nextContent)
+        if (file.content === normalized) return
+
+        file.content = normalized
+        file.updatedAt = Date.now()
+        if (!isNameLocked?.(fileId)) scheduleDocumentNameUpdate(fileId)
         scheduler.schedule({ delay: 0 })
     }
 
@@ -294,6 +338,8 @@ export const createDocumentSession = ({ onExternalUpdate } = {}) => {
         select,
         create,
         importFile,
+        setDocumentName,
+        replaceContent,
         remove,
         setContent,
         clearContent,

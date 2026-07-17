@@ -23,9 +23,20 @@
                 </div>
 
                 <Transition name="save-status" mode="out-in">
-                    <span :key="documents.saveStatusLabel.value" class="preview-save-status">
+                    <!-- 需用户处置的状态（待授权 / 文件丢失）标签升级为按钮：
+                         待授权点击在用户手势内重新请求权限；丢失点击唤起处置弹窗（另存 / 取消关联） -->
+                    <button
+                        v-if="statusAction"
+                        :key="statusAction"
+                        class="preview-save-status preview-save-status--action"
+                        type="button"
+                        @click="runStatusAction"
+                    >
+                        {{ statusLabel }}
+                    </button>
+                    <span v-else :key="statusLabel" class="preview-save-status">
                         <span v-if="isSaving" class="preview-save-status__dot" aria-hidden="true" />
-                        {{ documents.saveStatusLabel.value }}
+                        {{ statusLabel }}
                     </span>
                 </Transition>
             </template>
@@ -97,6 +108,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import backToTopIcon from '../assets/back-to-top.svg'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
+import { FILE_LINK_STATUS } from '../workspace/fileSession.js'
 import { copyText } from '../composables/clipboard.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 import PanelToolbar from './PanelToolbar.vue'
@@ -105,7 +117,7 @@ import ResizeDivider from './ResizeDivider.vue'
 import TableOfContents from './TableOfContents.vue'
 
 const workspace = useWorkspace()
-const { documents, search, layout, headings, html, toc, isPreviewReady } = workspace
+const { documents, disk, search, layout, headings, html, toc, isPreviewReady } = workspace
 
 const contentRef = ref(null)
 const isBackTopVisible = ref(false)
@@ -114,7 +126,29 @@ const hasOverflow = ref(false)
 
 const normalizedWidth = computed(() => (layout.isEditorCollapsed.value ? '100%' : layout.previewWidth.value))
 
-const isSaving = computed(() => documents.saveStatus.value === SAVE_STATUS.SAVING)
+// 状态标签：活动文档关联了本地文件时优先展示文件维度状态（写回/未写回/授权），
+// 但 IndexedDB 保存失败是数据安全信号，始终优先露出。
+const fileStatus = computed(() => disk.activeStatus.value)
+const statusLabel = computed(() => {
+    if (documents.saveStatus.value === SAVE_STATUS.FAILED || !fileStatus.value) {
+        return documents.saveStatusLabel.value
+    }
+    return disk.activeStatusLabel.value
+})
+// 需用户处置的文件状态 → 标签按钮化；IndexedDB 保存失败时让位于失败提示。
+const statusAction = computed(() => {
+    if (documents.saveStatus.value === SAVE_STATUS.FAILED) return null
+    if (fileStatus.value === FILE_LINK_STATUS.PERMISSION) return 'permission'
+    if (fileStatus.value === FILE_LINK_STATUS.MISSING) return 'missing'
+    return null
+})
+const runStatusAction = () => {
+    if (statusAction.value === 'permission') disk.requestActivePermission()
+    else if (statusAction.value === 'missing') disk.resolveMissingFile()
+}
+const isSaving = computed(() =>
+    fileStatus.value ? fileStatus.value === FILE_LINK_STATUS.WRITING : documents.saveStatus.value === SAVE_STATUS.SAVING
+)
 
 // 由预览滚动位置算出阅读进度（0~1）。内容不足一屏时隐藏进度条。
 const updateReadingProgress = () => {
@@ -328,6 +362,27 @@ onBeforeUnmount(() => {
     font-weight: 600;
     line-height: 1.2;
     white-space: nowrap;
+}
+
+/* 待授权态：标签是可点击按钮，用强调色提示需要用户动作 */
+.preview-save-status--action {
+    padding: 2px 8px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    color: var(--color-accent);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    transition:
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease;
+}
+
+.preview-save-status--action:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 /* 「保存中」的呼吸圆点：明暗与缩放同步起伏，提示写入正在进行 */

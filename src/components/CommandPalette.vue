@@ -56,7 +56,7 @@ const commands = computed(() => {
     // 注册表命令（与全局快捷键同源，见 workspace/commands.js）：
     // 标题在此求值，折叠态 / 主题等动态标题的依赖由 computed 顺势收集。
     const base = registry
-        .filter((cmd) => cmd.inPalette !== false)
+        .filter((cmd) => (typeof cmd.inPalette === 'function' ? cmd.inPalette() : cmd.inPalette !== false))
         .map((cmd) => ({
             id: cmd.id,
             title: cmd.title(),

@@ -10,6 +10,7 @@ import { createDocumentSession } from './documentSession.js'
 import { createSearchSession } from './searchSession.js'
 import { createLayoutSession } from './layoutSession.js'
 import { createHeadingNavigation } from './headingNavigation.js'
+import { createFileSession } from './fileSession.js'
 import { createImportSession } from './importSession.js'
 import { createOrchestrations } from './orchestrations.js'
 import { createShareSession } from './shareSession.js'
@@ -29,13 +30,18 @@ const getElementTop = (container, element) => {
 // 在 App 根部组装整个工作区：会话（响应式状态）+ 控制器（命令式门面）+ 编排 + 生命周期。
 // 通过 provide 下发，任何组件 useWorkspace() 直接消费。
 export const createWorkspace = () => {
+    // disk（磁盘文件会话）在 documents 之后创建，此处用闭包引用打破相互依赖：
+    // documents 需要「文档名是否锁定」（关联本地文件的文档跟随磁盘文件名），disk 需要 documents。
+    let disk = null
+
     // 另一标签页写入被协调后：丢弃过期文档的编辑器缓存态，并把外部更新推回当前编辑视图。
     const documents = createDocumentSession({
         onExternalUpdate: ({ activeContent, forgetIds }) => {
             forgetIds?.forEach((id) => editorController?.forgetDocument(id))
             // setDoc 内容与内存态一致，其触发的 onDocChanged 会因内容相同而空转，不产生保存回环。
             if (activeContent != null) editorController?.setDoc(activeContent)
-        }
+        },
+        isNameLocked: (id) => Boolean(disk?.isLinked(id))
     })
     const search = createSearchSession({ files: documents.files, activeFileId: documents.activeFileId })
     const layout = createLayoutSession()
@@ -298,6 +304,8 @@ export const createWorkspace = () => {
             editorController?.scrollDOM.scrollTo({ top: 0, behavior: 'auto' })
             previewController?.scrollDOM.scrollTo({ top: 0, behavior: 'auto' })
             headings.clearHash()
+            // 切入关联了本地文件的文档：核对磁盘是否有外部修改。
+            disk.checkActiveExternal()
             await nextTick()
             headings.updateActiveHeading()
         }
@@ -329,32 +337,56 @@ export const createWorkspace = () => {
     // 用最新 Worker 原始结果离屏重建主题对应的 Mermaid SVG，再原子发布。
     watch(theme, () => previewRenderer.refresh())
 
-    // —— 分享 / 导入会话 ——
+    // —— 分享 / 磁盘文件 / 导入会话 ——
     // 分享：生成 #share= 链接 + 启动时消费分享链接（见 shareSession.js）。
     const { shareActiveDocument } = createShareSession({ documents, toast, headings, waitForPreviewReady })
 
-    // 导入：按钮 / 拖拽 / PWA 双击打开三条入口（见 importSession.js）。
+    // 磁盘文件：句柄关联、Ctrl+S 写回、另存为、权限恢复、外部修改检测（见 fileSession.js）。
+    disk = createFileSession({ documents, toast, confirm, getEditor })
+
+    // 导入：按钮 / 拖拽 / PWA 双击打开三条入口（见 importSession.js）；「导入」始终是副本，
+    // 与「打开」（disk.openFilePicker，仅支持时存在）并存；仅双击打开在支持写回时经 disk 句柄化。
     const { importFiles, openImportPicker, importDroppedFiles, setupFileHandling } = createImportSession({
         documents,
         toast,
-        getEditor
+        getEditor,
+        disk
     })
 
     // —— 生命周期 ——
     const flushOnLeave = () => documents.flush()
-    const flushOnHidden = () => {
+    const handleVisibilityChange = () => {
+        // 退后台先落盘；回前台核对活动文档关联的磁盘文件是否被外部修改。
         if (document.visibilityState === 'hidden') documents.flush()
+        else disk.checkActiveExternal()
     }
-    // Ctrl/Cmd + S：拦截浏览器「保存网页」，立即落盘并提示（本应用本就自动保存到本地）。
+    const checkDiskOnFocus = () => disk.checkActiveExternal()
+
+    // Ctrl/Cmd + S：拦截浏览器「保存网页」。活动文档关联了本地文件则写回磁盘（fileSession 自带提示）；
+    // 否则维持原语义——立即落盘 IndexedDB 并提示（内容本就自动保存）。
     const saveNow = async () => {
+        if (disk.activeLink.value) {
+            await documents.flush()
+            await disk.saveActiveToFile()
+            return
+        }
         if (documents.saveStatus.value === SAVE_STATUS.MEMORY_ONLY) {
-            toast.show('浏览器未启用本地存储，内容仅保存在当前会话', { tone: 'warning', duration: 3000 })
+            toast.show('浏览器存储不可用，内容仅在本次会话有效', { tone: 'warning', duration: 3000 })
             return
         }
         await documents.flush()
-        toast.show(documents.saveStatus.value === SAVE_STATUS.FAILED ? '保存失败，请重试' : '已保存到本地', {
+        toast.show(documents.saveStatus.value === SAVE_STATUS.FAILED ? '保存失败，请重试' : '已保存', {
             tone: documents.saveStatus.value === SAVE_STATUS.FAILED ? 'error' : 'success'
         })
+    }
+
+    // Ctrl/Cmd + Shift + S：另存为本地文件并建立关联；不支持 File System Access 时降级为下载导出。
+    const saveAs = () => {
+        if (!disk.isSupported) {
+            exporting.exportActiveFile()
+            return
+        }
+        return disk.saveActiveAs()
     }
 
     // —— 命令注册表 + 全局快捷键 ——
@@ -369,7 +401,9 @@ export const createWorkspace = () => {
         toggleTheme,
         share: shareActiveDocument,
         openImportPicker,
-        saveNow
+        saveNow,
+        saveAs,
+        disk
     })
 
     const handleKeydown = (event) => {
@@ -384,7 +418,9 @@ export const createWorkspace = () => {
         setupFileHandling()
         window.addEventListener('pagehide', flushOnLeave)
         window.addEventListener('beforeunload', flushOnLeave)
-        document.addEventListener('visibilitychange', flushOnHidden)
+        // 窗口重获焦点：核对活动文档的磁盘文件是否被其他程序修改。
+        window.addEventListener('focus', checkDiskOnFocus)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
         document.addEventListener('keydown', handleKeydown)
     })
 
@@ -399,14 +435,17 @@ export const createWorkspace = () => {
         detachPreview()
         window.removeEventListener('pagehide', flushOnLeave)
         window.removeEventListener('beforeunload', flushOnLeave)
-        document.removeEventListener('visibilitychange', flushOnHidden)
+        window.removeEventListener('focus', checkDiskOnFocus)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
         document.removeEventListener('keydown', handleKeydown)
     })
 
-    documents.hydrate()
+    // 句柄恢复依赖文档列表就绪，串在 hydrate 之后。
+    documents.hydrate().then(() => disk.init())
 
     return {
         documents,
+        disk,
         search,
         layout,
         headings,

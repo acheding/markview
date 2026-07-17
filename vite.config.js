@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
                 manifest: {
                     name: 'MarkView',
                     short_name: 'MarkView',
-                    description: '纯前端的本地 Markdown 实时预览工具，数据保存在浏览器本地，离线可用。',
+                    description: '纯前端的本地 Markdown 实时预览工具，数据保存在浏览器中，离线可用。',
                     lang: 'zh-CN',
                     theme_color: '#dbe3f7',
                     background_color: '#ffffff',

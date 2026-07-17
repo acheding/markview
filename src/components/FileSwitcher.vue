@@ -8,6 +8,12 @@
             v-tooltip="'切换文档'"
             @click="isOpen = !isOpen"
         >
+            <span
+                v-if="disk.isLinked(activeFileId)"
+                class="file-switcher__link-badge"
+                :style="{ '--icon-url': `url(${fileLinkIcon})` }"
+                aria-hidden="true"
+            />
             <span class="file-switcher__name">{{ activeFile?.name || '未命名.md' }}</span>
             <span class="file-switcher__chevron" aria-hidden="true" />
         </button>
@@ -22,7 +28,14 @@
                 :aria-selected="file.id === activeFileId"
             >
                 <button class="file-switcher__select" type="button" :title="file.name" @click="selectFile(file.id)">
-                    {{ file.name }}
+                    <span
+                        v-if="disk.isLinked(file.id)"
+                        class="file-switcher__link-badge"
+                        title="已关联本地文件"
+                        aria-label="已关联本地文件"
+                        :style="{ '--icon-url': `url(${fileLinkIcon})` }"
+                    />
+                    <span class="file-switcher__select-name">{{ file.name }}</span>
                 </button>
 
                 <button
@@ -46,9 +59,10 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import deleteFileIcon from '../assets/delete-file.svg'
+import fileLinkIcon from '../assets/file-link.svg'
 import { useWorkspace } from '../workspace/workspaceKey.js'
 
-const { documents, confirm } = useWorkspace()
+const { documents, disk, confirm } = useWorkspace()
 const files = documents.files
 const activeFileId = documents.activeFileId
 
@@ -67,11 +81,16 @@ const selectFile = (id) => {
     isOpen.value = false
 }
 
+// 关联本地文件的文档：删除只是移除工作区里的工作副本与文件关联（句柄清理见 fileSession），
+// 磁盘源文件不受影响，文案需明确说清，避免用户误以为会删掉本地文件。
 const deleteFile = async (file) => {
+    const isLinked = disk.isLinked(file.id)
     const ok = await confirm.ask({
-        title: '删除文档',
-        message: `确定要删除「${file.name}」吗？删除后无法恢复。`,
-        confirmLabel: '删除',
+        title: isLinked ? '移除文档' : '删除文档',
+        message: isLinked
+            ? `确定要移除「${file.name}」吗？只会移除 MarkView 中的文档，本地文件不会被删除；尚未写回的编辑将会丢失。`
+            : `确定要删除「${file.name}」吗？删除后无法恢复。`,
+        confirmLabel: isLinked ? '移除' : '删除',
         tone: 'danger'
     })
     if (!ok) return
@@ -177,6 +196,9 @@ onBeforeUnmount(() => {
 }
 
 .file-switcher__select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     flex: 1;
     min-width: 0;
     height: 32px;
@@ -188,8 +210,24 @@ onBeforeUnmount(() => {
     cursor: pointer;
     font-size: var(--font-size-md);
     text-align: left;
+}
+
+.file-switcher__select-name {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* 关联本地文件的标识：链形小图标，随文字颜色 */
+.file-switcher__link-badge {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    background: currentColor;
+    mask: var(--icon-url) center / contain no-repeat;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
+    opacity: 0.72;
 }
 
 .file-switcher__delete {

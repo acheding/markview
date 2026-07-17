@@ -33,12 +33,27 @@
                 </button>
             </template>
 
-            <!-- 共用：导入 -->
+            <!-- 共用：打开与导入并存——打开保留句柄可写回（仅支持 File System Access 时展示）；
+                 导入始终展示，拷贝副本进工作区、不关联磁盘 -->
+            <button
+                v-if="disk.isSupported"
+                class="toolbar-action-button"
+                type="button"
+                v-tooltip="{ text: '打开本地文件', keys: shortcutLabel('open') }"
+                aria-label="打开本地文件"
+                @click="disk.openFilePicker()"
+            >
+                <span
+                    class="toolbar-action-icon"
+                    :style="{ '--icon-url': `url(${openLocalFileIcon})` }"
+                    aria-hidden="true"
+                />
+            </button>
             <button
                 class="toolbar-action-button"
                 type="button"
-                v-tooltip="{ text: '导入 Markdown', keys: shortcutLabel('import') }"
-                aria-label="导入 Markdown"
+                v-tooltip="{ text: '导入文件', keys: shortcutLabel('import') }"
+                aria-label="导入文件"
                 @click="openImportPicker"
             >
                 <span
@@ -103,6 +118,7 @@ import collapseEditorIcon from '../assets/collapse-editor.svg'
 import expandEditorIcon from '../assets/expand-editor.svg'
 import importFileIcon from '../assets/import-file.svg'
 import newFileIcon from '../assets/new-file.svg'
+import openLocalFileIcon from '../assets/open-file.svg'
 import shareIcon from '../assets/share.svg'
 import { shortcutLabel } from '../composables/shortcuts.js'
 import { useWorkspace } from '../workspace/workspaceKey.js'
@@ -117,7 +133,7 @@ defineProps({
     }
 })
 
-const { documents, actions, share, openImportPicker } = useWorkspace()
+const { documents, disk, actions, share, openImportPicker } = useWorkspace()
 </script>
 
 <style scoped>

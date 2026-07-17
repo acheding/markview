@@ -8,7 +8,8 @@ const createId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2, 
 // 统一行尾为 LF：预设（README 磁盘文件）/导入文件可能带 CRLF，而 marked 在词法分析时
 // 会把 token.raw 归一化成 LF，源行标注（data-source-line）以 indexOf(token.raw) 回定位，
 // 若 content 仍是 CRLF 则跨行 token 匹配失败，滚动同步与搜索定位全部错位。故入库即归一化。
-const normalizeLineEndings = (content) => String(content || '').replace(/\r\n?/g, '\n')
+// 导出供磁盘文件重载（fileSession）复用，保证外部内容进入状态前走同一归一化。
+export const normalizeLineEndings = (content) => String(content || '').replace(/\r\n?/g, '\n')
 
 const stripMarkdownTitle = (value) =>
     value
@@ -146,9 +147,12 @@ export const normalizeState = (state, presets = []) => {
         .filter((file) => file && typeof file.id === 'string')
         .forEach((file) => {
             const content = normalizeLineEndings(file.content)
+            // 只清洗、不去重：关联本地文件的文档名与磁盘一致，允许与普通文档重名，
+            // 强制加序号会在刷新后改掉磁盘文件名。普通文档间的唯一性由会话层的
+            // 命名动作（新建/导入/派生改名）保证，入库数据照原样恢复。
             files.push({
                 id: file.id,
-                name: createUniqueName(files, normalizeImportedFileName(file.name, content)),
+                name: normalizeImportedFileName(file.name, content),
                 content,
                 updatedAt: Number(file.updatedAt || Date.now())
             })
