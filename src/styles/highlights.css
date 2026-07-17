@@ -9,4 +9,13 @@
 .markdown-body .is-search-highlight {
     outline: 3px solid var(--color-search-highlight);
     outline-offset: 3px;
+    /* 跳到当前命中时脉冲一次（由粗到细收拢），把视线引到命中块上 */
+    animation: search-hit-pulse 0.4s ease-out;
+}
+
+@keyframes search-hit-pulse {
+    from {
+        outline-width: 6px;
+        outline-offset: 6px;
+    }
 }

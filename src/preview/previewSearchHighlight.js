@@ -68,6 +68,9 @@ export const applyPreviewHighlight = (contentEl, target, query) => {
     if (ranges.length && supportsCustomHighlight()) {
         window.CSS.highlights.set(HIGHLIGHT_NAME, new window.Highlight(...ranges))
     } else {
+        // 同一块内跳转时，上方 clear 与这里的 add 在同一帧内完成，脉冲动画不会重启；
+        // 中间强制一次 reflow 让浏览器确认「类确实被移除过」。降级路径低频，代价可忽略。
+        void target.offsetWidth
         target.classList.add(FALLBACK_CLASS)
     }
 
