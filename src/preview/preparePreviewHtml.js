@@ -53,7 +53,13 @@ export const preparePreviewHtml = async (
             block.innerHTML = await renderSvg(code, theme)
             if (isFresh) block.classList?.add('mermaid-block--fresh')
         } catch (error) {
-            block.innerHTML = `<pre class="mermaid-error">Mermaid 渲染失败：${escapeHtml(error?.message || String(error))}</pre>`
+            // 围栏尚未闭合时，后续正文会被整段吞进源码，mermaid 识别不出图表类型（UnknownDiagramError）。
+            // 这种「还不是图」的输入中间态按等待处理；只有已识别出类型的真实语法错误才展示错误块。
+            const unknownType =
+                error?.name === 'UnknownDiagramError' || /no diagram type detected/i.test(error?.message || '')
+            block.innerHTML = unknownType
+                ? '<p class="mermaid-empty">等待图表内容…</p>'
+                : `<pre class="mermaid-error">Mermaid 渲染失败：${escapeHtml(error?.message || String(error))}</pre>`
         }
     }
 

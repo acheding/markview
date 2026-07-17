@@ -52,6 +52,21 @@ describe('preparePreviewHtml', () => {
         expect(html).toContain('class="mermaid-empty"')
     })
 
+    it('treats unknown diagram type as waiting state instead of an error', async () => {
+        const { template } = createTemplateHarness(['被未闭合围栏吞进来的正文段落'])
+        const unknownTypeError = Object.assign(new Error('No diagram type detected matching given configuration'), {
+            name: 'UnknownDiagramError'
+        })
+
+        const html = await preparePreviewHtml('<div class="mermaid-block">x</div>', 'light', {
+            createTemplateElement: () => template,
+            renderSvg: () => Promise.reject(unknownTypeError)
+        })
+
+        expect(html).not.toContain('mermaid-error')
+        expect(html).toContain('class="mermaid-empty"')
+    })
+
     it('contains a diagram error without rejecting the whole preview', async () => {
         const { template } = createTemplateHarness(['broken'])
 
