@@ -15,7 +15,7 @@ export const createCommands = ({
 }) => [
     { id: 'new', title: () => '新建文档', run: () => documents.create() },
     { id: 'import', title: () => '导入文件', hint: 'Markdown / 文本', run: () => openImportPicker() },
-    // 编辑区折叠时会先展开再唤起面板；编辑器有焦点时 CodeMirror 键位同样能唤起，行为一致。
+    // Ctrl+F 的唯一入口（编辑器键位表已剔除 Mod-F）；编辑区折叠时会先展开再唤起面板。
     { id: 'find', title: () => '查找替换', hint: '当前文档', run: () => actions.openFindPanel() },
     {
         id: 'toggle-editor',

@@ -20,24 +20,15 @@ import { imageDataUrlFold, imageDataUrlFoldTheme } from './imageDataUrlFold.js'
 import { languageCompletionExtensions } from './languageCompletions.js'
 import { createMarkdownCompletionSource } from './markdownCompletion.js'
 import { searchHighlightField } from './searchHighlight.js'
+import { markviewSearchPanel } from './searchPanel.js'
 import { vitePressSyntaxHighlighting } from './syntaxTheme.js'
 import { userIntentExtension } from './userIntent.js'
 
 const PLACEHOLDER_TEXT = '在此输入 Markdown 内容...'
 
-// @codemirror/search 查找替换面板的界面文案汉化（键为库内英文原文，缺失的键回退英文）。
+// @codemirror/search 无障碍播报与「跳转到行」对话框的文案汉化（键为库内英文原文）。
+// 查找替换面板本身是自定义 DOM（searchPanel.js），界面文案直接写在那里，不走 phrases。
 const SEARCH_PHRASES = {
-    Find: '查找',
-    Replace: '替换为',
-    next: '下一个',
-    previous: '上一个',
-    all: '全部',
-    'match case': '区分大小写',
-    'by word': '全词匹配',
-    regexp: '正则',
-    replace: '替换',
-    'replace all': '全部替换',
-    close: '关闭',
     'current match': '当前匹配',
     'on line': '所在行',
     'replaced $ matches': '已替换 $ 处匹配',
@@ -68,9 +59,11 @@ export const createEditorExtensions = ({ onDocChanged, onUserIntent, onImageNoti
         Prec.high(keymap.of(closeBracketsKeymap)),
         // Tab 缩进：优先级低于补全键位，补全弹出时 Tab 接受候选，否则缩进当前行 / 选区。
         keymap.of([indentWithTab]),
-        // 查找替换：面板置顶展示，键位含 Mod-F 唤起、F3 / Mod-G 上下个、Mod-D 选中下一处等。
-        search({ top: true }),
-        keymap.of(searchKeymap),
+        // 查找替换：自定义面板（含命中计数 / 出入场动画），悬浮于编辑区右上（placement 见面板与主题）。
+        // Mod-F 从键位表剔除，统一走全局快捷键（createWorkspace 监听）：编辑器内外行为一致，
+        // 且避免编辑器聚焦时键位与全局监听双重触发；保留 F3 / Mod-G 上下个、Mod-D 选中下一处等。
+        search({ createPanel: markviewSearchPanel }),
+        keymap.of(searchKeymap.filter((binding) => binding.key !== 'Mod-f')),
         EditorState.phrases.of(SEARCH_PHRASES),
         vitePressSyntaxHighlighting,
         EditorView.lineWrapping,

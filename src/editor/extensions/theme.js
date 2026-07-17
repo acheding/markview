@@ -41,74 +41,165 @@ export const editorTheme = EditorView.theme({
         background: 'var(--color-search-highlight)',
         color: 'var(--color-search-highlight-text)'
     },
-    // —— 查找替换面板（@codemirror/search）——
+    // —— 查找替换面板（自定义 DOM，见 extensions/searchPanel.js）——
+    // 面板容器改为绝对定位悬浮在编辑区右上角（覆盖基础样式的 sticky + 左右铺满），
+    // 不占布局空间、不推开编辑内容；视觉是贴顶的悬浮小部件（下圆角 + 投影）。
     '.cm-panels': {
-        background: 'var(--color-surface-soft)',
-        color: 'var(--color-text)'
+        position: 'absolute',
+        top: '0',
+        left: 'auto',
+        right: '14px',
+        width: 'max-content',
+        maxWidth: 'calc(100% - 28px)',
+        border: '1px solid var(--color-border-soft)',
+        borderTop: 'none',
+        borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
+        background: 'var(--color-surface)',
+        color: 'var(--color-text)',
+        boxShadow: 'var(--shadow-menu)',
+        // CodeMirror 基础样式给的 300 会盖住全局 tooltip 气泡（z=100）；
+        // 面板只需压住编辑区滚动内容，压到 2 即可。
+        zIndex: '2'
     },
-    '.cm-panels.cm-panels-top': {
-        borderBottom: '1px solid var(--color-border-soft)'
-    },
-    '.cm-panel.cm-search': {
-        display: 'flex',
-        flexWrap: 'wrap',
+    // grid 两列：输入框列（查询/替换等宽对齐）+ 动作列（至少容下整行按钮、
+    // 富余时撑满剩余宽度，关闭按钮借 auto margin 贴到面板右缘）。
+    '.cm-panel.mv-search': {
+        display: 'grid',
+        gridTemplateColumns: 'minmax(150px, 230px) max-content',
         alignItems: 'center',
-        gap: 'var(--space-3) var(--space-4)',
-        padding: 'var(--space-4) var(--space-10) var(--space-4) var(--space-6)',
+        gap: 'var(--space-2) var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
         fontFamily: 'var(--font-sans)',
         fontSize: 'var(--font-size-sm)'
     },
-    '.cm-panel.cm-search .cm-textfield': {
-        width: 'clamp(96px, 14em, 40%)',
-        padding: '3px 8px',
+    '.mv-search__actions': {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)'
+    },
+    // 查询 / 替换共用的输入框容器：开关与计数内嵌其中，聚焦时整体点亮。
+    '.mv-search__field': {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-1)',
+        height: '26px',
+        padding: '0 var(--space-2) 0 var(--space-4)',
         border: '1px solid var(--color-border-soft)',
         borderRadius: 'var(--radius-md)',
         background: 'var(--color-surface)',
-        color: 'var(--color-text)',
-        fontSize: 'var(--font-size-sm)'
+        transition: 'border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease'
     },
-    '.cm-panel.cm-search .cm-textfield:focus': {
+    // 极窄面板（移动端纵向布局）退化为单列：动作行跟在对应输入框之下。
+    '@media (max-width: 520px)': {
+        '.cm-panel.mv-search': {
+            gridTemplateColumns: 'minmax(0, 1fr)'
+        }
+    },
+    '.mv-search__field:focus-within': {
+        borderColor: 'var(--color-accent)',
+        boxShadow: '0 0 0 2px var(--color-accent-soft)'
+    },
+    // 不设高度：让输入框按文字内容自适应，由容器的 align-items:center 精确垂直居中。
+    '.mv-search__input': {
+        flex: '1',
+        minWidth: '0',
+        padding: '0',
+        border: 'none',
         outline: 'none',
-        borderColor: 'var(--color-accent)'
-    },
-    '.cm-panel.cm-search .cm-button': {
-        padding: '3px 10px',
-        border: '1px solid var(--color-border-soft)',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--color-surface)',
-        backgroundImage: 'none',
+        background: 'transparent',
         color: 'var(--color-text)',
+        fontFamily: 'inherit',
         fontSize: 'var(--font-size-sm)',
-        cursor: 'pointer'
+        lineHeight: 'normal'
     },
-    '.cm-panel.cm-search .cm-button:hover': {
-        background: 'var(--color-surface-active)'
+    '.mv-search__input::placeholder': {
+        color: 'var(--color-subtle)'
     },
-    '.cm-panel.cm-search label': {
+    '.mv-search__count': {
+        flexShrink: '0',
+        padding: '0 var(--space-2)',
+        color: 'var(--color-subtle)',
+        fontVariantNumeric: 'tabular-nums',
+        whiteSpace: 'nowrap'
+    },
+    '.mv-search__count.is-empty': {
+        color: 'var(--color-danger)'
+    },
+    // 内嵌开关（Aa / 词 / .*）：激活时以强调色底 + 描边点亮。
+    '.mv-search__toggle': {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 'var(--space-2)',
-        color: 'var(--color-muted)',
-        fontSize: 'var(--font-size-sm)'
-    },
-    '.cm-panel.cm-search input[type="checkbox"]': {
-        margin: '0',
-        accentColor: 'var(--color-accent)'
-    },
-    '.cm-panel.cm-search button[name="close"]': {
-        position: 'absolute',
-        top: '50%',
-        right: 'var(--space-4)',
-        transform: 'translateY(-50%)',
-        padding: '0 var(--space-3)',
-        border: 'none',
+        justifyContent: 'center',
+        flexShrink: '0',
+        width: '20px',
+        height: '20px',
+        padding: '0',
+        border: '1px solid transparent',
+        borderRadius: 'var(--radius-sm)',
         background: 'transparent',
         color: 'var(--color-muted)',
-        fontSize: 'var(--font-size-lg)',
-        cursor: 'pointer'
+        fontFamily: 'var(--font-mono)',
+        fontSize: 'var(--font-size-xs)',
+        lineHeight: '1',
+        cursor: 'pointer',
+        transition:
+            'background var(--duration-fast) ease, color var(--duration-fast) ease, border-color var(--duration-fast) ease'
     },
-    '.cm-panel.cm-search button[name="close"]:hover': {
+    '.mv-search__toggle:hover': {
+        background: 'var(--color-surface-active)',
         color: 'var(--color-text)'
+    },
+    // 全词匹配开关：对齐 VS Code 的「ab + 下划线」图标观感。
+    '.mv-search__toggle[name="word"]': {
+        textDecoration: 'underline',
+        textUnderlineOffset: '2px'
+    },
+    '.mv-search__toggle[aria-pressed="true"]': {
+        border: '1px solid color-mix(in srgb, var(--color-accent) 45%, transparent)',
+        background: 'var(--color-accent-soft)',
+        color: 'var(--color-accent-strong)'
+    },
+    '.mv-search__btn': {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-2)',
+        flexShrink: '0',
+        height: '24px',
+        padding: '0 var(--space-4)',
+        border: '1px solid var(--color-border-soft)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--color-surface)',
+        color: 'var(--color-text)',
+        fontSize: 'var(--font-size-sm)',
+        lineHeight: '1',
+        cursor: 'pointer',
+        transition:
+            'background var(--duration-fast) ease, color var(--duration-fast) ease, border-color var(--duration-fast) ease, opacity var(--duration-fast) ease'
+    },
+    '.mv-search__btn:hover:not(:disabled)': {
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-surface-active)'
+    },
+    '.mv-search__btn:disabled': {
+        opacity: '0.45',
+        cursor: 'default'
+    },
+    '.mv-search__btn--icon': {
+        width: '24px',
+        padding: '0'
+    },
+    // 关闭按钮：常态即着色区别于普通按钮，hover 转危险色底，保证显眼。
+    '.mv-search__btn.mv-search__close': {
+        marginLeft: 'auto',
+        border: '1px solid transparent',
+        background: 'transparent',
+        color: 'var(--color-muted)'
+    },
+    '.mv-search__btn.mv-search__close:hover:not(:disabled)': {
+        borderColor: 'transparent',
+        background: 'var(--color-danger-soft)',
+        color: 'var(--color-danger)'
     },
     // 面板检索的命中：普通命中用淡色底，当前命中沿用全局搜索的高亮 token。
     '.cm-searchMatch': {

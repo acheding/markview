@@ -83,15 +83,30 @@ const onFocus = (event) => {
     if (event.currentTarget.matches(':focus-visible')) scheduleShow(event.currentTarget, 0)
 }
 
+// 命令式 API：供 Vue 之外的原生 DOM（如 CodeMirror 面板）复用同一套气泡。
+export const attachTooltip = (el, value) => {
+    values.set(el, value)
+    el.addEventListener('pointerenter', onPointerEnter)
+    el.addEventListener('pointerleave', hide)
+    el.addEventListener('focus', onFocus)
+    el.addEventListener('blur', hide)
+    // 点击多半触发弹窗 / 状态切换，气泡先行退场。
+    el.addEventListener('pointerdown', hide)
+}
+
+export const detachTooltip = (el) => {
+    values.delete(el)
+    if (activeEl === el) hide()
+    el.removeEventListener('pointerenter', onPointerEnter)
+    el.removeEventListener('pointerleave', hide)
+    el.removeEventListener('focus', onFocus)
+    el.removeEventListener('blur', hide)
+    el.removeEventListener('pointerdown', hide)
+}
+
 export const tooltip = {
     mounted(el, binding) {
-        values.set(el, binding.value)
-        el.addEventListener('pointerenter', onPointerEnter)
-        el.addEventListener('pointerleave', hide)
-        el.addEventListener('focus', onFocus)
-        el.addEventListener('blur', hide)
-        // 点击多半触发弹窗 / 状态切换，气泡先行退场。
-        el.addEventListener('pointerdown', hide)
+        attachTooltip(el, binding.value)
     },
     updated(el, binding) {
         values.set(el, binding.value)
@@ -102,12 +117,6 @@ export const tooltip = {
         }
     },
     unmounted(el) {
-        values.delete(el)
-        if (activeEl === el) hide()
-        el.removeEventListener('pointerenter', onPointerEnter)
-        el.removeEventListener('pointerleave', hide)
-        el.removeEventListener('focus', onFocus)
-        el.removeEventListener('blur', hide)
-        el.removeEventListener('pointerdown', hide)
+        detachTooltip(el)
     }
 }
