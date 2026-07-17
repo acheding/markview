@@ -113,6 +113,12 @@ export const createOrchestrations = ({
         headings.updateActiveHeading()
     }
 
+    // 打开编辑器内查找替换：编辑区折叠时先展开（复用折叠编排的完整时序），再唤起面板。
+    const openFindPanel = async () => {
+        if (layout.isEditorCollapsed.value) await setEditorCollapsed(false)
+        getEditor()?.openSearch()
+    }
+
     const clearContent = async () => {
         const ok = await confirm.ask({
             title: '清空内容',
@@ -134,6 +140,7 @@ export const createOrchestrations = ({
         revealActiveLine,
         revealSearchResult,
         setEditorCollapsed,
+        openFindPanel,
         clearContent
     }
 }

@@ -1,3 +1,4 @@
+import { openSearchPanel } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { findTextMatch } from '../core/search/match.js'
@@ -170,6 +171,11 @@ export const createEditorController = ({
             if (focus) view.contentDOM.focus({ preventScroll: true })
 
             return measureScrollTop(range.from, viewportRatio)
+        },
+
+        // 打开查找替换面板（已打开则聚焦查询框并全选，便于直接输入新查询词）。
+        openSearch() {
+            openSearchPanel(view)
         },
 
         // 搜索高亮：match = { lineNumber, from, to } 或 null（清除）

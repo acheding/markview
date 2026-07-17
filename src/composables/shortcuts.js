@@ -13,6 +13,7 @@ const SHORTCUTS = {
     theme: { key: 'l', alt: true },
     save: { key: 's' },
     import: { key: 'o' },
+    find: { key: 'f' },
     'toggle-editor': { key: '\\' },
     palette: { key: 'p' },
     search: { key: 'k' }
