@@ -61,9 +61,10 @@ export const createEditorExtensions = ({ onDocChanged, onUserIntent, onImageNoti
         keymap.of([indentWithTab]),
         // 查找替换：自定义面板（含命中计数 / 出入场动画），悬浮于编辑区右上（placement 见面板与主题）。
         // Mod-F 从键位表剔除，统一走全局快捷键（createWorkspace 监听）：编辑器内外行为一致，
-        // 且避免编辑器聚焦时键位与全局监听双重触发；保留 F3 / Mod-G 上下个、Mod-D 选中下一处等。
+        // 且避免编辑器聚焦时键位与全局监听双重触发；Mod-D 也剔除——minimalSetup 无多选支持，
+        // 该键退化为无用且与浏览器加书签冲突。保留 F3 / Mod-G 上下个等。
         search({ createPanel: markviewSearchPanel }),
-        keymap.of(searchKeymap.filter((binding) => binding.key !== 'Mod-f')),
+        keymap.of(searchKeymap.filter((binding) => !['Mod-f', 'Mod-d'].includes(binding.key))),
         EditorState.phrases.of(SEARCH_PHRASES),
         vitePressSyntaxHighlighting,
         EditorView.lineWrapping,
