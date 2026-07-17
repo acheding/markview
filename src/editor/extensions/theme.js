@@ -149,7 +149,7 @@ export const editorTheme = EditorView.theme({
         background: 'var(--color-surface-active)',
         color: 'var(--color-text)'
     },
-    // 全词匹配开关：对齐 VS Code 的「ab + 下划线」图标观感。
+    // 全字匹配开关：对齐 VS Code 的「ab + 下划线」图标观感。
     '.mv-search__toggle[name="word"]': {
         textDecoration: 'underline',
         textUnderlineOffset: '2px'
