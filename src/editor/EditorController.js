@@ -1,6 +1,7 @@
 import { openSearchPanel } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { findTaskMarker } from '../core/markdown/taskMarker.js'
 import { findTextMatch } from '../core/search/match.js'
 import { createEditorExtensions } from './extensions/setup.js'
 import { editorTheme } from './extensions/theme.js'
@@ -171,6 +172,25 @@ export const createEditorController = ({
             if (focus) view.contentDOM.focus({ preventScroll: true })
 
             return measureScrollTop(range.from, viewportRatio)
+        },
+
+        // 勾选 / 取消指定行的任务列表项：改写该行的 [ ]/[x] 状态字符，是可撤销的常规编辑。
+        // 该行没有任务标记（内容已变、行号漂移）时不改写并返回 false，由调用方回退 UI。
+        setTaskChecked(lineNumber, checked) {
+            const line = Number.isFinite(Number(lineNumber)) ? getLine(lineNumber) : null
+            const marker = line ? findTaskMarker(line.text) : null
+            if (!marker) return false
+
+            if (marker.checked !== Boolean(checked)) {
+                view.dispatch({
+                    changes: {
+                        from: line.from + marker.from,
+                        to: line.from + marker.to,
+                        insert: checked ? 'x' : ' '
+                    }
+                })
+            }
+            return true
         },
 
         // 打开查找替换面板（已打开则聚焦查询框并全选，便于直接输入新查询词）。

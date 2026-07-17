@@ -95,6 +95,12 @@
     vertical-align: -0.04em;
 }
 
+/* 可交互的任务复选框（点击回写源码），勾选色跟随主题强调色。 */
+.markdown-body input[data-task-line] {
+    cursor: pointer;
+    accent-color: var(--color-accent);
+}
+
 .markdown-body blockquote {
     margin: 12px 0;
     padding: 10px 16px;

@@ -49,17 +49,45 @@ describe('renderMarkdown', () => {
         const { html } = await renderMarkdown('- [ ] 待办\n- [x] 完成')
 
         // tight 列表项不应被包进块级 <p>（否则复选框会被挤到单独一行）。
-        expect(html).toContain('<li><input disabled="" type="checkbox"> 待办</li>')
-        expect(html).toContain('<li><input checked="" disabled="" type="checkbox"> 完成</li>')
-        expect(html).not.toContain('<li><input disabled="" type="checkbox"> <p>')
+        expect(html).toContain('<li><input data-task-line="1" type="checkbox"> 待办</li>')
+        expect(html).toContain('<li><input checked="" data-task-line="2" type="checkbox"> 完成</li>')
+        expect(html).not.toContain('<li><input data-task-line="1" type="checkbox"> <p>')
     })
 
     it('merges the checkbox into the first paragraph of a loose task list item', async () => {
         const { html } = await renderMarkdown('- [ ] 待办\n\n- [x] 完成')
 
         // loose 列表项保留 <p>，但复选框需并入首段内部以保持同行。
-        expect(html).toContain('<li><p><input disabled="" type="checkbox"> 待办</p>')
-        expect(html).toContain('<li><p><input checked="" disabled="" type="checkbox"> 完成</p>')
+        expect(html).toContain('<li><p><input data-task-line="1" type="checkbox"> 待办</p>')
+        expect(html).toContain('<li><p><input checked="" data-task-line="3" type="checkbox"> 完成</p>')
+    })
+
+    it('annotates task lines across continuation lines and nested lists', async () => {
+        const source = [
+            '前文',
+            '',
+            '- [ ] 任务A',
+            '  说明续行',
+            '  - [x] 子任务B',
+            '  - [ ] 子任务C',
+            '- [ ] 任务D'
+        ].join('\n')
+        const { html } = await renderMarkdown(source)
+
+        // 多行列表项与嵌套列表（raw 被 marked 去缩进）都应定位到正确源码行。
+        expect(html).toContain('data-task-line="3"')
+        expect(html).toContain('data-task-line="5"')
+        expect(html).toContain('data-task-line="6"')
+        expect(html).toContain('data-task-line="7"')
+        expect(html).not.toContain('disabled=""')
+    })
+
+    it('falls back to a disabled checkbox when the task line cannot be located', async () => {
+        // 引用块内的任务列表：其 list token 不经过顶层行标注，退回禁用态（只展示不交互）。
+        const { html } = await renderMarkdown('> - [ ] 引用里的任务')
+
+        expect(html).toContain('disabled="" type="checkbox"')
+        expect(html).not.toContain('data-task-line')
     })
 
     it('does not wrap tight plain list items in paragraphs', async () => {

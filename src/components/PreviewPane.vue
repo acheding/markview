@@ -153,6 +153,15 @@ const handlePreviewClick = async (event) => {
         return
     }
 
+    // 任务列表勾选回写：浏览器已乐观切换复选框视觉态，这里把状态写回源码对应行，
+    // 随后重渲染的 HTML 与之一致；行内容对不上（回写失败）则把视觉态回退。
+    const taskCheckbox = event.target.closest?.('input[data-task-line]')
+    if (taskCheckbox) {
+        const ok = workspace.actions.toggleTaskItem(Number(taskCheckbox.dataset.taskLine), taskCheckbox.checked)
+        if (!ok) taskCheckbox.checked = !taskCheckbox.checked
+        return
+    }
+
     const anchor = event.target.closest?.('.heading-anchor')
     if (!anchor) return
 

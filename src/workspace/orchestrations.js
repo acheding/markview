@@ -113,6 +113,10 @@ export const createOrchestrations = ({
         headings.updateActiveHeading()
     }
 
+    // 预览区勾选任务项：经编辑器改写源码对应行的 [ ]/[x]（可撤销），内容随之重渲染。
+    // 行内容对不上时返回 false，由预览组件把复选框回退到原状态。
+    const toggleTaskItem = (lineNumber, checked) => Boolean(getEditor()?.setTaskChecked(lineNumber, checked))
+
     // 打开编辑器内查找替换：编辑区折叠时先展开（复用折叠编排的完整时序），再唤起面板。
     const openFindPanel = async () => {
         if (layout.isEditorCollapsed.value) await setEditorCollapsed(false)
@@ -141,6 +145,7 @@ export const createOrchestrations = ({
         revealSearchResult,
         setEditorCollapsed,
         openFindPanel,
+        toggleTaskItem,
         clearContent
     }
 }

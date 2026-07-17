@@ -22,6 +22,8 @@ body { margin: 0; padding: 0; background: var(--color-bg); }
     background: var(--color-surface);
 }
 .markview-export .code-copy { display: none; }
+/* 导出稿是静态文件，任务复选框仅展示状态，不可交互。 */
+.markview-export input[data-task-line] { pointer-events: none; }
 `
 
 const triggerDownload = (data, filename, type) => {

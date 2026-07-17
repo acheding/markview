@@ -95,10 +95,56 @@ const annotateSourceLines = (tokens, source) => {
         if (SOURCE_LINE_TYPES.has(token.type)) {
             token.sourceLine = cursorLine
         }
+        if (token.type === 'list') annotateListItemLines(token)
 
         cursorIndex = tokenIndex + token.raw.length
         cursorLine += countLines(token.raw)
     })
+}
+
+// 给列表项标注起始源码行（任务列表勾选回写依赖它定位要改写的行）。
+// 同一层级里 item.raw 是 list.raw 的逐段原文切片，可用 indexOf 精确定位；
+// 行数在 marked 的各种 raw 变换（去缩进等）下保持不变，按换行数推进行号即可。
+const annotateListItemLines = (listToken) => {
+    if (!Number.isFinite(listToken.sourceLine)) return
+
+    let cursorIndex = 0
+    let cursorLine = listToken.sourceLine
+    for (const item of listToken.items) {
+        if (!item.raw) continue
+
+        const itemIndex = listToken.raw.indexOf(item.raw, cursorIndex)
+        if (itemIndex < 0) continue
+
+        cursorLine += countLines(listToken.raw.slice(cursorIndex, itemIndex))
+        item.sourceLine = cursorLine
+        annotateNestedListLines(item)
+
+        cursorIndex = itemIndex + item.raw.length
+        cursorLine += countLines(item.raw)
+    }
+}
+
+// 列表项内的嵌套列表：其 raw 被 marked 逐行去除了父级缩进，无法直接 indexOf，
+// 改用「首行内容去缩进后精确相等」在 item.raw 的行中定位起始行——若某行去掉缩进后
+// 与嵌套列表首行完全一致，它本就会被解析成列表，故不会误中普通文字行。
+const annotateNestedListLines = (item) => {
+    if (!Number.isFinite(item.sourceLine)) return
+
+    const itemLines = item.raw.split('\n')
+    // 嵌套列表不可能位于列表项自身的首行，从第二行起找。
+    let searchFrom = 1
+    for (const child of item.tokens || []) {
+        if (child.type !== 'list' || !child.raw) continue
+
+        const childFirstLine = child.raw.split('\n', 1)[0].trim()
+        const lineOffset = itemLines.findIndex((text, index) => index >= searchFrom && text.trim() === childFirstLine)
+        if (lineOffset < 0) continue
+
+        child.sourceLine = item.sourceLine + lineOffset
+        searchFrom = lineOffset + 1
+        annotateListItemLines(child)
+    }
 }
 
 export const renderMarkdown = async (source) => {
@@ -187,7 +233,12 @@ export const renderMarkdown = async (source) => {
                             let content = this.parser.parse(item.tokens, item.loose)
 
                             if (item.task) {
-                                const checkbox = `<input ${item.checked ? 'checked="" ' : ''}disabled="" type="checkbox"> `
+                                // 标注到源码行的任务项输出可交互复选框（data-task-line 供预览层勾选回写）；
+                                // 定位不到行（如引用块内的任务列表）退回禁用态，只展示不交互。
+                                const lineAttr = Number.isFinite(item.sourceLine)
+                                    ? `data-task-line="${item.sourceLine}" `
+                                    : 'disabled="" '
+                                const checkbox = `<input ${item.checked ? 'checked="" ' : ''}${lineAttr}type="checkbox"> `
                                 // loose 列表项以块级 <p> 包裹，复选框需并入首段内部才能与文字同行。
                                 content =
                                     item.loose && content.startsWith('<p>')
