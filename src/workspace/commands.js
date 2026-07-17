@@ -62,7 +62,7 @@ export const createCommands = ({
     {
         id: 'save-as',
         title: () => '另存为本地文件',
-        hint: '写入本地文件并打开',
+        hint: '另存为本地文件并打开',
         inPalette: () => disk.isSupported,
         run: () => saveAs()
     },
