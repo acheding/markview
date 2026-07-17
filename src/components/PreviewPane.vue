@@ -52,20 +52,22 @@
                 <PreviewSkeleton />
             </div>
 
-            <button
-                v-show="isBackTopVisible"
-                class="preview-back-top"
-                type="button"
-                v-tooltip="'回到顶部'"
-                aria-label="回到顶部"
-                @click="scrollToTop"
-            >
-                <span
-                    class="preview-back-top__icon"
-                    :style="{ '--icon-url': `url(${backToTopIcon})` }"
-                    aria-hidden="true"
-                />
-            </button>
+            <Transition name="back-top">
+                <button
+                    v-show="isBackTopVisible"
+                    class="preview-back-top"
+                    type="button"
+                    v-tooltip="'回到顶部'"
+                    aria-label="回到顶部"
+                    @click="scrollToTop"
+                >
+                    <span
+                        class="preview-back-top__icon"
+                        :style="{ '--icon-url': `url(${backToTopIcon})` }"
+                        aria-hidden="true"
+                    />
+                </button>
+            </Transition>
 
             <ResizeDivider
                 class="toc-divider"
@@ -332,6 +334,26 @@ onBeforeUnmount(() => {
 
 .preview-back-top:active {
     transform: translateY(0);
+}
+
+/* 进出场：缩放 + 上浮淡入/淡出。enter 用回弹曲线,并覆盖按钮自身的 hover transition,
+   避免两套 transition 列表在进出场期间互相打架。 */
+.back-top-enter-active {
+    transition:
+        opacity var(--duration-fast) ease,
+        transform var(--duration-panel) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.back-top-leave-active {
+    transition:
+        opacity var(--duration-fast) ease,
+        transform var(--duration-fast) ease;
+}
+
+.back-top-enter-from,
+.back-top-leave-to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
 }
 
 .preview-back-top__icon {
