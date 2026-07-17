@@ -114,4 +114,19 @@ const iconUrl = computed(() => ICON_URLS[toast.tone.value] || infoIcon)
     /* 由上方轻微滑入（-50% 保持水平居中，另叠加向上位移） */
     transform: translate(-50%, calc(-50% - 8px));
 }
+
+/* 圆底图标比整体滑入晚 80ms 再回弹放大登场，backwards 让延迟期间保持 scale(0) */
+.toast-enter-active .app-toast__icon {
+    animation: toast-icon-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) 80ms backwards;
+}
+
+@keyframes toast-icon-pop {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
 </style>
