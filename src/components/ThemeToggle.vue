@@ -76,11 +76,6 @@ const { theme, toggleTheme } = useTheme()
     background: var(--color-surface-active);
     color: var(--color-accent);
     box-shadow: 0 6px 14px rgb(var(--color-accent-channel) / 12%);
-    transform: translateY(-1px);
-}
-
-.theme-toggle:active {
-    transform: translateY(0);
 }
 
 /* 两个图标叠在按钮网格同一格，交叉过渡时互不挤占位置 */
