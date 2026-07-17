@@ -52,10 +52,13 @@
                 @scroll="handleContentScroll"
             />
 
-            <!-- 首屏：编辑器已出内容但预览尚未完成首次渲染时，用骨架屏覆盖空白内容区 -->
-            <div v-if="!isPreviewReady" class="preview-skeleton-overlay">
-                <PreviewSkeleton />
-            </div>
+            <!-- 首屏：编辑器已出内容但预览尚未完成首次渲染时，用骨架屏覆盖空白内容区；
+                 撤除时短淡出，让真实内容从骨架屏下「浮现」而非硬切 -->
+            <Transition name="skeleton-fade">
+                <div v-if="!isPreviewReady" class="preview-skeleton-overlay">
+                    <PreviewSkeleton />
+                </div>
+            </Transition>
 
             <Transition name="back-top">
                 <button
@@ -229,6 +232,14 @@ onBeforeUnmount(() => {
     display: flex;
     background: var(--color-surface);
     --toc-width: var(--preview-toc-width, 220px);
+}
+
+.skeleton-fade-leave-active {
+    transition: opacity var(--duration-fast) ease;
+}
+
+.skeleton-fade-leave-to {
+    opacity: 0;
 }
 
 .preview-content {
