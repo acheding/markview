@@ -1,3 +1,4 @@
+import { isolateHistory } from '@codemirror/commands'
 import { openSearchPanel } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -125,6 +126,23 @@ export const createEditorController = ({
 
         getDoc: () => view.state.doc.toString(),
         docLength: () => view.state.doc.length,
+
+        // 当前光标（主选区头部）在文档中的绝对偏移，供格式化前采样、格式化后映射回位。
+        getCursorOffset: () => view.state.selection.main.head,
+
+        // 应用格式化结果：整段替换 + 光标落到映射后的新位置并滚动可见。
+        // 单次 dispatch = 单步撤销；isolateHistory 阻止本事务与格式化后紧接的输入合并成一步，
+        // 否则 500ms 内继续打字会让一次 Ctrl+Z 连输入带格式化一起回退。
+        applyFormatted(text, anchor) {
+            if (text === view.state.doc.toString()) return
+            const position = Math.max(0, Math.min(Number.isInteger(anchor) ? anchor : 0, text.length))
+            view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: text },
+                selection: { anchor: position },
+                effects: EditorView.scrollIntoView(position, { y: 'center' }),
+                annotations: isolateHistory.of('full')
+            })
+        },
 
         // 在当前光标处插入图片（压缩为内联 base64）。供全局拖拽导入把图片插入活动文档，
         // 与粘贴共用同一压缩逻辑；超限/失败提示走 onImageNotify。

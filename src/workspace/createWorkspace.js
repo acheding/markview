@@ -4,6 +4,7 @@ import { createScrollMaster } from '../core/sync/scrollMaster.js'
 import { createEditorController } from '../editor/EditorController.js'
 import { createPreviewController } from '../preview/PreviewController.js'
 import { exportHtml, exportMarkdown, printDocument } from '../services/exporter.js'
+import { formatMarkdown } from '../services/formatter.js'
 import { SAVE_STATUS } from '../core/documents/persistenceScheduler.js'
 import { createCommands } from './commands.js'
 import { createDocumentSession } from './documentSession.js'
@@ -389,6 +390,31 @@ export const createWorkspace = () => {
         return disk.saveActiveAs()
     }
 
+    // Ctrl/Cmd + Alt + F：整篇 Prettier 格式化（Markdown 结构 + 受支持语言的代码块），
+    // 光标经 formatWithCursor 映射保持原位。格式化是异步的（首次还要加载引擎 chunk），
+    // 期间用户可能继续输入或切换文档，应用前核对文档未变，变了则静默放弃、绝不覆盖新输入。
+    let isFormatting = false
+    const formatDocument = async () => {
+        const editor = editorController
+        if (!editor || isFormatting) return
+        isFormatting = true
+        try {
+            const source = editor.getDoc()
+            const { formatted, cursorOffset } = await formatMarkdown(source, editor.getCursorOffset())
+            if (editorController !== editor || editor.getDoc() !== source) return
+            if (formatted === source) {
+                toast.show('内容已符合格式')
+                return
+            }
+            editor.applyFormatted(formatted, cursorOffset)
+            toast.show('已格式化，Ctrl+Z 可整体撤销', { tone: 'success' })
+        } catch {
+            toast.show('格式化失败，内容未做改动', { tone: 'error', duration: 3000 })
+        } finally {
+            isFormatting = false
+        }
+    }
+
     // 新建文档后光标直接落进编辑区，即刻可输入；等一帧让编辑器先切到新文档的 EditorState。
     // 编辑区折叠时保持折叠，不聚焦不可见区域。
     const createNewDocument = async () => {
@@ -411,6 +437,7 @@ export const createWorkspace = () => {
         createNewDocument,
         saveNow,
         saveAs,
+        formatDocument,
         disk
     })
 

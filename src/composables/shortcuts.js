@@ -21,6 +21,7 @@ const SHORTCUTS = {
         ? { open: { key: 'o' }, import: { key: 'o', alt: true } }
         : { import: [{ key: 'o', alt: true }, { key: 'o' }] }),
     find: { key: 'f' },
+    format: { key: 'f', alt: true },
     'toggle-editor': { key: '\\' },
     palette: { key: 'p' },
     search: { key: 'k' }

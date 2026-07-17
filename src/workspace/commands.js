@@ -14,6 +14,7 @@ export const createCommands = ({
     createNewDocument,
     saveNow,
     saveAs,
+    formatDocument,
     disk
 }) => [
     // createNewDocument 而非 documents.create：新建后顺带把光标聚焦进编辑区（见 createWorkspace）。
@@ -37,6 +38,13 @@ export const createCommands = ({
     },
     // Ctrl+F 的唯一入口（编辑器键位表已剔除 Mod-F）；编辑区折叠时会先展开再唤起面板。
     { id: 'find', title: () => '查找替换', hint: '当前文档', run: () => actions.openFindPanel() },
+    // Prettier 整篇格式化（含受支持语言的代码块），一步 Ctrl+Z 可整体撤销；见 createWorkspace。
+    {
+        id: 'format',
+        title: () => '格式化文档',
+        hint: '规范 Markdown 与代码块',
+        run: () => formatDocument()
+    },
     {
         id: 'toggle-editor',
         title: () => (layout.isEditorCollapsed.value ? '展开编辑区' : '折叠编辑区'),
