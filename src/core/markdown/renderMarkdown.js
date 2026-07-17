@@ -163,7 +163,10 @@ export const renderMarkdown = async (source) => {
                     return (
                         `<div class="code-block"${getSourceLineAttr(token)}>` +
                         `<div class="code-block__bar">${langBadge}` +
-                        `<button class="code-copy" type="button" title="复制代码" aria-label="复制代码">复制</button>` +
+                        `<button class="code-copy" type="button" title="复制代码" aria-label="复制代码">` +
+                        `<svg class="code-copy__check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>` +
+                        `<span class="code-copy__label">复制</span>` +
+                        `</button>` +
                         `</div>` +
                         `<pre><code class="hljs${languageClass}">${highlightCode(token.text, language)}</code></pre>` +
                         `</div>`

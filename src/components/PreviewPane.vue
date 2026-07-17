@@ -120,12 +120,14 @@ const handleCodeCopy = async (button) => {
     const code = button.closest('.code-block')?.querySelector('pre code')
     if (!code) return
 
+    // 只改 label 文字，保留按钮内的打勾 SVG（textContent 赋值会把它清掉）
+    const label = button.querySelector('.code-copy__label') || button
     const ok = await copyText(code.textContent || '')
-    button.textContent = ok ? '已复制' : '复制失败'
+    label.textContent = ok ? '已复制' : '复制失败'
     button.classList.toggle('is-copied', ok)
     window.clearTimeout(button._copyTimer)
     button._copyTimer = window.setTimeout(() => {
-        button.textContent = '复制'
+        label.textContent = '复制'
         button.classList.remove('is-copied')
     }, 1200)
 }
