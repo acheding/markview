@@ -112,6 +112,22 @@ button:focus-visible {
     mix-blend-mode: normal;
 }
 
+/* 用户偏好减少动态效果：所有装饰性动画/过渡压到近零时长（直接跳到终态），
+   状态反馈本身（打勾、变色、显隐结果）依旧保留，只是不再有过程动画。
+   iteration-count: 1 同时终止呼吸圆点、蚂蚁行军、骨架微光等无限循环动画。
+   主题切换的 View Transition 已在 useTheme.js 里按同一偏好走无动画分支。 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+    }
+}
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
