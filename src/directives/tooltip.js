@@ -73,7 +73,10 @@ const scheduleShow = (el, delay) => {
     showTimer = window.setTimeout(() => show(el), delay)
 }
 
-const onMouseEnter = (event) => scheduleShow(event.currentTarget, SHOW_DELAY)
+// 触屏没有悬停语义：点按会补发模拟的 enter 且不再有 leave，气泡会一直驻留，故忽略 touch。
+const onPointerEnter = (event) => {
+    if (event.pointerType !== 'touch') scheduleShow(event.currentTarget, SHOW_DELAY)
+}
 
 // 仅键盘聚焦立即显示；鼠标点击带来的 focus 不弹，避免点完气泡驻留。
 const onFocus = (event) => {
@@ -83,8 +86,8 @@ const onFocus = (event) => {
 export const tooltip = {
     mounted(el, binding) {
         values.set(el, binding.value)
-        el.addEventListener('mouseenter', onMouseEnter)
-        el.addEventListener('mouseleave', hide)
+        el.addEventListener('pointerenter', onPointerEnter)
+        el.addEventListener('pointerleave', hide)
         el.addEventListener('focus', onFocus)
         el.addEventListener('blur', hide)
         // 点击多半触发弹窗 / 状态切换，气泡先行退场。
@@ -101,8 +104,8 @@ export const tooltip = {
     unmounted(el) {
         values.delete(el)
         if (activeEl === el) hide()
-        el.removeEventListener('mouseenter', onMouseEnter)
-        el.removeEventListener('mouseleave', hide)
+        el.removeEventListener('pointerenter', onPointerEnter)
+        el.removeEventListener('pointerleave', hide)
         el.removeEventListener('focus', onFocus)
         el.removeEventListener('blur', hide)
         el.removeEventListener('pointerdown', hide)
