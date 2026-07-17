@@ -1,5 +1,6 @@
 // v-tooltip 指令：轻量自定义气泡，替代原生 title（原生延迟长、样式不可控、不随主题）。
-// 值为字符串，或 { text, keys }——keys 以等宽 kbd 呈现快捷键。
+// 值为字符串，或 { text, keys, align }——keys 以等宽 kbd 呈现快捷键；
+// align: 'start' 让气泡与目标左缘对齐（默认居中），适合文件名等宽按钮，避免气泡飘在远处。
 // 浮层为全局单例、挂在 body 下（样式见 styles/tooltip.css），同一时刻只会有一个气泡。
 
 const SHOW_DELAY = 300
@@ -36,11 +37,12 @@ const render = (value) => {
     }
 }
 
-const position = (target) => {
+const position = (target, align = 'center') => {
     const rect = target.getBoundingClientRect()
     const { offsetWidth: width, offsetHeight: height } = bubble
-    // 目标下方居中；水平钳制在视口内，底部放不下则翻到上方。
-    const left = Math.min(Math.max(rect.left + rect.width / 2 - width / 2, GAP), window.innerWidth - width - GAP)
+    // 目标下方，默认水平居中、'start' 与左缘对齐；水平钳制在视口内，底部放不下则翻到上方。
+    const rawLeft = align === 'start' ? rect.left : rect.left + rect.width / 2 - width / 2
+    const left = Math.min(Math.max(rawLeft, GAP), window.innerWidth - width - GAP)
     let top = rect.bottom + GAP
     if (top + height > window.innerHeight - GAP) top = rect.top - height - GAP
     bubble.style.left = `${Math.round(left)}px`
@@ -61,7 +63,7 @@ const show = (el) => {
     if (!value) return
     activeEl = el
     render(value)
-    position(el)
+    position(el, typeof value === 'object' ? value.align : undefined)
     bubble.classList.add('is-visible')
     // 定位基于视口坐标，滚动 / 缩放即失效，直接收起。
     window.addEventListener('scroll', hide, true)
@@ -113,7 +115,7 @@ export const tooltip = {
         // 内容动态变化（如主题按钮文案）且正在展示时，就地刷新。
         if (activeEl === el && bubble?.classList.contains('is-visible')) {
             render(binding.value)
-            position(el)
+            position(el, typeof binding.value === 'object' ? binding.value.align : undefined)
         }
     },
     unmounted(el) {

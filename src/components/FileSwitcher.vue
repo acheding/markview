@@ -5,7 +5,7 @@
             type="button"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
-            v-tooltip="'切换文档'"
+            v-tooltip="{ text: '切换文档', align: 'start' }"
             @click="isOpen = !isOpen"
         >
             <span
