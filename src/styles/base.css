@@ -103,6 +103,15 @@ button:focus-visible {
     -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
+/* 主题切换圆形扩散（useTheme.js）：禁用 View Transition 默认的交叉淡入与混合，
+   改为新主题快照按 clip-path 圆形揭开、旧主题静止铺底。
+   项目内 root 级 view transition 仅主题切换一处，全局禁用无副作用。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
