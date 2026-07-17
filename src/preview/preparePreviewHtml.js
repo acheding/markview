@@ -38,6 +38,14 @@ export const preparePreviewHtml = async (
 
     for (const block of blocks) {
         const code = block.textContent ?? ''
+
+        // 刚敲下 ```mermaid 还没写内容时源码为空，送去渲染必报错（还会白白拉起 mermaid 库），
+        // 显示轻量等待提示即可。
+        if (!code.trim()) {
+            block.innerHTML = '<p class="mermaid-empty">等待图表内容…</p>'
+            continue
+        }
+
         // 渲染前先记下是否命中缓存：首次渲染的图表打上 --fresh，发布后做一次淡入；
         // 编辑期间的重发布（缓存命中）不打标，避免每次按键都让所有图表重放动画。
         const isFresh = !hasCachedSvg(code, theme)

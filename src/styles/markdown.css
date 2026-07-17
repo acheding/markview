@@ -434,11 +434,23 @@
     font-size: 13px;
 }
 
+/* 源码为空（刚敲下 ```mermaid 尚未输入内容）时的等待提示，观感与「图表渲染中…」一致 */
+.markdown-body .mermaid-empty {
+    margin: 0;
+    color: var(--color-subtle);
+    font-size: 13px;
+    user-select: none;
+}
+
+/* 解析错误信息可能长达十几行（含期望 token 列表），限高滚动收敛，避免撑出大片红色区域 */
 .markdown-body .mermaid-error {
+    max-height: 132px;
     padding: 12px 14px;
+    overflow-y: auto;
     border-radius: var(--radius-lg);
     background: var(--color-danger-soft);
     color: var(--color-danger);
+    font-size: var(--font-size-sm);
     white-space: pre-wrap;
 }
 

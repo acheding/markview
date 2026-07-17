@@ -38,6 +38,20 @@ describe('preparePreviewHtml', () => {
         expect(html).toContain('<svg data-theme="dark">sequenceDiagram</svg>')
     })
 
+    it('shows a waiting hint for empty Mermaid source instead of rendering an error', async () => {
+        const { template } = createTemplateHarness(['', '   \n  '])
+        const renderSvg = vi.fn()
+
+        const html = await preparePreviewHtml('<div class="mermaid-block"></div>', 'light', {
+            createTemplateElement: () => template,
+            renderSvg
+        })
+
+        expect(renderSvg).not.toHaveBeenCalled()
+        expect(html).not.toContain('mermaid-error')
+        expect(html).toContain('class="mermaid-empty"')
+    })
+
     it('contains a diagram error without rejecting the whole preview', async () => {
         const { template } = createTemplateHarness(['broken'])
 

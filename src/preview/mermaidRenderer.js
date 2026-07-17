@@ -25,7 +25,14 @@ export const renderMermaidSvg = (code, theme = 'light') => {
         if (cache.has(key)) return cache.get(key)
 
         const mermaid = await loadMermaid()
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: mermaidTheme })
+        // suppressErrorRendering：解析失败时只抛异常，不让 mermaid 往页面 DOM 里注入它自带的大幅报错 SVG，
+        // 错误展示统一交给 preparePreviewHtml 的 mermaid-error 块。
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            suppressErrorRendering: true,
+            theme: mermaidTheme
+        })
         const { svg } = await mermaid.render(`mmd-${(renderSeq += 1)}`, code)
         cache.set(key, svg)
         return svg
