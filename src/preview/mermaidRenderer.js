@@ -11,9 +11,14 @@ const cache = new Map()
 let renderSeq = 0
 let renderQueue = Promise.resolve()
 
+const cacheKey = (code, theme) => `${theme === 'dark' ? 'dark' : 'default'}\n${code}`
+
+// 供调用方区分「首次渲染」与「缓存命中」：前者值得做一次出现动画，后者是编辑期间的重发布，不该重放。
+export const hasMermaidSvgCached = (code, theme = 'light') => cache.has(cacheKey(code, theme))
+
 export const renderMermaidSvg = (code, theme = 'light') => {
     const mermaidTheme = theme === 'dark' ? 'dark' : 'default'
-    const key = `${mermaidTheme}\n${code}`
+    const key = cacheKey(code, theme)
     if (cache.has(key)) return Promise.resolve(cache.get(key))
 
     const render = renderQueue.then(async () => {

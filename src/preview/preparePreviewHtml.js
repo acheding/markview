@@ -1,5 +1,5 @@
 import { escapeHtml } from '../core/text.js'
-import { renderMermaidSvg } from './mermaidRenderer.js'
+import { hasMermaidSvgCached, renderMermaidSvg } from './mermaidRenderer.js'
 
 export const MERMAID_MARKER = 'class="mermaid-block"'
 const KATEX_MARKER = 'class="katex'
@@ -24,7 +24,7 @@ const ensureKatexCss = () => {
 export const preparePreviewHtml = async (
     html,
     theme,
-    { createTemplateElement = createTemplate, renderSvg = renderMermaidSvg } = {}
+    { createTemplateElement = createTemplate, renderSvg = renderMermaidSvg, hasCachedSvg = hasMermaidSvgCached } = {}
 ) => {
     const source = String(html || '')
 
@@ -38,8 +38,12 @@ export const preparePreviewHtml = async (
 
     for (const block of blocks) {
         const code = block.textContent ?? ''
+        // 渲染前先记下是否命中缓存：首次渲染的图表打上 --fresh，发布后做一次淡入；
+        // 编辑期间的重发布（缓存命中）不打标，避免每次按键都让所有图表重放动画。
+        const isFresh = !hasCachedSvg(code, theme)
         try {
             block.innerHTML = await renderSvg(code, theme)
+            if (isFresh) block.classList?.add('mermaid-block--fresh')
         } catch (error) {
             block.innerHTML = `<pre class="mermaid-error">Mermaid 渲染失败：${escapeHtml(error?.message || String(error))}</pre>`
         }

@@ -406,6 +406,19 @@
     height: auto;
 }
 
+/* 首次渲染完成的图表淡入 + 轻微上移，消除 SVG 突然出现的闪跳；
+   --fresh 由 preparePreviewHtml 仅在非缓存命中时打上，编辑期间的重发布不会重放。 */
+.markdown-body .mermaid-block--fresh svg {
+    animation: mermaid-appear 0.32s ease both;
+}
+
+@keyframes mermaid-appear {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
 /* 首屏抢先绘制期间：占位块尚无子元素（仅源码文本），显示轻量“渲染中”态并预留高度，
    收起未渲染的源码、减小 SVG 就位时的布局位移。渲染完成（注入 SVG 或错误 pre）后自动恢复。 */
 .markdown-body .mermaid-block:not(:has(*)) {
