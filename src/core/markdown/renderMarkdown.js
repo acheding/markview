@@ -1,4 +1,4 @@
-import { Marked } from 'marked'
+﻿import { Marked } from 'marked'
 import { escapeHtml, stripHtml } from '../text.js'
 import { highlightCode, loadHighlighter } from './highlightCode.js'
 import { mathExtensions, mathRenderers, loadKatex } from './mathExtension.js'
@@ -10,6 +10,72 @@ const markdownParser = new Marked({ breaks: true, gfm: true })
 markdownParser.use({ extensions: mathExtensions })
 
 const getLanguage = (infoString = '') => infoString.trim().split(/\s+/)[0]
+
+// 文首 YAML frontmatter：`---` 开头、`---` 收尾（允许 BOM / CRLF）。
+// marked 不认 frontmatter，会把它渲染成「分隔线 + setext 大标题」的垃圾输出，
+// 这里在 lex 前把它单独抽出来，渲染成顶部元数据卡片。
+const FRONTMATTER_RE = /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?=\r?\n|$)/
+
+const stripQuotes = (value) => {
+    const v = value.trim()
+    if (v.length >= 2 && ((v[0] === '"' && v.at(-1) === '"') || (v[0] === "'" && v.at(-1) === "'"))) {
+        return v.slice(1, -1)
+    }
+    return v
+}
+
+// 轻量解析：只取顶层 `key: value`，缩进/续行并入上一个键的值。
+// 不追求完整 YAML——卡片只需把键值对展示清楚，复杂结构原样拼进字符串即可。
+const parseFrontmatter = (inner) => {
+    const entries = []
+    for (const line of inner.split('\n')) {
+        if (!line.trim()) continue
+
+        // `^[^:\s]` 锚定顶层键（首字符非空白），缩进/续行自然落到 else 并入上一个值。
+        const match = line.match(/^([^:\s][^:]*?):\s*(.*)$/)
+        if (match) {
+            entries.push({ key: match[1].trim(), value: stripQuotes(match[2]) })
+        } else if (entries.length) {
+            const last = entries[entries.length - 1]
+            last.value = `${last.value} ${line.trim()}`.trim()
+        }
+    }
+    return entries
+}
+
+// 抽出 frontmatter，并用等量换行占位替换原区域——保留后续 token 的源码行号，
+// 否则 annotateSourceLines 里 data-source-line 全部错位，滚动同步会失准。
+// 解析不出任何键值对时按「不是 frontmatter」处理（避免把「分隔线 + 文字 + 分隔线」误判），
+// 交回正常 Markdown 流程。
+const extractFrontmatter = (source) => {
+    const match = source.match(FRONTMATTER_RE)
+    if (!match) return { entries: null, source }
+
+    const entries = parseFrontmatter(match[1])
+    if (!entries.length) return { entries: null, source }
+
+    const consumed = match[0]
+    const newlineCount = countLines(consumed)
+    const blanked = '\n'.repeat(newlineCount) + source.slice(consumed.length)
+    return { entries, source: blanked }
+}
+
+const renderFrontmatter = (entries) => {
+    const rows = entries
+        .map(
+            ({ key, value }) =>
+                `<dt class="frontmatter__key">${escapeHtml(key)}</dt>` +
+                `<dd class="frontmatter__value">${escapeHtml(value)}</dd>`
+        )
+        .join('')
+
+    // data-source-line="1"：卡片锚定文首，让滚动同步能把顶部映射到源码第 1 行。
+    return `<dl class="frontmatter" data-source-line="1">${rows}</dl>`
+}
+
+// 纯 HTML 注释（含文首「开篇注释」）应当不渲染——与所有 Markdown 渲染器一致。
+// 仅当整个 token 就是一段注释时才隐藏；注释与其它 HTML 混排时仍走原有转义逻辑。
+const isHtmlComment = (token) => /^<!--[\s\S]*-->$/.test((token.text || token.raw || '').trim())
 
 // 递归遍历 token 树，判断本次渲染实际需要哪些重依赖：
 //   - 非 mermaid 的代码块 → highlight.js
@@ -157,11 +223,15 @@ export const renderMarkdown = async (source) => {
         }
     }
 
+    // frontmatter 先抽出：body 用等量换行占位后的源文，行号与原文保持一致。
+    const { entries: frontmatter, source: bodySource } = extractFrontmatter(source)
+    const frontmatterHtml = frontmatter ? renderFrontmatter(frontmatter) : ''
+
     try {
         const slug = createSlugger()
         // 不传 options：用实例配置（breaks/gfm + 数学扩展），否则会覆盖已注册的扩展。
-        const tokens = markdownParser.lexer(source)
-        annotateSourceLines(tokens, source)
+        const tokens = markdownParser.lexer(bodySource)
+        annotateSourceLines(tokens, bodySource)
 
         // marked 的 renderer 必须同步返回字符串，无法在其中 await；
         // 故在 parse 前先按 token 需求预加载重依赖，加载好后再走同步渲染。
@@ -188,6 +258,9 @@ export const renderMarkdown = async (source) => {
                 },
 
                 html(token) {
+                    // 注释不显示；其余原始 HTML 仍转义输出（防 XSS 的既有策略不变）。
+                    if (isHtmlComment(token)) return ''
+
                     const text = escapeHtml(token.text || token.raw || '')
 
                     return token.block ? `<p${getSourceLineAttr(token)}>${text}</p>` : text
@@ -304,7 +377,7 @@ export const renderMarkdown = async (source) => {
         Object.assign(extensions.renderers, mathRenderers)
 
         return {
-            html: markdownParser.parser(tokens, { extensions }),
+            html: frontmatterHtml + markdownParser.parser(tokens, { extensions }),
             toc
         }
     } catch (error) {

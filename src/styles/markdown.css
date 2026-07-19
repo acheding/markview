@@ -400,6 +400,42 @@
     color: var(--color-danger);
 }
 
+/* 文首 YAML frontmatter：渲染成顶部元数据「属性面板」，而非当正文渲染。
+   刻意用小号大写标签 + 左侧竖条，与下方正文数据表拉开视觉区分。 */
+.markdown-body .frontmatter {
+    display: grid;
+    /* 所有键共用一列（宽度取最长键），值列自然对齐 */
+    grid-template-columns: minmax(84px, max-content) 1fr;
+    align-items: start;
+    gap: 10px 22px;
+    margin: 2px 0 24px;
+    padding: 16px 18px 16px 20px;
+    border: 1px solid var(--color-border-soft);
+    border-left: 3px solid var(--color-blue);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-soft);
+    font-size: var(--font-size-base);
+    line-height: 1.65;
+}
+
+.markdown-body .frontmatter__key {
+    color: var(--color-subtle);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    /* 12px 标签与 14px 值的视觉基线对齐 */
+    padding-top: 3px;
+    word-break: break-word;
+}
+
+.markdown-body .frontmatter__value {
+    margin: 0;
+    color: var(--color-text);
+    overflow-wrap: break-word;
+}
+
 /* Mermaid 图表：居中、响应式缩放 */
 .markdown-body .mermaid-block {
     display: flex;

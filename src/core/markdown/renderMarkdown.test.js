@@ -132,6 +132,40 @@ describe('renderMarkdown', () => {
         expect(html).toContain('$5')
     })
 
+    it('renders leading yaml frontmatter as a metadata card, not markdown', async () => {
+        const { html } = await renderMarkdown('---\nname: mp-verify\ndescription: 截图验证\n---\n\n# 正文')
+
+        expect(html).toContain('<dl class="frontmatter" data-source-line="1">')
+        expect(html).toContain('<dt class="frontmatter__key">name</dt><dd class="frontmatter__value">mp-verify</dd>')
+        expect(html).toContain('<dd class="frontmatter__value">截图验证</dd>')
+        // 不应退化成 marked 的分隔线 + setext 大标题
+        expect(html).not.toContain('<hr')
+        expect(html).not.toContain('mp-verify</h2>')
+    })
+
+    it('keeps body source lines aligned after stripping frontmatter', async () => {
+        const { html, toc } = await renderMarkdown('---\nname: x\n---\n\n# 标题')
+
+        // frontmatter 占 4 行，正文标题在第 5 行——data-source-line 必须保持原文行号，滚动同步才不失准。
+        expect(html).toContain('<h1 id="标题" data-source-line="5">')
+        expect(toc).toEqual([{ id: '标题', title: '标题', level: 1, sourceLine: 5 }])
+    })
+
+    it('treats a divider-wrapped block as normal markdown, not frontmatter', async () => {
+        // 解析不出键值对（无 `key: value`）时不当 frontmatter，交回正常渲染。
+        const { html } = await renderMarkdown('---\n只是一段文字\n---')
+
+        expect(html).not.toContain('class="frontmatter"')
+    })
+
+    it('hides html comments instead of showing them as literal text', async () => {
+        const { html } = await renderMarkdown('<!-- 开篇注释 -->\n\n# 正文')
+
+        expect(html).not.toContain('开篇注释')
+        expect(html).not.toContain('&lt;!--')
+        expect(html).toContain('<h1 id="正文"')
+    })
+
     it('emits a mermaid placeholder instead of highlighting mermaid code blocks', async () => {
         const { html } = await renderMarkdown('```mermaid\nflowchart TD\n  A --> B\n```')
 
