@@ -47,7 +47,10 @@ export default defineConfig(({ mode }) => {
                     // 预缓存构建产物，实现离线可用；html2pdf 等较大 chunk 需提高单文件上限。
                     globPatterns: ['**/*.{js,css,html,svg,ico,woff2,ttf}'],
                     maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-                    cleanupOutdatedCaches: true
+                    cleanupOutdatedCaches: true,
+                    // 地址栏直接访问 /og-image.png 这类静态文件属于 navigate 请求，会被导航回退
+                    // 拦截并返回 index.html（看起来像"图片打不开，显示首页"）。带扩展名的路径一律放行。
+                    navigateFallbackDenylist: [/\/[^/?]+\.[^/]+$/]
                 }
             })
         ],
