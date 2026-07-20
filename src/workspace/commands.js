@@ -15,6 +15,7 @@ export const createCommands = ({
     saveNow,
     saveAs,
     formatDocument,
+    insertCodeBlock,
     disk
 }) => [
     // createNewDocument 而非 documents.create：新建后顺带把光标聚焦进编辑区（见 createWorkspace）。
@@ -44,6 +45,13 @@ export const createCommands = ({
         title: () => '格式化文档',
         hint: '规范 Markdown 与代码块',
         run: () => formatDocument()
+    },
+    // 插入围栏代码块，光标停在语言标记位；标记决定高亮与格式化能力（如 JSON 内容应标 json 而非 js）。
+    {
+        id: 'code-block',
+        title: () => '插入代码块',
+        hint: '光标停在语言标记位',
+        run: () => insertCodeBlock()
     },
     {
         id: 'toggle-editor',

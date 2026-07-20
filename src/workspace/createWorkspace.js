@@ -415,6 +415,13 @@ export const createWorkspace = () => {
         }
     }
 
+    // Ctrl/Cmd + Alt + K：在光标处插入围栏代码块，光标停在语言标记位；有选区则把选区包进围栏。
+    // 编辑区折叠时先展开，否则插入发生在不可见区域。
+    const insertCodeBlock = async () => {
+        if (layout.isEditorCollapsed.value) await orchestrations.setEditorCollapsed(false)
+        editorController?.insertCodeBlock()
+    }
+
     // 新建文档后光标直接落进编辑区，即刻可输入；等一帧让编辑器先切到新文档的 EditorState。
     // 编辑区折叠时保持折叠，不聚焦不可见区域。
     const createNewDocument = async () => {
@@ -438,6 +445,7 @@ export const createWorkspace = () => {
         saveNow,
         saveAs,
         formatDocument,
+        insertCodeBlock,
         disk
     })
 

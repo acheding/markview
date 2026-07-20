@@ -2,6 +2,7 @@ import { isolateHistory } from '@codemirror/commands'
 import { openSearchPanel } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { buildCodeBlockInsertion } from '../core/markdown/codeBlock.js'
 import { findTaskMarker } from '../core/markdown/taskMarker.js'
 import { findTextMatch } from '../core/search/match.js'
 import { createEditorExtensions } from './extensions/setup.js'
@@ -153,6 +154,22 @@ export const createEditorController = ({
             view.dispatch({
                 changes: { from: pos, to: pos, insert },
                 selection: { anchor: pos + insert.length }
+            })
+            view.focus()
+        },
+
+        // 在光标处插入围栏代码块：光标落在语言标记位，可直接敲 json / js；
+        // 有选区时把选中文本原样包进围栏。文本构造见 core/markdown/codeBlock.js。
+        insertCodeBlock() {
+            const { from, to } = view.state.selection.main
+            const { insert, cursorOffset } = buildCodeBlockInsertion({
+                selection: view.state.doc.sliceString(from, to),
+                atLineStart: from === view.state.doc.lineAt(from).from
+            })
+            view.dispatch({
+                changes: { from, to, insert },
+                selection: { anchor: from + cursorOffset },
+                scrollIntoView: true
             })
             view.focus()
         },

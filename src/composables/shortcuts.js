@@ -22,6 +22,8 @@ const SHORTCUTS = {
         : { import: [{ key: 'o', alt: true }, { key: 'o' }] }),
     find: { key: 'f' },
     format: { key: 'f', alt: true },
+    // 插入代码块用 mod+Alt+K；纯 Ctrl+K 是全局搜索，两者靠 Alt 精确区分（见 matchesShortcut）。
+    'code-block': { key: 'k', alt: true },
     'toggle-editor': { key: '\\' },
     palette: { key: 'p' },
     search: { key: 'k' }
