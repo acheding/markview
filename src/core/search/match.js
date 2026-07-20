@@ -6,21 +6,6 @@ export const normalizeQuery = (raw) =>
         .trim()
         .toLowerCase()
 
-export const findTextMatch = (text, query) => {
-    const term = normalizeQuery(query)
-    if (!term) return null
-
-    const from = String(text || '')
-        .toLowerCase()
-        .indexOf(term)
-    if (from < 0) return null
-
-    return {
-        from,
-        to: from + term.length
-    }
-}
-
 // 全部命中区间（从左到右、不重叠）。预览高亮需要在块内多处命中中挑选与
 // 搜索结果对应的那一处，故不能只取第一个。
 export const findAllTextMatches = (text, query) => {
@@ -38,3 +23,5 @@ export const findAllTextMatches = (text, query) => {
 
     return matches
 }
+
+export const findTextMatch = (text, query) => findAllTextMatches(text, query)[0] ?? null

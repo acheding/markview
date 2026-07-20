@@ -56,26 +56,17 @@ export const createScrollMaster = ({ editor, preview, getAnchors, isEnabled = ()
         programmaticScroll(other, interpolate(anchors, name, other, current))
     }
 
-    // 把两侧一次性对齐到编辑区指定行的像素偏移（用于搜索定位）。
-    // 编辑区按视口比例定位，预览区用锚点映射跟随，两个期望值各自核销，天然不与联动竞争。
-    const alignToEditorTop = (editorLineTop, { viewportRatio = 0.3 } = {}) => {
-        if (!isEnabled() || !Number.isFinite(editorLineTop)) return
-
-        const editorTarget = Math.max(0, editorLineTop - panes.editor.getClientHeight() * viewportRatio)
-        programmaticScroll('editor', editorTarget)
+    // 搜索定位：编辑区滚到给定 scrollTop，预览区经锚点表插值跟随。与用户滚动联动
+    // （handleScroll）用同一张表、同一段插值，初次落点与后续同步不会出现两套数学；
+    // 两个期望值各自核销，天然不与联动竞争。未启用或锚点不可用时返回 false，调用方自行退化。
+    const alignToEditorScrollTop = (editorTop) => {
+        if (!isEnabled() || !Number.isFinite(editorTop)) return false
 
         const anchors = getAnchors()
-        if (!anchors?.length) return
-
-        programmaticScroll('preview', interpolate(anchors, 'editor', 'preview', editorTarget))
-    }
-
-    // 搜索等已知两侧精确位置的导航直接对齐，不再经过锚点插值。
-    const alignToScrollTops = (editorTop, previewTop) => {
-        if (!isEnabled() || !Number.isFinite(editorTop) || !Number.isFinite(previewTop)) return false
+        if (!anchors?.length) return false
 
         programmaticScroll('editor', editorTop)
-        programmaticScroll('preview', previewTop)
+        programmaticScroll('preview', interpolate(anchors, 'editor', 'preview', editorTop))
         return true
     }
 
@@ -87,8 +78,7 @@ export const createScrollMaster = ({ editor, preview, getAnchors, isEnabled = ()
 
     return {
         handleScroll,
-        alignToEditorTop,
-        alignToScrollTops,
+        alignToEditorScrollTop,
         reset
     }
 }

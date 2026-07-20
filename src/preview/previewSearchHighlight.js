@@ -33,30 +33,19 @@ const pickAnchoredMatch = (matches, text, anchor) => {
         if (text[index] === '\n') lineStarts.push(index + 1)
     }
 
-    const lineIndexOf = (offset) => {
-        let line = 0
-        while (line + 1 < lineStarts.length && lineStarts[line + 1] <= offset) line += 1
-        return line
-    }
-
+    // matches 按 from 升序，行指针单调前进一次归并即可标注行/列。
+    let line = 0
     const located = matches.map((match) => {
-        const line = lineIndexOf(match.from)
+        while (line + 1 < lineStarts.length && lineStarts[line + 1] <= match.from) line += 1
         return { match, line, column: match.from - lineStarts[line] }
     })
-    const candidateLines = [anchor.relativeLine - 1, anchor.relativeLine].filter(
-        (line) => line >= 0 && line < lineStarts.length
-    )
 
-    for (const line of candidateLines) {
-        const exact = located.find((item) => item.line === line && item.column === anchor.column)
-        if (exact) return exact.match
-    }
-    for (const line of candidateLines) {
-        const onLine = located.find((item) => item.line === line)
-        if (onLine) return onLine.match
-    }
-
-    return matches[0]
+    // located 升序遍历天然实现「低候选行优先」，两级 find 即为完整优先级链。
+    const onCandidateLine = (item) => item.line === anchor.relativeLine - 1 || item.line === anchor.relativeLine
+    const picked =
+        located.find((item) => onCandidateLine(item) && item.column === anchor.column) ??
+        located.find(onCandidateLine)
+    return picked?.match ?? matches[0]
 }
 
 // 遍历目标块内可搜索的文本节点，拼成整段文本后用统一匹配算法定位命中，

@@ -50,8 +50,10 @@ export const createOrchestrations = ({
         })
         if (search.activeMatch.value !== match) return false
 
-        const previewTop = preview?.scrollTopForSourceLine(line, { viewportRatio: SEARCH_VIEWPORT_RATIO })
-        const aligned = getScrollMaster()?.alignToScrollTops(editorTop, previewTop)
+        // 预览侧经滚动同步的锚点表插值跟随（而非块顶定位）：初次落点与后续用户滚动
+        // 共用同一套映射，长代码块内不会出现「定位偏一截、一滚才对齐」。
+        // 同步未启用或锚点不可用时对齐失败，退回预览侧的行插值定位。
+        const aligned = getScrollMaster()?.alignToEditorScrollTop(editorTop)
         if (!aligned) {
             preview?.scrollToSourceLine(line, { behavior: 'auto', viewportRatio: SEARCH_VIEWPORT_RATIO })
         }

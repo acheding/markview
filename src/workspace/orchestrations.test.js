@@ -32,11 +32,10 @@ const createHarness = ({ waitForPreviewReady = vi.fn().mockResolvedValue(true) }
         focus: vi.fn()
     }
     const preview = {
-        scrollTopForSourceLine: vi.fn().mockReturnValue(2180),
         scrollToSourceLine: vi.fn(),
         focus: vi.fn()
     }
-    const scrollMaster = { alignToScrollTops: vi.fn().mockReturnValue(true) }
+    const scrollMaster = { alignToEditorScrollTop: vi.fn().mockReturnValue(true) }
     const headings = {
         updateActiveHeading: vi.fn(),
         activeHeadingId: ref(''),
@@ -89,8 +88,9 @@ describe('search result orchestration', () => {
             4800,
             expect.objectContaining({ match: { from: 12, to: 18 }, query: 'target', viewportRatio: 0.3 })
         )
-        expect(harness.preview.scrollTopForSourceLine).toHaveBeenCalledWith(4800, { viewportRatio: 0.3 })
-        expect(harness.scrollMaster.alignToScrollTops).toHaveBeenCalledWith(1240, 2180)
+        // 预览侧由锚点表插值跟随（与滚动同步同一套映射），而非预览侧块顶定位。
+        expect(harness.scrollMaster.alignToEditorScrollTop).toHaveBeenCalledWith(1240)
+        expect(harness.preview.scrollToSourceLine).not.toHaveBeenCalled()
     })
 
     it('does not apply an older selection after a newer search navigation starts', async () => {

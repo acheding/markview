@@ -91,34 +91,38 @@ describe('createScrollMaster', () => {
         expect(editor.current()).toBe(700)
     })
 
-    it('aligns both panes to an editor line offset', () => {
-        const editor = createPane(1000, 400)
-        const preview = createPane(1000, 400)
+    it('aligns both panes via the same anchor interpolation as sync', () => {
+        const editor = createPane()
+        const preview = createPane()
+        // 非线性锚点：前段 1:3 放大，验证预览侧走的是插值而不是等值拷贝。
         const master = createScrollMaster({
             editor: editor.adapter,
             preview: preview.adapter,
-            getAnchors: () => linearAnchors
+            getAnchors: () => [
+                { editor: 0, preview: 0 },
+                { editor: 100, preview: 300 },
+                { editor: 1000, preview: 1000 }
+            ]
         })
 
-        // 目标行像素 500，视口比例 0.3 → 编辑区定位到 500 - 400*0.3 = 380
-        master.alignToEditorTop(500, { viewportRatio: 0.3 })
-        expect(editor.current()).toBe(380)
-        expect(preview.current()).toBe(380)
+        expect(master.alignToEditorScrollTop(50)).toBe(true)
+        expect(editor.current()).toBe(50)
+        expect(preview.current()).toBe(150)
     })
 
-    it('aligns both panes to independently measured positions', () => {
-        const editor = createPane(2000, 400)
-        const preview = createPane(3000, 500)
+    it('reports alignment failure when anchors or the target are unavailable', () => {
+        const editor = createPane()
+        const preview = createPane()
         const master = createScrollMaster({
             editor: editor.adapter,
             preview: preview.adapter,
-            getAnchors: () => linearAnchors
+            getAnchors: () => []
         })
 
-        master.alignToScrollTops(1432.4, 2288.7)
-
-        expect(editor.current()).toBe(1432)
-        expect(preview.current()).toBe(2289)
+        expect(master.alignToEditorScrollTop(300)).toBe(false)
+        expect(master.alignToEditorScrollTop(Number.NaN)).toBe(false)
+        expect(editor.current()).toBe(0)
+        expect(preview.current()).toBe(0)
     })
 
     it('does not sync while disabled', () => {

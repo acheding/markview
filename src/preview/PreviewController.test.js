@@ -48,3 +48,32 @@ describe('PreviewController viewport snapshots', () => {
         expect(contentEl.scrollTop).toBe(900)
     })
 })
+
+describe('PreviewController source line positioning', () => {
+    // 桩数据：块 100（绝对顶 800）与块 200（绝对顶 1200）之间跨 100 源码行、400px。
+    it('interpolates inside a block by source-line fraction', () => {
+        const { contentEl } = createContentHarness()
+        const controller = createPreviewController({ contentEl })
+
+        // 行 150 在块 100 → 块 200 之间过半：800 + 400 × 0.5 = 1000。
+        expect(controller.scrollTopForSourceLine(150)).toBe(1000)
+        // 恰在块首行：不加偏移，停在块顶。
+        expect(controller.scrollTopForSourceLine(100)).toBe(800)
+    })
+
+    it('falls back to the block top for lines inside the last block', () => {
+        const { contentEl } = createContentHarness()
+        const controller = createPreviewController({ contentEl })
+
+        // 行 250 落在末块（行 200，绝对顶 1200），没有下一块可对照。
+        expect(controller.scrollTopForSourceLine(250)).toBe(1200)
+    })
+
+    it('scrolls to the interpolated position', () => {
+        const { contentEl } = createContentHarness()
+        const controller = createPreviewController({ contentEl })
+
+        expect(controller.scrollToSourceLine(150, { behavior: 'auto' })).toBe(true)
+        expect(contentEl.scrollTo).toHaveBeenLastCalledWith({ top: 1000, behavior: 'auto' })
+    })
+})

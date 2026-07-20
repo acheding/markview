@@ -1,3 +1,4 @@
+import { clamp } from '../core/text.js'
 import { applyPreviewHighlight, clearPreviewHighlight } from './previewSearchHighlight.js'
 
 /**
@@ -21,18 +22,31 @@ export const createPreviewController = ({ contentEl }) => {
         return blockCache
     }
 
-    // 找到源行 ≤ 目标行的最后一个块。
-    const blockForLine = (lineNumber) => {
+    // 源行 ≤ 目标行的最后一个块记录（含下一块，供块内插值对照）。
+    // 目标行在首块之前时取首块；行号无效或没有块时返回 null。
+    const blockRecordForLine = (lineNumber) => {
         const line = Number(lineNumber)
         const blocks = sourceBlocks()
         if (!Number.isFinite(line) || !blocks.length) return null
 
-        let target = blocks[0].element
-        for (const item of blocks) {
-            if (item.line <= line) target = item.element
-            else break
-        }
-        return target
+        const index = Math.max(0, blocks.findLastIndex((block) => block.line <= line))
+        return { ...blocks[index], next: blocks[index + 1] ?? null }
+    }
+
+    // 源行的定位目标：所在块 + 块内像素偏移。偏移在「本块顶 → 下一块顶」之间按
+    // 源码行占比线性分摊——与滚动同步锚点表的分段线性是同一种近似，长代码块内
+    // 也能落到目标行附近，而不是一律停在块顶。末块没有下一块可对照，退回块顶
+    //（此时滚动会被 clamp 在文档底部附近，误差以视口为界）。
+    const locateSourceLine = (lineNumber) => {
+        const record = blockRecordForLine(lineNumber)
+        if (!record) return { target: null, offset: 0 }
+
+        const { element, line, next } = record
+        if (!next || next.line <= line) return { target: element, offset: 0 }
+
+        const fraction = clamp((Number(lineNumber) - line) / (next.line - line), 0, 1)
+        const span = next.element.getBoundingClientRect().top - element.getBoundingClientRect().top
+        return { target: element, offset: Math.max(0, span) * fraction }
     }
 
     const scrollTopForElement = (target, options = {}) => {
@@ -44,12 +58,19 @@ export const createPreviewController = ({ contentEl }) => {
         return contentEl.scrollTop + targetRect.top - contentRect.top - viewportOffset - (options.offset || 0)
     }
 
-    const scrollToElement = (target, options = {}) => {
-        const top = scrollTopForElement(target, options)
+    const scrollToPosition = (top, options = {}) => {
         if (!Number.isFinite(top)) return false
 
         contentEl.scrollTo({ top, behavior: options.behavior || 'smooth' })
         return true
+    }
+
+    const scrollToElement = (target, options = {}) => scrollToPosition(scrollTopForElement(target, options), options)
+
+    // 源行的目标 scrollTop：块顶定位再叠加块内插值偏移（见 locateSourceLine）。
+    const scrollTopForSourceLine = (lineNumber, options = {}) => {
+        const { target, offset } = locateSourceLine(lineNumber)
+        return scrollTopForElement(target, options) + offset
     }
 
     // 预测：把 target 定位到位是否会真正改变 scrollTop（目标 top 经 clamp 后与当前比较）。
@@ -81,7 +102,7 @@ export const createPreviewController = ({ contentEl }) => {
     const restoreViewport = (snapshot) => {
         if (!snapshot) return false
 
-        const target = Number.isFinite(snapshot.line) ? blockForLine(snapshot.line) : null
+        const target = blockRecordForLine(snapshot.line)?.element ?? null
         const top = target ? scrollTopForElement(target, { offset: snapshot.offset }) : Number(snapshot.scrollTop)
         if (!Number.isFinite(top)) return false
 
@@ -95,14 +116,14 @@ export const createPreviewController = ({ contentEl }) => {
         },
 
         sourceBlocks,
-        blockForLine,
 
         captureViewport,
         restoreViewport,
 
-        scrollToSourceLine: (lineNumber, options) => scrollToElement(blockForLine(lineNumber), options),
+        scrollToSourceLine: (lineNumber, options = {}) =>
+            scrollToPosition(scrollTopForSourceLine(lineNumber, options), options),
 
-        scrollTopForSourceLine: (lineNumber, options) => scrollTopForElement(blockForLine(lineNumber), options),
+        scrollTopForSourceLine,
 
         scrollToHeading: (id, options) => scrollToElement(contentEl.querySelector(`#${CSS.escape(id)}`), options),
 
@@ -114,18 +135,16 @@ export const createPreviewController = ({ contentEl }) => {
 
         // 搜索高亮：match = { lineNumber, from, query } 或 null（清除）
         setSearchHighlight(match) {
-            if (match && Number.isFinite(match.lineNumber)) {
-                const target = blockForLine(match.lineNumber)
-                const blockLine = Number(target?.dataset?.sourceLine)
-                // 锚点 = 命中行相对块首的行偏移 + 行内列偏移，供块内多处同词命中时选中正确的那处
-                //（多行代码块最典型）；块行号缺失时不传，退回块内首个命中。
-                const anchor = Number.isFinite(blockLine)
-                    ? { relativeLine: match.lineNumber - blockLine, column: match.from ?? 0 }
-                    : null
-                applyPreviewHighlight(contentEl, target, match.query, anchor)
-            } else {
+            const block = match ? blockRecordForLine(match.lineNumber) : null
+            if (!block) {
                 clearPreviewHighlight(contentEl)
+                return
             }
+
+            // 锚点 = 命中行相对块首的行偏移 + 行内列偏移，供块内多处同词命中时选中正确的那处
+            //（多行代码块最典型）。
+            const anchor = { relativeLine: match.lineNumber - block.line, column: match.from ?? 0 }
+            applyPreviewHighlight(contentEl, block.element, match.query, anchor)
         },
 
         focus: () => contentEl.focus({ preventScroll: true }),
