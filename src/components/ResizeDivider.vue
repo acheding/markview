@@ -38,10 +38,7 @@ defineEmits(['resize-start'])
     width: 1px;
     flex-shrink: 0;
     cursor: col-resize;
-    background: transparent;
-    transition:
-        background var(--duration-fast) ease,
-        opacity 0.22s ease;
+    transition: opacity 0.22s ease;
 }
 
 .divider.is-collapsed {
@@ -70,16 +67,18 @@ defineEmits(['resize-start'])
     cursor: col-resize;
     content: '';
     transform: translateX(-50%);
+    transition: background var(--duration-fast) ease;
 }
 
-.divider:hover,
-.divider.is-active {
-    background: rgb(var(--color-accent-channel) / 5%);
-}
-
+/* hover / 拖拽时整条命中区填充浅色，中间的边框线本身隐去 */
 .divider:hover::before,
 .divider.is-active::before {
-    box-shadow: 0 0 0 2px rgb(var(--color-accent-channel) / 10%);
+    background: transparent;
+}
+
+.divider:hover::after,
+.divider.is-active::after {
+    background: rgb(var(--color-accent-channel) / 22%);
 }
 
 @media (max-width: 768px) {
