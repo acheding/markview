@@ -116,6 +116,16 @@ const countLines = (text) => (text.match(/\n/g) || []).length
 const getSourceLineAttr = (token) =>
     Number.isFinite(token?.sourceLine) ? ` data-source-line="${token.sourceLine}"` : ''
 
+// 代码类块在 data-source-line 之外额外声明内容起始行：围栏行（```lang）不进入渲染文本，
+// 内容从下一源码行开始；缩进代码块无围栏，内容行即块首行。
+// 消费端（预览搜索高亮的行锚定）据此免于猜测围栏偏移，见 PreviewController。
+const getCodeSourceLineAttrs = (token) => {
+    if (!Number.isFinite(token?.sourceLine)) return ''
+
+    const contentLine = token.sourceLine + (token.codeBlockStyle === 'indented' ? 0 : 1)
+    return `${getSourceLineAttr(token)} data-source-content-line="${contentLine}"`
+}
+
 const getCellAlignAttr = (align) => (align ? ` style="text-align:${align}"` : '')
 
 const createTitleAttr = (title) => (title ? ` title="${escapeHtml(title)}"` : '')
@@ -271,7 +281,7 @@ export const renderMarkdown = async (source) => {
 
                     // mermaid：不做语法高亮，输出占位块，源码作为文本子节点，由预览层异步渲染成图。
                     if (language === 'mermaid') {
-                        return `<div class="mermaid-block"${getSourceLineAttr(token)}>${escapeHtml(token.text)}</div>`
+                        return `<div class="mermaid-block"${getCodeSourceLineAttrs(token)}>${escapeHtml(token.text)}</div>`
                     }
 
                     const languageClass = language ? ` language-${escapeHtml(language)}` : ''
@@ -280,7 +290,7 @@ export const renderMarkdown = async (source) => {
                     // 外层 .code-block 承载 data-source-line（块级容器），并为角标 / 复制按钮提供定位上下文。
                     // 复制按钮无 data-*，点击时由预览层取同块 <code> 的 textContent（即还原后的源码）。
                     return (
-                        `<div class="code-block"${getSourceLineAttr(token)}>` +
+                        `<div class="code-block"${getCodeSourceLineAttrs(token)}>` +
                         `<div class="code-block__bar">${langBadge}` +
                         `<button class="code-copy" type="button" title="复制代码" aria-label="复制代码">` +
                         `<svg class="code-copy__check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>` +

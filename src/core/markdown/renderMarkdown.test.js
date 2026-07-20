@@ -41,6 +41,15 @@ describe('renderMarkdown', () => {
         expect(html).toContain('<img src="data:image/png;base64,aGVsbG8=" alt="ok">')
     })
 
+    it('declares the content start line for code blocks', async () => {
+        const { html } = await renderMarkdown('```js\nconst x = 1\n```\n\n    indented\n\n```mermaid\ngraph TD\n```')
+
+        // 围栏块内容从围栏的下一行开始；缩进块无围栏，内容行即块首行。
+        expect(html).toContain('<div class="code-block" data-source-line="1" data-source-content-line="2">')
+        expect(html).toContain('<div class="code-block" data-source-line="5" data-source-content-line="5">')
+        expect(html).toContain('<div class="mermaid-block" data-source-line="7" data-source-content-line="8">')
+    })
+
     it('shows an empty hint for blank input', async () => {
         expect((await renderMarkdown('   ')).html).toContain('empty-hint')
     })

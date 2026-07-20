@@ -12,11 +12,17 @@ export const createPreviewController = ({ contentEl }) => {
     let blockCache = null
 
     // 解析所有 [data-source-line] 块，按行号升序，带缓存（html 更新时 invalidate 失效）。
+    // contentLine = 渲染文本首行对应的源码行：代码类块由 data-source-content-line 声明
+    //（围栏行不进渲染文本），其余块未声明时即块首行。
     const sourceBlocks = () => {
         if (blockCache) return blockCache
 
         blockCache = Array.from(contentEl.querySelectorAll('[data-source-line]'))
-            .map((element) => ({ element, line: Number(element.dataset.sourceLine) }))
+            .map((element) => {
+                const line = Number(element.dataset.sourceLine)
+                const contentLine = Number(element.dataset.sourceContentLine)
+                return { element, line, contentLine: Number.isFinite(contentLine) ? contentLine : line }
+            })
             .filter((item) => Number.isFinite(item.line))
 
         return blockCache
@@ -141,9 +147,9 @@ export const createPreviewController = ({ contentEl }) => {
                 return
             }
 
-            // 锚点 = 命中行相对块首的行偏移 + 行内列偏移，供块内多处同词命中时选中正确的那处
-            //（多行代码块最典型）。
-            const anchor = { relativeLine: match.lineNumber - block.line, column: match.from ?? 0 }
+            // 锚点 = 命中行在渲染文本中的行下标（相对内容起始行）+ 行内列偏移，
+            // 供块内多处同词命中时选中正确的那处（多行代码块最典型）。
+            const anchor = { relativeLine: match.lineNumber - block.contentLine, column: match.from ?? 0 }
             applyPreviewHighlight(contentEl, block.element, match.query, anchor)
         },
 

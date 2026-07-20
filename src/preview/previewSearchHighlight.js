@@ -18,11 +18,11 @@ const isSearchableTextNode = (node) => {
     return true
 }
 
-// 块内多处同词命中时，按锚点（命中行相对块首的行偏移 relativeLine + 行内列偏移 column）
-// 挑选与搜索结果对应的那一处。行映射只在渲染文本保留换行的块（代码块 / mermaid 源码）成立：
-// 围栏行（```lang）不进入渲染文本，内容行整体上移一行，故候选行优先取 relativeLine - 1，
-// 无围栏的块（缩进代码等）再退到 relativeLine。列能对上的最准（代码块文本与源码逐字符一致）；
-// 对不上取候选行内首个命中（如首行前拼了语言角标文本导致列整体偏移）；
+// 块内多处同词命中时，按锚点（relativeLine = 命中行在渲染文本中的行下标 + column = 行内列偏移）
+// 挑选与搜索结果对应的那一处。行下标由生产端的 data-source-content-line 契约保证精确
+//（围栏行不进渲染文本，由渲染器声明内容起始行），行映射只在渲染文本保留换行的块
+//（代码块 / mermaid 源码）成立。列能对上的最准（代码块文本与源码逐字符一致）；
+// 对不上取该行首个命中（如首行前拼了语言角标文本导致列整体偏移）；
 // 行也对不上（段落等无换行块）退回首个命中，即原有行为。
 const pickAnchoredMatch = (matches, text, anchor) => {
     if (matches.length < 2) return matches[0] ?? null
@@ -40,11 +40,8 @@ const pickAnchoredMatch = (matches, text, anchor) => {
         return { match, line, column: match.from - lineStarts[line] }
     })
 
-    // located 升序遍历天然实现「低候选行优先」，两级 find 即为完整优先级链。
-    const onCandidateLine = (item) => item.line === anchor.relativeLine - 1 || item.line === anchor.relativeLine
-    const picked =
-        located.find((item) => onCandidateLine(item) && item.column === anchor.column) ??
-        located.find(onCandidateLine)
+    const onAnchorLine = (item) => item.line === anchor.relativeLine
+    const picked = located.find((item) => onAnchorLine(item) && item.column === anchor.column) ?? located.find(onAnchorLine)
     return picked?.match ?? matches[0]
 }
 
