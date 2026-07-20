@@ -38,8 +38,8 @@
     --color-pre-bg: #f6f6f7;
     --color-pre-text: #67676c;
     --color-table-stripe: #f9f9fa;
-    --color-scrollbar-thumb: #c2c2c4;
-    --color-scrollbar-thumb-hover: #929295;
+    --color-scrollbar-thumb: #d4d4d6;
+    --color-scrollbar-thumb-hover: #a6a6a9;
 
     /* 骨架屏占位（加载态微光） */
     --color-skeleton-base: #e5e7eb;
@@ -147,8 +147,8 @@
     --color-pre-bg: #18181b;
     --color-pre-text: #c4c4cc;
     --color-table-stripe: #202024;
-    --color-scrollbar-thumb: #3a3a40;
-    --color-scrollbar-thumb-hover: #52525b;
+    --color-scrollbar-thumb: #46464d;
+    --color-scrollbar-thumb-hover: #616169;
 
     /* 代码高亮：GitHub Dark 色阶 */
     --color-syntax-comment: #8b949e;
