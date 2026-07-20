@@ -41,7 +41,8 @@ const pickAnchoredMatch = (matches, text, anchor) => {
     })
 
     const onAnchorLine = (item) => item.line === anchor.relativeLine
-    const picked = located.find((item) => onAnchorLine(item) && item.column === anchor.column) ?? located.find(onAnchorLine)
+    const picked =
+        located.find((item) => onAnchorLine(item) && item.column === anchor.column) ?? located.find(onAnchorLine)
     return picked?.match ?? matches[0]
 }
 

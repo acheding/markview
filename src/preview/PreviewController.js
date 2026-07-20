@@ -35,7 +35,10 @@ export const createPreviewController = ({ contentEl }) => {
         const blocks = sourceBlocks()
         if (!Number.isFinite(line) || !blocks.length) return null
 
-        const index = Math.max(0, blocks.findLastIndex((block) => block.line <= line))
+        const index = Math.max(
+            0,
+            blocks.findLastIndex((block) => block.line <= line)
+        )
         return { ...blocks[index], next: blocks[index + 1] ?? null }
     }
 
