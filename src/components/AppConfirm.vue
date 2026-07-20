@@ -77,8 +77,8 @@ watch(
 
 .confirm-dialog {
     width: 100%;
-    max-width: 340px;
-    padding: 20px 22px 16px;
+    max-width: 400px;
+    padding: 20px 22px 18px;
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
@@ -100,8 +100,10 @@ watch(
     word-break: break-word;
 }
 
+/* 按钮文案可能较长（如「仅保留在 MarkView」），一行放不下时整体换行堆叠，不让按钮内文字折行 */
 .confirm-dialog__actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
@@ -110,6 +112,7 @@ watch(
 .confirm-btn {
     min-width: 72px;
     padding: 7px 16px;
+    white-space: nowrap;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     font-size: var(--font-size-base);
