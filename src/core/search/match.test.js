@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findTextMatch, normalizeQuery } from './match.js'
+import { findAllTextMatches, findTextMatch, normalizeQuery } from './match.js'
 
 describe('normalizeQuery', () => {
     it('trims and lowercases the query', () => {
@@ -20,5 +20,26 @@ describe('findTextMatch', () => {
     it('returns null for empty or missing matches', () => {
         expect(findTextMatch('content', '')).toBeNull()
         expect(findTextMatch('content', 'missing')).toBeNull()
+    })
+})
+
+describe('findAllTextMatches', () => {
+    it('returns every non-overlapping match from left to right', () => {
+        expect(findAllTextMatches('denied warNIng', 'ni')).toEqual([
+            { from: 2, to: 4 },
+            { from: 10, to: 12 }
+        ])
+    })
+
+    it('advances past each match to avoid overlaps', () => {
+        expect(findAllTextMatches('aaaa', 'aa')).toEqual([
+            { from: 0, to: 2 },
+            { from: 2, to: 4 }
+        ])
+    })
+
+    it('returns an empty array for empty or missing matches', () => {
+        expect(findAllTextMatches('content', '')).toEqual([])
+        expect(findAllTextMatches('content', 'missing')).toEqual([])
     })
 })

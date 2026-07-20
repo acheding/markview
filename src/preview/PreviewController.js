@@ -112,10 +112,17 @@ export const createPreviewController = ({ contentEl }) => {
 
         scrollToTop: () => contentEl.scrollTo({ top: 0, behavior: 'smooth' }),
 
-        // 搜索高亮：match = { lineNumber, query } 或 null（清除）
+        // 搜索高亮：match = { lineNumber, from, query } 或 null（清除）
         setSearchHighlight(match) {
             if (match && Number.isFinite(match.lineNumber)) {
-                applyPreviewHighlight(contentEl, blockForLine(match.lineNumber), match.query)
+                const target = blockForLine(match.lineNumber)
+                const blockLine = Number(target?.dataset?.sourceLine)
+                // 锚点 = 命中行相对块首的行偏移 + 行内列偏移，供块内多处同词命中时选中正确的那处
+                //（多行代码块最典型）；块行号缺失时不传，退回块内首个命中。
+                const anchor = Number.isFinite(blockLine)
+                    ? { relativeLine: match.lineNumber - blockLine, column: match.from ?? 0 }
+                    : null
+                applyPreviewHighlight(contentEl, target, match.query, anchor)
             } else {
                 clearPreviewHighlight(contentEl)
             }

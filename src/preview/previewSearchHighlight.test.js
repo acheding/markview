@@ -126,6 +126,41 @@ describe('applyPreviewHighlight', () => {
         expect(target.classList.contains(FALLBACK_CLASS)).toBe(false)
     })
 
+    it('块内多行同词命中：按锚点（相对行 + 列）选中对应行的那一处，而非首个', () => {
+        // 模拟代码块：围栏行占 relativeLine 0，渲染文本从内容首行开始。
+        // "ni" 在第 1 行 "denied"（列 8）与第 2 行 "warning"（列 10）各有一处命中。
+        const target = makeTarget([{ text: "const denied = 1\ntoast('warning')", parentSelectors: [] }])
+
+        applyPreviewHighlight(contentEl, target, 'ni', { relativeLine: 2, column: 10 })
+
+        const ranges = currentHighlights.get(HIGHLIGHT_NAME).ranges
+        expect(ranges).toHaveLength(1)
+        // 全局偏移 = 第 2 行起点 17 + 列 10，落在 "warning" 的 "ni" 上，而非 "denied" 的（偏移 8）。
+        expect(ranges[0].startOffset).toBe(27)
+        expect(ranges[0].endOffset).toBe(29)
+    })
+
+    it('锚点列对不上（如角标文本导致列偏移）：取候选行内首个命中', () => {
+        const target = makeTarget([{ text: 'denied\nprefix denied', parentSelectors: [] }])
+
+        applyPreviewHighlight(contentEl, target, 'ni', { relativeLine: 2, column: 5 })
+
+        const ranges = currentHighlights.get(HIGHLIGHT_NAME).ranges
+        expect(ranges).toHaveLength(1)
+        // 列 5 无精确命中，退到第 2 行（渲染行 1）的首个 "ni"：行起点 7 + 列 9。
+        expect(ranges[0].startOffset).toBe(16)
+    })
+
+    it('锚点行超出渲染文本行数（段落等无换行块）：退回首个命中', () => {
+        const target = makeTarget([{ text: 'warning warning', parentSelectors: [] }])
+
+        applyPreviewHighlight(contentEl, target, 'warning', { relativeLine: 3, column: 0 })
+
+        const ranges = currentHighlights.get(HIGHLIGHT_NAME).ranges
+        expect(ranges).toHaveLength(1)
+        expect(ranges[0].startOffset).toBe(0)
+    })
+
     it('SVG 内外混合命中：只把 SVG 外的命中交给 Highlight API', () => {
         const target = makeTarget([
             { text: 'mermaid 说明', parentSelectors: [] },
