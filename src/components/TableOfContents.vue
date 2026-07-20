@@ -2,19 +2,31 @@
     <aside ref="tocRef" class="toc" :style="{ width }" aria-label="文档目录">
         <div v-if="items.length" class="toc__list">
             <button
-                v-for="item in items"
+                v-for="item in view.visibleItems"
                 :key="item.id"
                 type="button"
                 class="toc__item"
                 :class="{
-                    'is-active': item.id === activeId,
-                    'is-pending': item.id === navigatingId && item.id !== activeId
+                    'is-active': item.id === view.displayActiveId,
+                    'is-pending': item.id === navigatingId && item.id !== view.displayActiveId
                 }"
-                :style="{ paddingLeft: `${(item.level - 1) * 12 + 10}px` }"
+                :style="{ paddingLeft: `${(item.level - 1) * 12 + 4}px` }"
                 :title="item.title"
                 @click="select(item.id)"
             >
-                {{ item.title }}
+                <!-- 有子标题的条目带折叠箭头；无子项放同宽占位保持同级文字对齐 -->
+                <span
+                    v-if="item.hasChildren"
+                    class="toc__caret"
+                    :class="{ 'is-collapsed': item.collapsed }"
+                    role="button"
+                    tabindex="-1"
+                    :aria-label="item.collapsed ? '展开小节' : '折叠小节'"
+                    :aria-expanded="!item.collapsed"
+                    @click.stop="toggleCollapse(item.id)"
+                />
+                <span v-else class="toc__caret toc__caret--leaf" aria-hidden="true" />
+                <span class="toc__label">{{ item.title }}</span>
             </button>
         </div>
 
@@ -23,7 +35,8 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { computeTocView } from '../core/toc/tocTree.js'
 
 const props = defineProps({
     items: {
@@ -45,6 +58,27 @@ const emit = defineEmits(['select'])
 const tocRef = ref(null)
 // 本组件发起的导航目标：点击后、activeId 抵达前，用它给目标「悬浮态」并抑制面板滚动。
 const navigatingId = ref('')
+// 被折叠的标题 id 集合；折叠某项即隐藏其整棵子树。
+const collapsedIds = ref(new Set())
+
+const view = computed(() => computeTocView(props.items, collapsedIds.value, props.activeId))
+
+const toggleCollapse = (id) => {
+    const next = new Set(collapsedIds.value)
+    if (!next.delete(id)) next.add(id)
+    collapsedIds.value = next
+}
+
+// 文档编辑/切换后清理已不存在的 id，防止集合随长期编辑无限增长。
+watch(
+    () => props.items,
+    (items) => {
+        if (!collapsedIds.value.size) return
+        const alive = new Set(items.map((item) => item.id))
+        const next = new Set([...collapsedIds.value].filter((id) => alive.has(id)))
+        if (next.size !== collapsedIds.value.size) collapsedIds.value = next
+    }
+)
 
 const select = (id) => {
     navigatingId.value = id
@@ -100,7 +134,9 @@ watch(
 }
 
 .toc__item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 2px;
     width: 100%;
     min-height: 30px;
     padding-top: 6px;
@@ -116,12 +152,63 @@ watch(
     font-size: var(--font-size-sm);
     line-height: 1.35;
     text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     transition:
         color var(--duration-fast) ease,
         background var(--duration-fast) ease,
         border-color var(--duration-fast) ease;
+}
+
+.toc__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 折叠箭头：展开为向下 chevron，折叠时转成向右 */
+.toc__caret {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-sm);
+    transition: background var(--duration-fast) ease;
+}
+
+.toc__caret::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0.55;
+    transform: translateY(-1px) rotate(45deg);
+    transition:
+        transform var(--duration-fast) ease,
+        opacity var(--duration-fast) ease;
+}
+
+.toc__caret.is-collapsed::before {
+    transform: translateX(-1px) rotate(-45deg);
+}
+
+.toc__caret:hover {
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+.toc__caret:hover::before {
+    opacity: 1;
+}
+
+/* 叶子占位仅用于同级对齐：无三角、不响应 hover */
+.toc__caret--leaf {
+    pointer-events: none;
+}
+
+.toc__caret--leaf::before {
+    content: none;
 }
 
 .toc__item:hover,
