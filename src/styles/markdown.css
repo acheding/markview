@@ -88,11 +88,16 @@
 }
 
 .markdown-body li > input[type='checkbox'] {
+    /* UA 样式表给表单控件固定字体与 line-height: normal，先继承回正文度量，
+       em / lh 才按列表文字的字号与行高解析 */
+    font-size: inherit;
+    line-height: inherit;
     width: 1em;
     height: 1em;
-    margin: 0 0.45em 0 -1.5em;
-    /* 正文行高较大（1.8），用固定偏移让复选框与第一行文字视觉对齐 */
-    vertical-align: -0.04em;
+    /* 顶对齐行盒后下推 (1lh - 1em) / 2，使复选框在首行行盒内精确垂直居中，
+       不依赖手调偏移，任意字号/行高（含移动端）下均成立 */
+    vertical-align: top;
+    margin: calc((1lh - 1em) / 2) 0.45em 0 -1.5em;
 }
 
 /* 可交互的任务复选框（点击回写源码），勾选色跟随主题强调色。 */
