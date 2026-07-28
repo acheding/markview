@@ -45,7 +45,8 @@ const iconUrl = computed(() => ICON_URLS[toast.tone.value] || infoIcon)
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    max-width: min(80vw, 420px);
+    max-width: min(calc(100vw - 24px), 520px);
+    box-sizing: border-box;
     padding: 7px 16px 7px 10px;
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-full);

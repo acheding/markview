@@ -252,7 +252,7 @@ describe('外部修改检测（checkActiveExternal）', () => {
 
         expect(documents.replaceContent).toHaveBeenCalledWith('doc_1', '# v2')
         expect(editor.setDoc).toHaveBeenCalledWith('# v2')
-        expect(toast.show).toHaveBeenCalledWith('已加载「a.md」的最新内容', { tone: 'success' })
+        expect(toast.show).toHaveBeenCalledWith('已加载文件的最新内容', { tone: 'success' })
         expect(session.activeStatus.value).toBe(FILE_LINK_STATUS.SYNCED)
     })
 

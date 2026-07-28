@@ -225,7 +225,7 @@ export const createFileSession = ({ documents, toast, confirm, getEditor }) => {
             if (localClean) {
                 // 本地自上次同步后没动过：安全地跟进磁盘版本。
                 reloadFromDisk(docId, content, { name, lastModified })
-                toast.show(`已加载「${name}」的最新内容`, { tone: 'success' })
+                toast.show('已加载文件的最新内容', { tone: 'success' })
                 return
             }
 
