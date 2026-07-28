@@ -3,7 +3,7 @@
         class="divider"
         role="separator"
         :aria-orientation="orientation"
-        :class="{ 'is-active': active, 'is-collapsed': collapsed }"
+        :class="{ 'is-active': active, 'is-collapsed': collapsed, 'is-snapped': snapped }"
         @pointerdown="$emit('resize-start', $event)"
     ></div>
 </template>
@@ -15,6 +15,10 @@ defineProps({
         default: false
     },
     collapsed: {
+        type: Boolean,
+        default: false
+    },
+    snapped: {
         type: Boolean,
         default: false
     },
@@ -79,6 +83,11 @@ defineEmits(['resize-start'])
 .divider:hover::after,
 .divider.is-active::after {
     background: rgb(var(--color-accent-channel) / 22%);
+}
+
+.divider.is-snapped::after {
+    background: rgb(var(--color-accent-channel) / 48%);
+    box-shadow: 0 0 0 1px rgb(var(--color-accent-channel) / 12%);
 }
 
 @media (max-width: 768px) {

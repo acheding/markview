@@ -13,6 +13,14 @@ const DIVIDER_WIDTH = 1
 const MIN_TOC_WIDTH = 160
 const MAX_TOC_WIDTH = 360
 const DEFAULT_TOC_WIDTH = 220
+const PANE_SNAP_ENTER_DISTANCE = 10
+const PANE_SNAP_RELEASE_DISTANCE = 18
+
+export const resolveBalancedPaneSnap = (width, balancedWidth, wasSnapped) => {
+    const threshold = wasSnapped ? PANE_SNAP_RELEASE_DISTANCE : PANE_SNAP_ENTER_DISTANCE
+    const snapped = Math.abs(width - balancedWidth) <= threshold
+    return { width: snapped ? balancedWidth : width, snapped }
+}
 
 // editorWidth 三态：null=默认均分（下方 balanced 布局，编辑区≈预览内容区，纯 CSS 无需测量）；
 // number=用户拖拽后的编辑区像素宽度。下限取 MIN_PANE_WIDTH：既拒绝被篡改的过小值，
@@ -78,6 +86,7 @@ export const createLayoutSession = () => {
             ? `calc(100% - ${editorWidth.value}px - ${DIVIDER_WIDTH}px)`
             : balancedPreviewWidth()
     )
+    const isPaneSnapped = ref(false)
     const paneResize = usePointerResize({
         onMove: (event) => {
             const container = containerRef.value
@@ -86,12 +95,30 @@ export const createLayoutSession = () => {
             const tocPx = isTocVisible.value ? tocWidth.value : 0
             // 拖拽点即编辑区右边界；上限保证预览内容区（扣除 TOC 与两条分隔线）不小于最小宽度。
             const maxEditor = rect.width - tocPx - DIVIDER_WIDTH * 2 - MIN_PANE_WIDTH
-            editorWidth.value = clamp(event.clientX - rect.left, MIN_PANE_WIDTH, Math.max(MIN_PANE_WIDTH, maxEditor))
+            const safeMaxEditor = Math.max(MIN_PANE_WIDTH, maxEditor)
+            const nextWidth = clamp(event.clientX - rect.left, MIN_PANE_WIDTH, safeMaxEditor)
+            const balancedWidth = (rect.width - tocPx - DIVIDER_WIDTH) / 2
+
+            if (balancedWidth < MIN_PANE_WIDTH || balancedWidth > safeMaxEditor) {
+                isPaneSnapped.value = false
+                editorWidth.value = nextWidth
+                return
+            }
+
+            const result = resolveBalancedPaneSnap(nextWidth, balancedWidth, isPaneSnapped.value)
+            isPaneSnapped.value = result.snapped
+            editorWidth.value = result.width
+        },
+        onEnd: () => {
+            isPaneSnapped.value = false
         }
     })
     // 纵向堆叠时不启动横向拖拽（与 startTocResize 用 isTocVisible 守卫同理）。
     const startResize = (event) => {
-        if (!isStacked.value) paneResize.start(event)
+        if (!isStacked.value) {
+            isPaneSnapped.value = false
+            paneResize.start(event)
+        }
     }
 
     // —— TOC 宽度 ——
@@ -137,6 +164,7 @@ export const createLayoutSession = () => {
         previewWidth,
         minPaneWidth: MIN_PANE_WIDTH,
         isResizing: paneResize.isActive,
+        isPaneSnapped,
         startResize,
         isStacked,
 

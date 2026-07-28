@@ -16,6 +16,7 @@
                 <ResizeDivider
                     :active="layout.isResizing.value"
                     :collapsed="layout.isEditorCollapsed.value"
+                    :snapped="layout.isPaneSnapped.value"
                     :orientation="layout.isStacked.value ? 'horizontal' : 'vertical'"
                     @resize-start="layout.startResize"
                 />
