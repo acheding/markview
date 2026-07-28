@@ -30,12 +30,16 @@
             </button>
         </div>
 
-        <div v-else class="toc__empty">暂无目录</div>
+        <div v-else class="toc__empty" role="status">
+            <span class="toc__empty-icon" :style="{ '--icon-url': `url(${tocEmptyIcon})` }" aria-hidden="true" />
+            <span class="toc__empty-label">暂无目录</span>
+        </div>
     </aside>
 </template>
 
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import tocEmptyIcon from '../assets/toc-empty.svg'
 import { computeTocView } from '../core/toc/tocTree.js'
 
 const props = defineProps({
@@ -226,9 +230,29 @@ watch(
 }
 
 .toc__empty {
-    padding: 12px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    min-height: min(260px, 42vh);
+    padding: 28px 12px;
     color: var(--color-subtle);
+    text-align: center;
+}
+
+.toc__empty-icon {
+    width: 42px;
+    height: 42px;
+    color: color-mix(in srgb, var(--color-muted) 62%, transparent);
+    background: currentColor;
+    mask: var(--icon-url) center / contain no-repeat;
+    -webkit-mask: var(--icon-url) center / contain no-repeat;
+}
+
+.toc__empty-label {
     font-size: var(--font-size-sm);
+    line-height: 1.5;
 }
 
 @media (max-width: 1120px) {
