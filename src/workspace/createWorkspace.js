@@ -287,7 +287,7 @@ export const createWorkspace = () => {
             if (!previewController) return
             exportHtml(previewController.scrollDOM, documents.activeFile.value?.name, { theme: theme.value })
         },
-        print: () => printDocument()
+        print: () => printDocument(documents.activeFile.value?.name)
     }
 
     // —— 响应式联动 ——

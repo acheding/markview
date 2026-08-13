@@ -73,14 +73,17 @@ ${needsKatex ? `<link rel="stylesheet" href="${KATEX_CDN}" crossorigin="anonymou
     triggerDownload(doc, `${title}.html`, 'text/html;charset=utf-8')
 }
 
+const getExportTitle = (name) => getExportFileName(name || 'document.md').replace(/\.(md|markdown)$/i, '')
+
 // 打印 / 打印为 PDF：借浏览器原生打印，产出文字可选、体积小的矢量输出。
 // 版式由 styles/print.css 的 @media print 负责（隐藏应用外壳、撑开正文、分页避断）。
 // 打印期间临时切浅色（省墨、避免深色背景被浏览器丢弃），打印结束或兜底超时后恢复。
-export const printDocument = () => {
+export const printDocument = (name) => {
     if (typeof window === 'undefined') return
 
     const root = document.documentElement
     const previousTheme = root.dataset.theme
+    const previousTitle = document.title
 
     let restored = false
     const restore = () => {
@@ -88,11 +91,14 @@ export const printDocument = () => {
         restored = true
         if (previousTheme) root.dataset.theme = previousTheme
         else delete root.dataset.theme
+        document.title = previousTitle
         window.removeEventListener('afterprint', restore)
         clearTimeout(fallbackTimer)
     }
 
     root.dataset.theme = 'light'
+    // 浏览器以页面标题作为“另存为 PDF”的默认文件名，先去掉 Markdown 扩展名，避免生成 .md.pdf。
+    document.title = getExportTitle(name)
     window.addEventListener('afterprint', restore)
     // afterprint 在部分浏览器不触发；打印对话框为模态时 print() 阻塞返回后兜底恢复。
     const fallbackTimer = setTimeout(restore, 1500)
